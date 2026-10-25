@@ -4,13 +4,22 @@
 	"compatibilityLevel": "JAVA_25",
 	"client": [
 		"AbstractContainerScreenMixin",
+		"AbstractSoundInstanceMixin",
+		"ChatComponentAccessor",
+		"ChatScreenMixin",
 		"ClientCommonPacketListenerImplMixin",
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",
 		"EntityMixin",
 		"EntityRenderDispatcherMixin",
 		"GuiMixin",
+		"ItemInHandRendererMixin",
+		"LivingEntityMixin",
+		"LocalPlayerMixin",
 		"MinecraftMixin",
+		"MouseHandlerMixin",
+		"PlayerMixin",
+		"ScreenEffectRendererMixin",
 		"SoundManagerMixin"
 	],
 	"injectors": {

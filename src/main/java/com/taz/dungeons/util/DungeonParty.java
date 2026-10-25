@@ -101,6 +101,11 @@ public final class DungeonParty {
 		CLASSES.put(name.toLowerCase(), dungeonClass);
 	}
 
+	/** The party's size from the tab list ("Party (5)"), or -1. */
+	public static int size() {
+		return size;
+	}
+
 	/** On your own (the sidebar says "Solo", or the tab list "Party (1)"): nobody to tell in party chat. */
 	public static boolean solo() {
 		return size == 1 || GalateaRecorder.sidebarLines().stream().anyMatch(l -> l.trim().equals("Solo"));

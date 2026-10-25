@@ -25,6 +25,15 @@ public final class PerformanceHud extends TextHud {
 		mc.getConnection().send(new ServerboundPingRequestPacket(System.currentTimeMillis()));
 	}
 
+	/** Your ping in ms: measured when the HUD shows it, otherwise the server's figure from the tab list. */
+	public static long ping() {
+		if (pingMs >= 0) return pingMs;
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.getConnection() == null || mc.player == null) return 0;
+		var info = mc.getConnection().getPlayerInfo(mc.player.getUUID());
+		return info == null ? 0 : info.getLatency();
+	}
+
 	/** The server answered a ping (ClientPacketListenerMixin). */
 	public static void onPong(long sentAt) {
 		long ms = System.currentTimeMillis() - sentAt;

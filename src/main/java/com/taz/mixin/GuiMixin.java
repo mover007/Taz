@@ -17,6 +17,13 @@ public class GuiMixin {
 		com.taz.Taz.onActionBar(message);
 	}
 
+	/** Hotbar slots: the rarity colour behind each item. */
+	@Inject(method = "extractSlot", at = @At("HEAD"), require = 0)
+	private void taz$hotbarSlot(net.minecraft.client.gui.GuiGraphicsExtractor g, int x, int y, net.minecraft.client.DeltaTracker delta,
+			net.minecraft.world.entity.player.Player player, net.minecraft.world.item.ItemStack stack, int seed, CallbackInfo ci) {
+		com.taz.inventory.ItemOverlays.hotbar(g, stack, x, y);
+	}
+
 	@Inject(method = "setTitle", at = @At("HEAD"))
 	private void taz$onTitle(Component title, CallbackInfo ci) {
 		com.taz.foraging.GalateaRecorder.onTitle("title", com.taz.dungeons.util.TextUtil.cleanChat(title.getString()));

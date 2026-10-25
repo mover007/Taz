@@ -109,6 +109,16 @@ public final class ItemOverlays {
 		g.fill(slot.x, slot.y, slot.x + 16, slot.y + 16, alpha | r.rgb);
 	}
 
+	/** A hotbar slot, before its item is drawn (GuiMixin). */
+	public static void hotbar(GuiGraphicsExtractor g, net.minecraft.world.item.ItemStack stack, int x, int y) {
+		ItemOverlayConfig cfg = ItemOverlayConfig.get();
+		if (!cfg.enabled || !cfg.rarity || !cfg.hotbar || stack == null || stack.isEmpty()) return;
+		Rarity r = of(stack).rarity();
+		if (r == null || r == Rarity.COMMON && cfg.skipCommon) return;
+		int alpha = Math.round(cfg.opacity / 100f * 255) << 24;
+		g.fill(x, y, x + 16, y + 16, alpha | r.rgb);
+	}
+
 	/** After the item is drawn (AbstractContainerScreenMixin). */
 	public static void foreground(GuiGraphicsExtractor g, Slot slot) {
 		ItemOverlayConfig cfg = ItemOverlayConfig.get();

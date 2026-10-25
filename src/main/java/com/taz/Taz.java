@@ -177,6 +177,11 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.SimonSays::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.ArrowAlign::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.WitherDragons::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.general.BlockOverlay::render);
+		LevelRenderEvents.BEFORE_BLOCK_OUTLINE.register((context, outline) -> !com.taz.general.BlockOverlay.replaces());
+		net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.MODIFY_CHAT.register(com.taz.general.ChatTweaks::emoji);
+		net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.MODIFY_COMMAND.register(command ->
+				com.taz.general.ChatTweaks.emojiCommand(com.taz.general.CommandShortcuts.rewrite(command)));
 		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
 			if (level.isClientSide()) safely("Terminal highlight click", () -> com.taz.dungeons.f7.TerminalHighlight.onClick(entity));
 			if (level.isClientSide() && hand == net.minecraft.world.InteractionHand.MAIN_HAND) safely("Arrow align click", () -> com.taz.dungeons.f7.ArrowAlign.onClick(entity));
@@ -346,6 +351,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Wither dragons", () -> com.taz.dungeons.f7.WitherDragons.onParticle(particle, x, y, z, dx, dy, dz, speed, count));
 		safely("Gyro wand", () -> com.taz.general.GyroWand.onParticle(particle, x, y, z, dx, dy, dz));
 		safely("Mage beam", () -> hide[0] |= com.taz.dungeons.info.MageBeam.onParticle(particle, x, y, z));
+		safely("Render optimizer", () -> hide[0] |= com.taz.general.RenderOptimizer.hideParticle(particle));
 		return hide[0];
 	}
 
@@ -358,7 +364,7 @@ public final class Taz implements ClientModInitializer {
 	public static boolean onSound(String id, float pitch) {
 		safely("Ragnarock", () -> com.taz.general.Ragnarock.onSound(id, pitch));
 		safely("Spring boots", () -> com.taz.general.SpringBoots.onSound(id, pitch));
-		return com.taz.dungeons.f7.TerminalSolver.muteSound(id, pitch);
+		return com.taz.dungeons.f7.TerminalSolver.muteSound(id, pitch) | com.taz.general.EtherwarpGuess.onSound(id, pitch);
 	}
 
 	/** Block events (ClientPacketListenerMixin): a chest lid opening. */
@@ -405,6 +411,10 @@ public final class Taz implements ClientModInitializer {
 		safely("Secret clicked chat", () -> com.taz.dungeons.highlight.SecretClicked.onChat(line));
 		safely("Blood camp chat", () -> com.taz.dungeons.info.BloodCamp.onChat(line));
 		safely("Puzzles chat", () -> com.taz.dungeons.puzzles.Puzzles.onChat(line));
+		safely("Party", () -> com.taz.util.Party.onChat(line));
+		safely("Chat commands", () -> com.taz.general.ChatCommands.onChat(line));
+		safely("Chat tweaks", () -> com.taz.general.ChatTweaks.onChat(line));
+		safely("Auto requeue", () -> com.taz.dungeons.info.AutoRequeue.onChat(line));
 	}
 
 	/** Every action bar message (GuiMixin), for every feature. */
@@ -492,6 +502,9 @@ public final class Taz implements ClientModInitializer {
 		safely("Terminal solver", () -> com.taz.dungeons.f7.TerminalSolver.tick(mc));
 		safely("Arrow align", () -> com.taz.dungeons.f7.ArrowAlign.tick(mc));
 		safely("Wither dragons", () -> com.taz.dungeons.f7.WitherDragons.tick(mc));
+		safely("Chat commands", com.taz.general.ChatCommands::tick);
+		safely("Tweaks", () -> com.taz.general.Tweaks.tick(mc));
+		safely("Auto requeue", () -> com.taz.dungeons.info.AutoRequeue.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();
 	}

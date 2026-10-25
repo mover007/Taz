@@ -29,6 +29,11 @@ public final class EtherwarpConfig {
 	@ConfigEditorBoolean
 	public boolean throughWalls = false;
 
+	@Expose
+	@ConfigOption(name = "Etherwarp sound", desc = "Play the XP orb sound when you Etherwarp, instead of the dragon's growl. From NoammAddons.")
+	@ConfigEditorBoolean
+	public boolean sound = false;
+
 	public static EtherwarpConfig get() {
 		return Taz.config().general.etherwarp;
 	}

@@ -70,6 +70,15 @@ public final class EtherwarpGuess {
 		}
 	}
 
+	/** Hypixel's Etherwarp sound (the ender dragon's hurt sound at a low pitch); true when Taz plays its own instead. */
+	public static boolean onSound(String id, float pitch) {
+		EtherwarpConfig cfg = EtherwarpConfig.get();
+		if (!cfg.enabled || !cfg.sound || !id.equals("entity.ender_dragon.hurt") || Math.abs(pitch - 0.53968257f) > 0.001f) return false;
+		Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(
+				net.minecraft.sounds.SoundEvents.EXPERIENCE_ORB_PICKUP, 1f, 0.5f));
+		return true;
+	}
+
 	/** Test hook: the last guess drawn. */
 	public static EtherRaycast.Hit last() {
 		return last;

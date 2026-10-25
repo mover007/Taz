@@ -19,6 +19,30 @@ import com.taz.dungeons.f7.TerminalSolver;
  */
 @Mixin(AbstractContainerScreen.class)
 public class AbstractContainerScreenMixin {
+	@org.spongepowered.asm.mixin.Shadow
+	protected Slot hoveredSlot;
+	@org.spongepowered.asm.mixin.Shadow
+	protected int leftPos;
+	@org.spongepowered.asm.mixin.Shadow
+	protected int topPos;
+
+	/** Slot Binds and Loadout Keybinds: keys and clicks in menus. */
+	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
+	private void taz$key(net.minecraft.client.input.KeyEvent event, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+		if (com.taz.general.InventoryKeys.onKey((AbstractContainerScreen<?>) (Object) this, hoveredSlot, event.key())) cir.setReturnValue(true);
+	}
+
+	@Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
+	private void taz$click(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick,
+			org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+		if (com.taz.general.InventoryKeys.onClick((AbstractContainerScreen<?>) (Object) this, hoveredSlot, event.button())) cir.setReturnValue(true);
+	}
+
+	@Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
+	private void taz$bindFrames(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+		com.taz.general.InventoryKeys.render((AbstractContainerScreen<?>) (Object) this, g, hoveredSlot, leftPos, topPos);
+	}
+
 	/** In a Floor 7 terminal, Taz draws the slots (only the ones to click show). */
 	@Inject(method = "extractSlots", at = @At("HEAD"), require = 0)
 	private void taz$terminalBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, CallbackInfo ci) {

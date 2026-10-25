@@ -89,4 +89,69 @@ public final class GeneralCategory {
 	@ConfigOption(name = "Gyro Wand", desc = "While you hold the Gyrokinetic Wand, a ring where its pull lands, grey on cooldown.")
 	@Accordion
 	public GyroWandConfig gyroWand = new GyroWandConfig();
+
+	@Expose
+	@ConfigOption(name = "Chat Commands", desc = "Answers \"!\" commands from your party: !warp, !pt, !kick, !f7, !cf, !8ball, !dice, !ping, !dt...")
+	@Accordion
+	public com.taz.general.ChatCommandsConfig chatCommands = new com.taz.general.ChatCommandsConfig();
+
+	@Expose
+	@ConfigOption(name = "Chat", desc = "Ctrl + click to copy a message, emoji codes, and Explosive Shot damage per enemy.")
+	@Accordion
+	public com.taz.general.ChatTweaksConfig chat = new com.taz.general.ChatTweaksConfig();
+
+	@Expose
+	@ConfigOption(name = "Command Shortcuts", desc = "Your own short commands: /dn sends /warp dhub.")
+	@Accordion
+	public com.taz.general.CommandShortcutsConfig commandShortcuts = new com.taz.general.CommandShortcutsConfig();
+
+	@Expose
+	@ConfigOption(name = "Slot Binds", desc = "Bind inventory slots to hotbar slots and shift + click to swap them.")
+	@Accordion
+	public com.taz.general.SlotBindsConfig slotBinds = new com.taz.general.SlotBindsConfig();
+
+	@Expose
+	@ConfigOption(name = "Loadout Keybinds", desc = "Number keys pick a loadout in the Loadout menu.")
+	@Accordion
+	public com.taz.general.LoadoutKeybindsConfig loadoutKeybinds = new com.taz.general.LoadoutKeybindsConfig();
+
+	@Expose
+	@ConfigOption(name = "Auto Sprint", desc = "Always sprint.")
+	@Accordion
+	public com.taz.general.AutoSprintConfig autoSprint = new com.taz.general.AutoSprintConfig();
+
+	@Expose
+	@ConfigOption(name = "No Cursor Reset", desc = "The mouse stays put when one menu replaces another.")
+	@Accordion
+	public com.taz.general.NoCursorResetConfig noCursorReset = new com.taz.general.NoCursorResetConfig();
+
+	@Expose
+	@ConfigOption(name = "Camera", desc = "F5 skips the front-facing view.")
+	@Accordion
+	public com.taz.general.CameraConfig camera = new com.taz.general.CameraConfig();
+
+	@Expose
+	@ConfigOption(name = "Render Optimizer", desc = "Stops drawing falling blocks, lightning, XP orbs, dying mobs, explosions, screen fire and more.")
+	@Accordion
+	public com.taz.general.RenderOptimizerConfig renderOptimizer = new com.taz.general.RenderOptimizerConfig();
+
+	@Expose
+	@ConfigOption(name = "Held Item", desc = "The size, position, turn and swing of the item in your hand.")
+	@Accordion
+	public com.taz.general.HeldItemConfig heldItem = new com.taz.general.HeldItemConfig();
+
+	@Expose
+	@ConfigOption(name = "Arrow Fix", desc = "No bow pull-back on shortbows.")
+	@Accordion
+	public com.taz.general.ArrowFixConfig arrowFix = new com.taz.general.ArrowFixConfig();
+
+	@Expose
+	@ConfigOption(name = "Block Overlay", desc = "A red box on the block you look at.")
+	@Accordion
+	public com.taz.general.BlockOverlayConfig blockOverlay = new com.taz.general.BlockOverlayConfig();
+
+	@Expose
+	@ConfigOption(name = "Sound Volumes", desc = "Make any sound louder or quieter.")
+	@Accordion
+	public com.taz.general.SoundVolumesConfig soundVolumes = new com.taz.general.SoundVolumesConfig();
 }

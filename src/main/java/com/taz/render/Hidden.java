@@ -9,6 +9,6 @@ public final class Hidden {
 	}
 
 	public static boolean hide(Entity entity) {
-		return Puzzles.hide(entity);
+		return Puzzles.hide(entity) || com.taz.general.RenderOptimizer.hide(entity);
 	}
 }

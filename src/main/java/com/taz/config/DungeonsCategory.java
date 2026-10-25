@@ -98,4 +98,9 @@ public final class DungeonsCategory {
 			+ "Three Weirdos, Quiz, Boulder and Tic Tac Toe.")
 	@Accordion
 	public PuzzlesConfig puzzles = new PuzzlesConfig();
+
+	@Expose
+	@ConfigOption(name = "Auto Requeue", desc = "When a run ends, queue the same floor again.")
+	@Accordion
+	public com.taz.dungeons.info.AutoRequeueConfig autoRequeue = new com.taz.dungeons.info.AutoRequeueConfig();
 }

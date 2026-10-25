@@ -37,6 +37,11 @@ public final class ItemOverlayConfig {
 	@ConfigEditorBoolean
 	public boolean numbers = true;
 
+	@Expose
+	@ConfigOption(name = "Rarity on hotbar", desc = "Also colour your hotbar slots by rarity. From NoammAddons' Item Rarity.")
+	@ConfigEditorBoolean
+	public boolean hotbar = false;
+
 	public static ItemOverlayConfig get() {
 		return Taz.config().inventory.overlays;
 	}
