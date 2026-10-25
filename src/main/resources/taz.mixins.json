@@ -8,6 +8,7 @@
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",
 		"EntityMixin",
+		"EntityRenderDispatcherMixin",
 		"GuiMixin",
 		"MinecraftMixin",
 		"SoundManagerMixin"

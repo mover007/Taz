@@ -16,7 +16,8 @@
 			"com.taz.gametest.GeneralGameTest",
 			"com.taz.gametest.GalateaGameTest",
 			"com.taz.gametest.DungeonGameTest",
-			"com.taz.gametest.PortedGameTest"
+			"com.taz.gametest.PortedGameTest",
+			"com.taz.gametest.PuzzleGameTest"
 		]
 	},
 	"depends": {

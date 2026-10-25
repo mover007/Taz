@@ -8,6 +8,7 @@ import com.taz.dungeons.highlight.StarredMobsConfig;
 import com.taz.dungeons.info.BlessingsConfig;
 import com.taz.dungeons.info.BloodCampConfig;
 import com.taz.dungeons.info.MageBeamConfig;
+import com.taz.dungeons.puzzles.PuzzlesConfig;
 import com.taz.dungeons.info.MaskTimersConfig;
 import com.taz.dungeons.info.RoomAlertsConfig;
 import com.taz.dungeons.info.ScoreAlertsConfig;
@@ -91,4 +92,10 @@ public final class DungeonsCategory {
 	@ConfigOption(name = "Mage Beam", desc = "The Mage's beam as one solid red line instead of firework sparks.")
 	@Accordion
 	public MageBeamConfig mageBeam = new MageBeamConfig();
+
+	@Expose
+	@ConfigOption(name = "Puzzle Solvers", desc = "The answer to each dungeon puzzle: Water Board, Teleport Maze, Ice Fill, Ice Path, Blaze, Creeper Beams, "
+			+ "Three Weirdos, Quiz, Boulder and Tic Tac Toe.")
+	@Accordion
+	public PuzzlesConfig puzzles = new PuzzlesConfig();
 }

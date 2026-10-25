@@ -139,6 +139,7 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.general.SpringBoots());
 		TazHud.register(new com.taz.general.KickTimer());
 		TazHud.register(new com.taz.dungeons.info.BloodCamp());
+		TazHud.register(new com.taz.dungeons.puzzles.Quiz());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -171,6 +172,7 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.TerminalHighlight::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.general.EtherwarpGuess::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.general.GyroWand::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.puzzles.Puzzles::render);
 		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
 			if (level.isClientSide()) safely("Terminal highlight click", () -> com.taz.dungeons.f7.TerminalHighlight.onClick(entity));
 			return net.minecraft.world.InteractionResult.PASS;
@@ -182,6 +184,7 @@ public final class Taz implements ClientModInitializer {
 		UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
 			if (level.isClientSide()) safely("Secret routes click", () -> SecretTrainer.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
 			if (level.isClientSide()) safely("Secret clicked", () -> com.taz.dungeons.highlight.SecretClicked.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
+			if (level.isClientSide()) safely("Puzzle click", () -> com.taz.dungeons.puzzles.Puzzles.onUseBlock(hit.getBlockPos()));
 			return InteractionResult.PASS;
 		});
 		ClientEntityEvents.ENTITY_UNLOAD.register((entity, level) -> safely("Secret routes entity", () -> SecretTrainer.onEntityGone(entity)));
@@ -297,6 +300,7 @@ public final class Taz implements ClientModInitializer {
 		MoongladeResources.LUSHLILAC.onBlockChanged(pos, newState);
 		safely("Secret routes block", () -> SecretTrainer.onBlockChanged(pos, oldState, newState));
 		safely("Terracotta timer", () -> com.taz.dungeons.info.TerracottaTimer.onBlockChanged(pos, oldState, newState));
+		safely("Puzzles block", () -> com.taz.dungeons.puzzles.Puzzles.onBlockChanged(pos, oldState, newState));
 	}
 
 	/** Every server tick (Hypixel's ping packet, ClientCommonPacketListenerImplMixin): the clock for tick timers. */
@@ -305,17 +309,24 @@ public final class Taz implements ClientModInitializer {
 		safely("Tick timers", com.taz.dungeons.f7.TickTimers::onServerTick);
 		safely("Terracotta timer", com.taz.dungeons.info.TerracottaTimer::onServerTick);
 		safely("Blood camp", com.taz.dungeons.info.BloodCamp::onServerTick);
+		safely("Puzzles", com.taz.dungeons.puzzles.Puzzles::onServerTick);
 	}
 
 	/** An entity event (ClientPacketListenerMixin): 3 is a mob's death. */
 	public static void onEntityEvent(net.minecraft.world.entity.Entity entity, byte id) {
 		safely("Score alerts", () -> com.taz.dungeons.info.ScoreAlerts.onEntityEvent(entity, id));
 		safely("Secret clicked", () -> com.taz.dungeons.highlight.SecretClicked.onEntityEvent(entity, id));
+		safely("Puzzles", () -> com.taz.dungeons.puzzles.Puzzles.onEntityEvent(entity, id));
 	}
 
 	/** An item entity picked up by someone (ClientPacketListenerMixin), before it's removed. */
 	public static void onItemTaken(net.minecraft.world.entity.Entity item, int collector) {
 		safely("Secret clicked", () -> com.taz.dungeons.highlight.SecretClicked.onItemTaken(item, collector));
+	}
+
+	/** The server moved you (ClientPacketListenerMixin): a teleport pad. */
+	public static void onTeleport(net.minecraft.world.phys.Vec3 pos, float yaw, float pitch) {
+		safely("Teleport maze", () -> com.taz.dungeons.puzzles.Puzzles.onTeleport(pos, yaw, pitch));
 	}
 
 	/** A particle the server sends (ClientPacketListenerMixin); true hides it. */
@@ -340,6 +351,7 @@ public final class Taz implements ClientModInitializer {
 	/** Block events (ClientPacketListenerMixin): a chest lid opening. */
 	public static void onBlockEvent(BlockPos pos, Block block, int type, int data) {
 		safely("Secret routes block event", () -> SecretTrainer.onBlockEvent(pos, block, type, data));
+		safely("Puzzle done", () -> com.taz.dungeons.puzzles.Puzzles.onBlockEvent(pos, block));
 	}
 
 	/** Opens a screen on the next tick (a settings button or command runs while another screen is closing). */
@@ -379,6 +391,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Doors and keys chat", () -> com.taz.dungeons.highlight.DoorsAndKeys.onChat(line));
 		safely("Secret clicked chat", () -> com.taz.dungeons.highlight.SecretClicked.onChat(line));
 		safely("Blood camp chat", () -> com.taz.dungeons.info.BloodCamp.onChat(line));
+		safely("Puzzles chat", () -> com.taz.dungeons.puzzles.Puzzles.onChat(line));
 	}
 
 	/** Every action bar message (GuiMixin), for every feature. */
@@ -462,6 +475,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Blood camp", () -> com.taz.dungeons.info.BloodCamp.tick(mc));
 		safely("Terminal highlight", () -> com.taz.dungeons.f7.TerminalHighlight.tick(mc));
 		safely("Door fix", () -> com.taz.dungeons.f7.DoorFix.tick(mc));
+		safely("Puzzles", () -> com.taz.dungeons.puzzles.Puzzles.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();
 	}

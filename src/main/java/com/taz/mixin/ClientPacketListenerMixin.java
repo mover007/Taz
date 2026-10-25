@@ -6,6 +6,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
 import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ClientboundTabListPacket;
 import net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket;
@@ -91,6 +92,18 @@ public abstract class ClientPacketListenerMixin {
 			require = 0)
 	private void taz$onParticle(ClientboundLevelParticlesPacket packet, CallbackInfo ci) {
 		if (Taz.onParticle(packet.getParticle(), packet.getX(), packet.getY(), packet.getZ(), packet.getXDist(), packet.getYDist(), packet.getZDist())) ci.cancel();
+	}
+
+	/** The server moving you (a teleport pad in the Teleport Maze). */
+	@Inject(
+			method = "handleMovePlayer",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+					shift = At.Shift.AFTER),
+			require = 0)
+	private void taz$onMovePlayer(ClientboundPlayerPositionPacket packet, CallbackInfo ci) {
+		Taz.onTeleport(packet.change().position(), packet.change().yRot(), packet.change().xRot());
 	}
 
 	/** The tab list's header and footer (the footer lists the dungeon's blessings). */
