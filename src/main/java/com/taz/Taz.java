@@ -52,6 +52,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.world.InteractionResult;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -64,6 +65,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,10 +150,11 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(FishingHelper::render);
 		LevelRenderEvents.END_MAIN.register(SecretTrainer::render);
 		UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
-			if (level.isClientSide()) safely("Secret routes click", () -> SecretTrainer.onInteract(hit.getBlockPos()));
+			if (level.isClientSide()) safely("Secret routes click", () -> SecretTrainer.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
 			return InteractionResult.PASS;
 		});
 		ClientEntityEvents.ENTITY_UNLOAD.register((entity, level) -> safely("Secret routes entity", () -> SecretTrainer.onEntityGone(entity)));
+		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Secret routes screen", () -> SecretTrainer.onScreenOpened(screen)));
 		ClientReceiveMessageEvents.ALLOW_GAME.register(ChatFilter::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(SweepDetails::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(TreeGifts::allow);
@@ -261,6 +264,12 @@ public final class Taz implements ClientModInitializer {
 		RubyVeilshrooms.FINDER.onBlockChanged(pos, newState);
 		MoongladeResources.LUMIES.onBlockChanged(pos, newState);
 		MoongladeResources.LUSHLILAC.onBlockChanged(pos, newState);
+		safely("Secret routes block", () -> SecretTrainer.onBlockChanged(pos, oldState, newState));
+	}
+
+	/** Block events (ClientPacketListenerMixin): a chest lid opening. */
+	public static void onBlockEvent(BlockPos pos, Block block, int type, int data) {
+		safely("Secret routes block event", () -> SecretTrainer.onBlockEvent(pos, block, type, data));
 	}
 
 	/** Opens a screen on the next tick (a settings button or command runs while another screen is closing). */

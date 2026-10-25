@@ -3,6 +3,7 @@ package com.taz.mixin;
 import com.taz.Taz;
 import com.taz.dungeons.util.LagMonitor;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,6 +27,18 @@ public abstract class ClientPacketListenerMixin {
 			require = 0)
 	private void taz$onSystemChat(ClientboundSystemChatPacket packet, CallbackInfo ci) {
 		Taz.onSystemChat(packet.content(), packet.overlay());
+	}
+
+	/** Block events (a chest's lid opening), on the main thread: a dungeon secret chest someone opened. */
+	@Inject(
+			method = "handleBlockEvent",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+					shift = At.Shift.AFTER),
+			require = 0)
+	private void taz$onBlockEvent(ClientboundBlockEventPacket packet, CallbackInfo ci) {
+		Taz.onBlockEvent(packet.getPos(), packet.getBlock(), packet.getB0(), packet.getB1());
 	}
 
 	/**
