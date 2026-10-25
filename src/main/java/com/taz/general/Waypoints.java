@@ -106,9 +106,9 @@ public final class Waypoints {
 		WaypointsConfig cfg = WaypointsConfig.get();
 		boolean share = SHARE_KEY.pressed(mc, cfg.shareKey);
 		if (!cfg.enabled || mc.player == null) return;
-		if (share && mc.getConnection() != null) {
+		if (share) {
 			BlockPos p = mc.player.blockPosition();
-			mc.getConnection().sendCommand("pc x: " + p.getX() + ", y: " + p.getY() + ", z: " + p.getZ());
+			TazChat.party("x: " + p.getX() + ", y: " + p.getY() + ", z: " + p.getZ());
 		}
 		long now = System.currentTimeMillis();
 		double near = cfg.removeDistance * (double) cfg.removeDistance;

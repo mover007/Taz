@@ -8,8 +8,12 @@ import net.minecraft.network.chat.MutableComponent;
 import java.util.HashMap;
 import java.util.Map;
 
-/** "[Taz] ..." chat lines shown only to you, and click-twice confirmation for settings buttons that delete things. */
+/**
+ * Everything Taz says starts with [TAZ]: chat lines shown only to you, and what features say in party chat.
+ * Also click-twice confirmation for settings buttons that delete things.
+ */
 public final class TazChat {
+	public static final String PREFIX = "[TAZ] ";
 	private static final long CONFIRM_MS = 5000;
 	private static final Map<String, Long> ARMED = new HashMap<>();
 
@@ -17,7 +21,7 @@ public final class TazChat {
 	}
 
 	public static MutableComponent prefix() {
-		return Component.literal("[Taz] ").withStyle(ChatFormatting.AQUA);
+		return Component.literal(PREFIX).withStyle(ChatFormatting.AQUA);
 	}
 
 	public static void send(Component message) {
@@ -27,6 +31,15 @@ public final class TazChat {
 
 	public static void info(String message) {
 		send(Component.literal(message).withStyle(ChatFormatting.GRAY));
+	}
+
+	/** Says something in party chat ("[TAZ] ..."); returns what was said, or null when not connected. */
+	public static String party(String message) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.getConnection() == null) return null;
+		String said = PREFIX + message;
+		mc.getConnection().sendCommand("pc " + said);
+		return said;
 	}
 
 	/**

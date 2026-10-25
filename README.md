@@ -34,7 +34,7 @@ On first start Taz copies everything from the old mods: run history, triggers an
 - **Inventory:** Item Prices, Item Overlays.
 - **Slayer → Slayer Helper** and **Fishing → Fishing Helper**.
 - **Dungeons → Run Predictor:** Enabled, Move HUD, Stats, Simple / Everything-on presets, Timer HUD, Score, Chat, Party Chat, Other, **Tools** (pick a floor, then Backtest, Demo run / next / stop, Export history, Reload files, Clear floor history) and **Advanced** (keep HUD after run, history cutoff). Each of these is a dropdown inside Run Predictor.
-- **Dungeons → Secret Routes:** Enabled, Mode (Normal / Guide), Taz's routes, Import from clipboard, Import from Odin, Export, List routes, Remove imported routes, reach distance, show the next step, show hints, path line, Skip and Restart room keys, Reset best times, Move HUD. See [Secret Routes](#secret-routes).
+- **Dungeons → Secret Routes:** Enabled, Mode (Normal / Guide), Taz's routes, Party chat when a room's done, Import from clipboard, Import from Odin, Export, List routes, Remove imported routes, reach distance, show the next step, show hints, path line, Skip and Restart room keys, Reset best times, Move HUD. See [Secret Routes](#secret-routes).
 - **Galatea → Next Tree Pointer:** Enabled, **Fig / Mangrove / Helix** (which trees to point at), search radius, a colour per type, and Tree status (counts, next tree, and how long updates take).
 - **Galatea → Honeyhives:** Enabled, next hive pointer, refill timers, through walls, colour, Hive status.
 - **Galatea → Whisper Counter:** Enabled, show Forest / Desert, pause after (seconds, default 3), Reset counter, Move HUD.
@@ -45,7 +45,11 @@ Changing the API key, profile or a data source re-downloads your XP data by itse
 
 Everything is saved in `config/taz/config.json`, **by itself**: a change is written within a second, even with the settings GUI still open, and again when you leave a server or quit, so you never set anything up twice. Taz also keeps `config.json.last-good` (the last file that loaded fine); if `config.json` is ever damaged (the game killed mid-write, a bad hand edit), Taz puts the good copy back instead of starting from defaults, keeps the damaged one as `config.json.broken-<time>`, and tells you in chat.
 
-## Chat buttons
+## Chat
+
+Everything Taz says in chat starts with **[TAZ]**: its own lines (only you see them) and what features say in party chat (Run Predictor end times, shared coordinates, Secret Routes rooms).
+
+### Chat buttons
 
 Some chat messages have clickable buttons ([Track], [Stop], [Bazaar], [AH], [Recipe], [Open list]). They run `/taz track`, `/taz untrack`, `/taz bz`, `/taz ah`, `/taz recipe` and `/taz list`, so you never need to type them.
 
@@ -65,7 +69,7 @@ Secret waypoints for every Catacombs room, in [Odin](https://github.com/odthekin
 - **Import from clipboard:** an Odin export (`H4sIA...`, Base64 of gzipped JSON), its plain JSON, or a link to either. **Import from Odin** copies the packs from your Odin install (`config/odin/dungeon-waypoints`). A room in a pack you import uses yours; the newest import wins.
 - **Export:** every route in use as an Odin export, to share or load into Odin.
 - **Normal** mode draws every waypoint in the room as Odin does (its colour, box size, title; see-through unless the waypoint has depth on).
-- **Guide** mode follows the route. It always starts at the red start (`Start · stand on the red block`), then the waypoints titled with a number (`1`, `2 down`, `4 item`, `17 | done`), in order. Only the next step shows, bright, with a line from your crosshair, its distance and what to do there (`Step 4/7 Etherwarp · 6m`, `item · pick up the item`), plus the one after it faintly (`then 5 down`). Waypoints without a number are hints (`if 4 locked`, aim spots, princes, notes) and show faintly nearby. Every waypoint goes away once it's done, steps and hints alike: a secret when it's taken by anyone (a chest's lid opens, a lever flips, an essence skull goes, an item is picked up next to it, a bat dies near it, or the room's `3/7 Secrets` count goes up next to it), a block to mine or blow up (`mine`, `line`, `boom`, `breakwarp`) when it breaks, and a spot when you arrive on it (or on one of the next two, for a step someone else did). A spot that says `bat` or `item` also waits for that secret. The Skip key ticks a step off by hand. Each room is timed from its first secret to its last step (`Mossy done in 0:11.2 (new best, -0.9)`), and your progress lasts the whole run. The Restart room key sends you back to the start. Each room you enter and each waypoint done is written to the game log (`[Secret Routes] ...`). Rooms without a red start (puzzles, Blood, Entrance) start at step 1 when you walk in.
+- **Guide** mode follows the route. It always starts at the red start (`Start · stand on the red block`), then the waypoints titled with a number (`1`, `2 down`, `4 item`, `17 | done`), in order. Only the next step shows, bright, with a line from your crosshair, its distance and what to do there (`Step 4/7 Etherwarp · 6m`, `item · pick up the item`), plus the one after it faintly (`then 5 down`). Waypoints without a number are hints (`if 4 locked`, aim spots, princes, notes) and show faintly nearby. Every waypoint goes away once it's done, steps and hints alike: a secret when it's taken by anyone (a chest's lid opens, a lever flips, an essence skull goes, an item is picked up next to it, a bat dies near it, or the room's `3/7 Secrets` count goes up next to it), a block to mine or blow up (`mine`, `line`, `boom`, `breakwarp`) when it breaks, and a spot when you arrive on it (or on one of the next two, for a step someone else did). A spot that says `bat` or `item` also waits for that secret. The Skip key ticks a step off by hand. Each room is timed from its first secret to its last step (`Mossy done in 0:11.2 (new best, -0.9)`), and your progress lasts the whole run. The Restart room key sends you back to the start. **Party chat when a room's done** says which room you finished and how long it took (`[TAZ] Mossy secrets done in 0:11.2`), unless you're solo. Each room you enter and each waypoint done is written to the game log (`[Secret Routes] ...`). Rooms without a red start (puzzles, Blood, Entrance) start at step 1 when you walk in.
 
 The routes follow 3ppopka's legend, which Taz reads for any pack (an Odin waypoint type, when set, wins over the colour):
 
@@ -181,7 +185,7 @@ All game data (prices, NPCs, recipes, museum XP) is downloaded live and cached i
 ```
 com.taz
 ├── Taz, TazCommand          startup, /taz (settings GUI + chat-button actions)
-├── util/                    KeyWatcher (GUI keybinds), TazChat ([Taz] chat, click-twice confirm), Alert (title + sound)
+├── util/                    KeyWatcher (GUI keybinds), TazChat ([TAZ] chat and party chat, click-twice confirm), Alert (title + sound)
 ├── config/                  TazConfig (one @Category per area), AboutConfig, Migration (old mods → Taz), ConfigSafety (last good copy)
 ├── render/WorldRenderer     boxes, lines and labels in the world (through walls or not), shared by every feature
 ├── hud/                     MovableHud, TextHud, TazHud (draws every HUD), TazHudEditor (moves them all)

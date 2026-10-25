@@ -4,7 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.taz.Taz;
+import com.taz.dungeons.dungeon.DungeonState;
 import com.taz.dungeons.secrets.SecretRoutes.Kind;
+import com.taz.foraging.GalateaRecorder;
 import com.taz.dungeons.util.TextUtil;
 import com.taz.hud.HudPos;
 import com.taz.hud.TextHud;
@@ -124,6 +126,7 @@ public final class SecretTrainer extends TextHud {
 	private static long clickedChestMs;
 	private static String note;
 	private static long noteUntilMs;
+	private static String lastParty;
 
 	public SecretTrainer() {
 		super("Secret Routes", 0.70, 0.30);
@@ -341,14 +344,17 @@ public final class SecretTrainer extends TextHud {
 
 	private static void finish(long now) {
 		progress.endMs = now;
-		if (SecretsConfig.get().mode != SecretsConfig.Mode.GUIDE) return;
+		SecretsConfig cfg = SecretsConfig.get();
+		boolean guide = cfg.mode == SecretsConfig.Mode.GUIDE;
 		String name = room.data.name();
 		noteUntilMs = now + NOTE_MS;
-		if (progress.startMs == 0) {
-			note = name + " done";
+		if (progress.startMs == 0) { // a route with no secrets in it: nothing to time
+			if (guide) note = name + " done";
 			return;
 		}
 		long time = now - progress.startMs;
+		if (cfg.partyChat && !solo()) lastParty = TazChat.party(name + " secrets done in " + TextUtil.formatTimeTenths(time));
+		if (!guide) return;
 		Long old = best().get(name);
 		if (old == null || time < old) {
 			best().put(name, time);
@@ -357,6 +363,15 @@ public final class SecretTrainer extends TextHud {
 		} else {
 			note = name + " done in " + TextUtil.formatTimeTenths(time) + " (+" + TextUtil.formatTimeTenths(time - old) + ")";
 		}
+	}
+
+	/** Solo in the dungeon (the sidebar says "Solo", or the tab list "Party (1)"): no party to tell. */
+	private static boolean solo() {
+		Minecraft mc = Minecraft.getInstance();
+		if (GalateaRecorder.sidebarLines().stream().anyMatch(l -> l.trim().equals("Solo"))) return true;
+		DungeonState state = new DungeonState();
+		state.update(mc);
+		return state.partySize == 1;
 	}
 
 	// ---- secrets taken and blocks broken
@@ -481,6 +496,11 @@ public final class SecretTrainer extends TextHud {
 	/** The room's timer is running (a secret was found). */
 	public static boolean started() {
 		return progress != null && progress.startMs > 0;
+	}
+
+	/** The last "room done" party chat message ("[TAZ] Mossy secrets done in 0:11.2"). */
+	public static String lastParty() {
+		return lastParty;
 	}
 
 	public static boolean cleared(BlockPos pos) {

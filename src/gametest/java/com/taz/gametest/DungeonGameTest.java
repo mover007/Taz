@@ -9,6 +9,7 @@ import com.taz.dungeons.secrets.SecretsConfig;
 import com.taz.hud.MovableHud;
 import com.taz.hud.TazHud;
 import com.taz.hud.TextHud;
+import com.taz.util.TazChat;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -164,6 +165,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 			cfg.mode = SecretsConfig.Mode.GUIDE;
 			cfg.defaultRoutes = false;
 			cfg.reach = 2;
+			cfg.partyChat = true;
 			mc.keyboardHandler.setClipboard(odinExport());
 			SecretTrainer.importFromClipboard();
 		});
@@ -216,6 +218,9 @@ public class DungeonGameTest implements FabricClientGameTest {
 		Long best = ctx.computeOnClient(mc -> SecretTrainer.bestMs("Test Room"));
 		check("lever: flipping step 6's lever ticks it off, the route is done and timed (" + lines + ")", step() == SecretTrainer.DONE
 				&& best != null && best > 0 && lines.contains("Route done") && lines.stream().anyMatch(l -> l.startsWith("Test Room done in")));
+		String party = ctx.computeOnClient(mc -> SecretTrainer.lastParty());
+		check("party chat: the room and its time, starting with [TAZ] (" + party + ")", party != null
+				&& party.matches("\\[TAZ] Test Room secrets done in \\d+:\\d\\d\\.\\d") && TazChat.prefix().getString().equals("[TAZ] "));
 
 		// Restart: back to the red start. Arriving on step 1 straight away ticks the start off too.
 		ctx.runOnClient(mc -> Taz.config().dungeons.secrets.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5);
@@ -299,6 +304,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 			SecretTrainer.removeImported();
 			SecretsConfig cfg = Taz.config().dungeons.secrets;
 			cfg.enabled = false;
+			cfg.partyChat = false;
 			cfg.mode = SecretsConfig.Mode.GUIDE;
 			cfg.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN;
 			SecretTrainer.resetBest();

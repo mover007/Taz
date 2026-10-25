@@ -231,9 +231,7 @@ public final class DungeonPredictorClient {
 		if (ModConfig.on(Feature.CHAT_PARTY_BEST) && atBoss.bestEndMs() >= 0) {
 			parts.add("Best possible: " + TextUtil.formatTimeTenths(atBoss.bestEndMs()));
 		}
-		Minecraft mc = Minecraft.getInstance();
-		if (parts.isEmpty() || mc.getConnection() == null) return;
-		mc.getConnection().sendCommand("pc " + String.join(" | ", parts));
+		if (!parts.isEmpty()) TazChat.party(String.join(" | ", parts));
 	}
 
 	/** F7/M7: an updated end time when the Core opens (about +/-8s on M7, vs +/-28s at the portal). */
@@ -247,10 +245,7 @@ public final class DungeonPredictorClient {
 					.append(Component.literal("End time: ").withStyle(ChatFormatting.WHITE))
 					.append(Component.literal(end).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD)));
 		}
-		Minecraft mc = Minecraft.getInstance();
-		if (ModConfig.on(Feature.CHAT_PARTY_CORE) && mc.getConnection() != null) {
-			mc.getConnection().sendCommand("pc End time (Core): " + end);
-		}
+		if (ModConfig.on(Feature.CHAT_PARTY_CORE)) TazChat.party("End time (Core): " + end);
 	}
 
 	/** "New best Terminals: 41.2s (-1.8s)" when a segment just beat every recorded run (and the portal time too). */

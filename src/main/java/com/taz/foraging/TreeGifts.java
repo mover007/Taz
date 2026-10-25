@@ -178,7 +178,7 @@ public final class TreeGifts extends TextHud {
 			Component line = compactLine(g);
 			lastCompact = net.minecraft.ChatFormatting.stripFormatting(line.getString());
 			lastCompactHasHover = hoverOf(line) != null;
-			Minecraft.getInstance().gui.getChat().addClientSystemMessage(line);
+			Minecraft.getInstance().gui.getChat().addClientSystemMessage(TazChat.prefix().append(line));
 		}
 	}
 
