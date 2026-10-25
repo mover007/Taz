@@ -31,8 +31,8 @@ import java.util.zip.GZIPOutputStream;
 /**
  * Secret routes in Odin's dungeon waypoint format: a map of room name to waypoints, each with a block position relative
  * to the room (see {@link DungeonRooms}), a colour ("#RRGGBBAA"), a box, an optional title and type. Odin shares them as
- * Base64 of gzipped JSON, or plain JSON. Titles starting with a number ("3", "4 item", "5 down") are the steps of the
- * route in order; the rest are hints.
+ * Base64 of gzipped JSON, or plain JSON. A route starts at its red waypoint; titles starting with a number ("3",
+ * "4 item", "5 down") are its steps in order; the rest are hints. See {@link Kind} for the colours.
  *
  * Taz comes with a set of routes (3ppopka's, from Odin). Imported packs are kept in config/taz/dungeons/secret-routes/
  * as Odin files, in import order; for each room the last imported pack that has it wins, then Taz's own.
@@ -43,7 +43,64 @@ public final class SecretRoutes {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 	private static final Pattern STEP = Pattern.compile("^\\s*(\\d+)\\s*(.*)$");
 
+	/**
+	 * What a waypoint is for, from 3ppopka's colour legend: red the start, purple an etherwarp spot, green a chest /
+	 * lever / essence, yellow where to aim a normal teleport, aqua a prince; fully see-through ones are text to read.
+	 * An Odin type (SECRET, ETHERWARP, NORMAL) wins over the colour; with neither, small boxes are secrets.
+	 */
+	public enum Kind {
+		START("Start", "§c"), ETHERWARP("Etherwarp", "§d"), SECRET("Secret", "§a"), AIM("Aim", "§e"), PRINCE("Prince", "§b"),
+		TEXT("Note", "§7"), SPOT("Spot", "§f");
+
+		public final String label;
+		public final String color;
+
+		Kind(String label, String color) {
+			this.label = label;
+			this.color = color;
+		}
+
+		/** Somewhere you stand: reaching it ticks its step off. */
+		public boolean spot() {
+			return this == START || this == ETHERWARP || this == SPOT;
+		}
+	}
+
+	private static final int[][] LEGEND = {
+			{0xFF5555, 0}, {0xAA00AA, 1}, {0x55FF55, 2}, {0x00FF00, 2}, {0xFFF255, 3}, {0x55A7CE, 4}, {0x00F7FF, 4}};
+	private static final Kind[] LEGEND_KINDS = {Kind.START, Kind.ETHERWARP, Kind.SECRET, Kind.AIM, Kind.PRINCE};
+
+	/** What a step's note asks for, from the route legend ("" when it's just a direction like "down"). */
+	public static String explain(Kind kind, String note) {
+		String n = note.toLowerCase();
+		if (n.contains("breakwarp")) return "teleport normally, break the block, then etherwarp";
+		if (kind == Kind.AIM || n.contains("just tp") || n.contains("normal")) return "aim here and right-click to teleport (not etherwarp)";
+		if (n.contains("bat")) return "stand here and kill the bat with Hyperion";
+		if (n.matches(".*\\bline\\b.*")) return "mine only the line";
+		if (n.contains("item")) return "pick up the item";
+		return "";
+	}
+
 	public record Waypoint(BlockPos pos, int argb, boolean filled, boolean depth, AABB box, String title, String type) {
+		public Kind kind() {
+			if (!visible()) return Kind.TEXT;
+			if ("SECRET".equals(type)) return Kind.SECRET;
+			if ("ETHERWARP".equals(type)) return Kind.ETHERWARP;
+			if ("NORMAL".equals(type)) return Kind.SPOT;
+			int rgb = argb & 0xFFFFFF;
+			for (int[] c : LEGEND) {
+				int dr = (rgb >> 16 & 0xFF) - (c[0] >> 16 & 0xFF), dg = (rgb >> 8 & 0xFF) - (c[0] >> 8 & 0xFF), db = (rgb & 0xFF) - (c[0] & 0xFF);
+				if (dr * dr + dg * dg + db * db < 40 * 40) return LEGEND_KINDS[c[1]];
+			}
+			return small() ? Kind.SECRET : Kind.SPOT;
+		}
+
+		/** A bat to kill or an item to pick up here: standing on it isn't enough. */
+		public boolean needsSecret() {
+			String n = note().toLowerCase();
+			return kind().spot() && (n.contains("bat") || n.contains("item"));
+		}
+
 		/** The route step this is ("4 item" is step 4), or -1 for a hint. */
 		public int step() {
 			if (title == null) return -1;

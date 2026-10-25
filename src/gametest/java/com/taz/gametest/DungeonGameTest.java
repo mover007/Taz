@@ -38,10 +38,15 @@ public class DungeonGameTest implements FabricClientGameTest {
 	private static final int CX = -121, CZ = -89, ROOF = 80, FLOOR = 60;
 	/** The blue terracotta on the roof's south-west corner: the room faces east. */
 	private static final BlockPos CLAY = new BlockPos(CX - 15, ROOF, CZ + 15);
+	/** The route (3ppopka's legend): red start, purple etherwarp, green chest, purple bat spot, purple slab spot; plus a yellow aim spot, a prince and a note. */
+	private static final BlockPos START = new BlockPos(-128, FLOOR, -92);
 	private static final BlockPos STEP1 = new BlockPos(-125, FLOOR, -89);
 	private static final BlockPos CHEST = new BlockPos(-118, FLOOR + 1, -85);
-	private static final BlockPos HINT = new BlockPos(-118, FLOOR + 1, -95);
+	private static final BlockPos AIM = new BlockPos(-118, FLOOR + 1, -95);
 	private static final BlockPos STEP3 = new BlockPos(-110, FLOOR, -80);
+	private static final BlockPos STEP4 = new BlockPos(-112, FLOOR, -95);
+	private static final BlockPos PRINCE = new BlockPos(-115, FLOOR + 1, -100);
+	private static final BlockPos TEXT = new BlockPos(-121, FLOOR + 2, -89);
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -77,6 +82,19 @@ public class DungeonGameTest implements FabricClientGameTest {
 		SecretRoutes.Waypoint pipes = taz.rooms().get("Pipes").stream().filter(w -> "17 | done".equals(w.title())).findFirst().orElseThrow();
 		check("titles: \"17 | done\" is step 17, a chest", pipes.step() == 17 && pipes.note().equals("done") && pipes.small());
 		check("colours: #AA00AAFF is purple", taz.rooms().get("Temple").get(1).argb() == 0xFFAA00AA);
+		List<SecretRoutes.Waypoint> pipes2 = taz.rooms().get("Pipes");
+		check("legend: red is the start, purple etherwarp (a small box too), green a secret, yellow aim",
+				pipes2.get(0).kind() == SecretRoutes.Kind.START && pipes2.get(2).kind() == SecretRoutes.Kind.ETHERWARP
+						&& pipes2.get(3).kind() == SecretRoutes.Kind.ETHERWARP && pipes2.get(3).box().getXsize() < 0.2
+						&& pipes2.get(1).kind() == SecretRoutes.Kind.SECRET && pipes2.get(19).kind() == SecretRoutes.Kind.AIM);
+		check("legend: aqua is a prince, see-through is a note", taz.rooms().get("Leaves").stream().anyMatch(w -> w.kind() == SecretRoutes.Kind.PRINCE)
+				&& taz.rooms().get("Entrance").stream().filter(w -> w.title() != null && w.title().startsWith("Routes by 3ppopka"))
+						.allMatch(w -> w.kind() == SecretRoutes.Kind.TEXT));
+		check("legend: what the notes mean", SecretRoutes.explain(SecretRoutes.Kind.ETHERWARP, "5 breakwarp").startsWith("teleport normally, break the block")
+				&& SecretRoutes.explain(SecretRoutes.Kind.AIM, "").startsWith("aim here and right-click")
+				&& SecretRoutes.explain(SecretRoutes.Kind.ETHERWARP, "bat").contains("Hyperion")
+				&& SecretRoutes.explain(SecretRoutes.Kind.ETHERWARP, "line").equals("mine only the line")
+				&& SecretRoutes.explain(SecretRoutes.Kind.ETHERWARP, "down").isEmpty());
 	}
 
 	private void rotations() {
@@ -147,15 +165,20 @@ public class DungeonGameTest implements FabricClientGameTest {
 		check("room: found by its core, facing east from its clay (" + (room == null ? null : room.rotation + " " + room.clay) + ")",
 				room != null && room.data.name().equals("Test Room") && room.rotation == DungeonRooms.Rotation.EAST && room.clay.equals(CLAY));
 		List<BlockPos> placed = ctx.computeOnClient(mc -> SecretTrainer.positions());
-		check("room: the Odin waypoints land on their blocks (" + placed + ")", placed.equals(List.of(STEP1, CHEST, HINT, STEP3)));
+		check("room: the Odin waypoints land on their blocks (" + placed + ")", placed.equals(List.of(START, STEP1, CHEST, AIM, STEP3, STEP4, PRINCE, TEXT)));
 		List<String> lines = hudLines();
-		check("guide: step 1 first (" + lines + ")", lines.stream().anyMatch(l -> l.startsWith("Step 1/3")) && lines.stream().anyMatch(l -> l.startsWith("then 2")));
+		check("guide: starts at the red start, timer waiting (" + lines + ")", step() == SecretTrainer.START && !started()
+				&& lines.stream().anyMatch(l -> l.startsWith("Start · stand on the red block")) && lines.stream().anyMatch(l -> l.startsWith("then 1")));
 		ctx.takeScreenshot("dungeon-secrets-guide");
 
+		goTo(START.above());
+		check("guide: on the red start the timer runs, step 1 next (" + hudLines() + ")", started() && step() == 1
+				&& hudLines().stream().anyMatch(l -> l.startsWith("Step 1/4 Etherwarp")));
 		goTo(STEP1.above());
 		check("guide: standing on step 1 ticks it off", step() == 2);
 		cmd("tp @p " + (CHEST.getX() - 2) + " " + CHEST.getY() + " " + CHEST.getZ() + " facing " + CHEST.getX() + " " + CHEST.getY() + " " + CHEST.getZ());
 		ctx.waitTicks(4);
+		ctx.takeScreenshot("dungeon-secrets-chest");
 		ctx.runOnClient(mc -> mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
 				new BlockHitResult(Vec3.atCenterOf(CHEST), Direction.WEST, CHEST, false)));
 		ctx.waitTicks(4);
@@ -163,24 +186,33 @@ public class DungeonGameTest implements FabricClientGameTest {
 		check("guide: opening step 2's chest ticks it off", step() == 3);
 		goTo(STEP3.above());
 		lines = hudLines();
+		check("legend: a bat spot waits for the bat (" + lines + ")", step() == 3 && lines.stream().anyMatch(l -> l.contains("kill the bat with Hyperion")));
+		cmd("summon bat " + STEP3.getX() + " " + (FLOOR + 4) + " " + STEP3.getZ() + " {NoAI:1b}");
+		ctx.waitTicks(5);
+		cmd("kill @e[type=bat]");
+		ctx.waitTicks(30);
+		check("legend: killing the bat ticks it off", step() == 4);
+		goTo(AIM.above());
+		check("legend: a yellow aim spot isn't somewhere to stand", step() == 4);
+		goTo(STEP4.above());
+		lines = hudLines();
 		Long best = ctx.computeOnClient(mc -> SecretTrainer.bestMs("Test Room"));
-		check("guide: route done and timed (" + lines + ")", step() == -1 && best != null && best > 0
+		check("guide: a slab-sized etherwarp spot, then the route is done and timed (" + lines + ")", step() == SecretTrainer.DONE && best != null && best > 0
 				&& lines.contains("Route done") && lines.stream().anyMatch(l -> l.startsWith("Test Room done in")));
 
-		// Restart, then skip ahead: standing on step 3 also ticks off steps 1 and 2 (someone else got them).
+		// Restart: back to the red start. Arriving on step 1 straight away ticks the start off too.
 		ctx.runOnClient(mc -> Taz.config().dungeons.secrets.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5);
 		goTo(new BlockPos(CX, FLOOR + 1, CZ));
-		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5, 2);
-		ctx.waitTicks(3);
-		check("restart key: back to step 1", step() == 1);
-		goTo(STEP3.above());
-		check("guide: standing on a later step ticks off the ones before", step() == -1);
+		restart();
+		check("restart key: back to the red start, timer waiting", step() == SecretTrainer.START && !started());
+		goTo(STEP1.above());
+		check("guide: arriving on a later step ticks off the ones before", step() == 2 && started());
+		restart();
+		check("restart key on a spot: doesn't count it again", step() == SecretTrainer.START);
 
-		// The room's secret count going up next to the chest (not straight after the chest click, which already counted it).
+		// The room's secret count going up next to the chest (not straight after the bat, which already counted).
 		ctx.waitTicks(40);
-		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5, 2);
-		ctx.waitTicks(3);
-		check("restart key on the last spot: doesn't count it again", step() == 1);
+		goTo(START.above());
 		goTo(STEP1.above());
 		actionBar("1/3 Secrets");
 		cmd("tp @p " + (CHEST.getX() - 2) + " " + CHEST.getY() + " " + CHEST.getZ());
@@ -189,8 +221,9 @@ public class DungeonGameTest implements FabricClientGameTest {
 		check("secret count: going up next to the chest ticks it off", step() == 3);
 
 		// A secret item picked up next to the chest.
-		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5, 2);
-		ctx.waitTicks(3);
+		goTo(new BlockPos(CX, FLOOR + 1, CZ));
+		restart();
+		goTo(START.above());
 		goTo(STEP1.above());
 		sp.getServer().runOnServer(server -> {
 			net.minecraft.server.level.ServerLevel level = server.overworld();
@@ -227,7 +260,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 			throw new AssertionError(e);
 		}
 		ctx.runOnClient(mc -> SecretTrainer.importFromOdin());
-		check("import from Odin: its packs copied", ctx.computeOnClient(mc -> SecretRoutes.imported().stream().anyMatch(p -> p.name().equals("Odin mine") && p.waypoints() == 4)));
+		check("import from Odin: its packs copied", ctx.computeOnClient(mc -> SecretRoutes.imported().stream().anyMatch(p -> p.name().equals("Odin mine") && p.waypoints() == 8)));
 		ctx.runOnClient(mc -> {
 			Taz.config().dungeons.secrets.mode = SecretsConfig.Mode.NORMAL;
 			Taz.config().dungeons.secrets.defaultRoutes = true;
@@ -235,7 +268,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 		cmd("tp @p " + (CX + 8) + " " + (FLOOR + 4) + " " + (CZ - 10) + " facing " + CX + " " + FLOOR + " " + CZ);
 		ctx.waitTicks(5);
 		ctx.takeScreenshot("dungeon-secrets-normal");
-		check("normal: every waypoint (" + hudLines() + ")", hudLines().contains("4 waypoints · 1/3 steps") || hudLines().stream().anyMatch(l -> l.startsWith("4 waypoints")));
+		check("normal: every waypoint (" + hudLines() + ")", hudLines().stream().anyMatch(l -> l.startsWith("8 waypoints")));
 		check("Taz's routes: Mossy has its route", ctx.computeOnClient(mc -> SecretRoutes.forRoom("Mossy").size()) == 9);
 
 		ctx.runOnClient(mc -> {
@@ -258,16 +291,22 @@ public class DungeonGameTest implements FabricClientGameTest {
 	/** The test route as Odin writes it: positions relative to the clay corner, turned to face north. */
 	private static String odinJson() {
 		return "{\"Test Room\":["
-				+ wp(15, FLOOR, 11, "#AA00AAFF", "1", 0, 1) + ","
-				+ wp(11, FLOOR + 1, 18, "#55FF55FF", "2 item", 0.0625, 0.9375) + ","
-				+ wp(21, FLOOR + 1, 18, "#FFF255FF", "if 2 locked", 0, 1) + ","
-				+ wp(6, FLOOR, 26, "#AA00AAFF", "3 | done", 0, 1) + "]}";
+				+ wp(18, FLOOR, 8, "#FF5555FF", null, 1) + ","
+				+ wp(15, FLOOR, 11, "#AA00AAFF", "1", 1) + ","
+				+ wp(11, FLOOR + 1, 18, "#55FF55FF", "2", 0.875) + ","
+				+ wp(21, FLOOR + 1, 18, "#FFF255FF", "just tp", 1) + ","
+				+ wp(6, FLOOR, 26, "#AA00AAFF", "3 bat", 1) + ","
+				+ wp(21, FLOOR, 24, "#AA00AAFF", "4 | done", 0.5) + ","
+				+ wp(26, FLOOR + 1, 21, "#55A7CEFF", "prince", 1) + ","
+				+ wp(15, FLOOR + 2, 15, "#AA00AA00", "Routes by test", 1) + "]}";
 	}
 
-	private static String wp(int x, int y, int z, String color, String title, double min, double max) {
+	/** A waypoint; its box is a full block, a chest (0.875) or a slab (height 0.5). */
+	private static String wp(int x, int y, int z, String color, String title, double size) {
+		double min = size == 0.875 ? 0.0625 : 0, max = size == 0.875 ? 0.9375 : 1, maxY = size;
 		return "{\"blockPos\":{\"x\":" + x + ",\"y\":" + y + ",\"z\":" + z + "},\"color\":\"" + color + "\",\"filled\":false,\"depth\":false,"
-				+ "\"aabb\":{\"minX\":" + min + ",\"minY\":0.0,\"minZ\":" + min + ",\"maxX\":" + max + ",\"maxY\":" + max + ",\"maxZ\":" + max + "},"
-				+ "\"title\":\"" + title + "\"}";
+				+ "\"aabb\":{\"minX\":" + min + ",\"minY\":0.0,\"minZ\":" + min + ",\"maxX\":" + max + ",\"maxY\":" + maxY + ",\"maxZ\":" + max + "}"
+				+ (title == null ? "" : ",\"title\":\"" + title + "\"") + "}";
 	}
 
 	/** Odin's export string: Base64 of the gzipped JSON. */
@@ -295,6 +334,15 @@ public class DungeonGameTest implements FabricClientGameTest {
 
 	private int step() {
 		return ctx.computeOnClient(mc -> SecretTrainer.step());
+	}
+
+	private boolean started() {
+		return ctx.computeOnClient(mc -> SecretTrainer.started());
+	}
+
+	private void restart() {
+		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5, 2);
+		ctx.waitTicks(3);
 	}
 
 	private void goTo(BlockPos p) {

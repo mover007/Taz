@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.taz.Taz;
+import com.taz.dungeons.secrets.SecretRoutes.Kind;
 import com.taz.dungeons.util.TextUtil;
 import com.taz.hud.HudPos;
 import com.taz.hud.TextHud;
@@ -38,19 +39,27 @@ import java.util.regex.Pattern;
 
 /**
  * Secret Routes: the route for the dungeon room you're in, from Odin waypoint packs. Normal mode draws every waypoint of
- * the room; Guide mode draws only the next step (waypoints titled with a number, in order) and the one after. A step
- * ticks off when you stand on it (or on one of the next two, for a step someone else already did), click its chest,
- * lever or skull, pick up its item, kill its bat, or the room's secret count goes up next to it. Each room is timed
- * from when you walk in to its last step, against your best; progress lasts the whole run.
+ * the room; Guide mode follows the route: first the red start, then the steps (waypoints titled with a number, in order),
+ * showing only the next one and the one after. A step ticks off when you arrive on its spot (or on one of the next two,
+ * for a step someone else already did), click its chest, lever or skull, pick up its item, kill its bat, or the room's
+ * secret count goes up next to it; a spot that says "bat" or "item" also wants that secret. Each room is timed from the
+ * red start to its last step, against your best; progress lasts the whole run.
  */
 public final class SecretTrainer extends TextHud {
+	/** The red start of a room's route, before step 1. */
+	public static final int START = -1;
+	/** No step left: the route is done. */
+	public static final int DONE = Integer.MAX_VALUE;
+	/** A waypoint that isn't a step (a hint, an aim spot, a note). */
+	private static final int HINT = Integer.MIN_VALUE;
 	private static final Pattern SECRET_COUNT = Pattern.compile("(\\d+)/(\\d+) Secrets");
 	/** Secret items lying in rooms (from Odin's list). */
 	private static final List<String> DROPS = List.of("Healing", "Health Potion", "Decoy", "Inflatable Jerry", "Spirit Leap", "Trap",
 			"Training Weights", "Defuse Kit", "Dungeon Chest Key", "Treasure Talisman", "Revive Stone", "Architect's First Draft",
 			"Secret Dye", "Candycomb");
-	private static final double ITEM_NEAR = 4, BAT_NEAR = 6, COUNT_NEAR = 8, HINT_RANGE = 24;
-	/** Steps after the current one that standing on also ticks off (with everything before them). */
+	/** How far from its waypoint a secret item / bat counts for it (a Hyperion reaches a bat from further). */
+	private static final double ITEM_NEAR = 4, BAT_NEAR = 6, HYPERION_NEAR = 12, COUNT_NEAR = 8, HINT_RANGE = 24;
+	/** Steps after the current one that arriving on also ticks off (with everything before them). */
 	private static final int LOOKAHEAD = 2;
 	/** A secret count going up this soon after a click / item / bat was already counted for it. */
 	private static final long SAME_SECRET_MS = 1500;
@@ -60,8 +69,8 @@ public final class SecretTrainer extends TextHud {
 	private static final KeyWatcher SKIP = new KeyWatcher();
 	private static final KeyWatcher RESTART = new KeyWatcher();
 
-	/** A waypoint in the world. */
-	record Placed(SecretRoutes.Waypoint wp, BlockPos pos, AABB box, int step) {
+	/** A waypoint in the world, with the step it belongs to (START, a number, or HINT). */
+	record Placed(SecretRoutes.Waypoint wp, Kind kind, BlockPos pos, AABB box, int step) {
 		Vec3 top() {
 			return new Vec3(box.getCenter().x, box.maxY, box.getCenter().z);
 		}
@@ -70,12 +79,14 @@ public final class SecretTrainer extends TextHud {
 	/** One room's progress this run. */
 	static final class Progress {
 		final TreeSet<Integer> done = new TreeSet<>();
+		/** When the route started (you reached the red start), 0 before; when it ended. */
 		long startMs, endMs;
 	}
 
 	private static DungeonRooms.Room room;
 	private static List<Placed> placed = List.of();
 	private static int[] steps = new int[0];
+	private static boolean hasStart;
 	private static Progress progress;
 	/** The steps whose spot you were standing on last tick. */
 	private static Set<Integer> standing = Set.of();
@@ -206,27 +217,33 @@ public final class SecretTrainer extends TextHud {
 		}
 		Vec3 feet = mc.player.position();
 		Set<Integer> on = new HashSet<>();
-		for (Placed p : placed) if (p.step() >= 0 && !p.wp().small() && feet.distanceTo(p.top()) <= cfg.reach) on.add(p.step());
+		for (Placed p : placed) if (p.step() != HINT && p.kind().spot() && feet.distanceTo(p.top()) <= cfg.reach) on.add(p.step());
 		if (restartKey) {
 			progress.done.clear();
-			progress.startMs = now;
+			progress.startMs = hasStart ? 0 : now;
 			progress.endMs = 0;
 			standing = on; // where you are now doesn't count until you come back to it
-			TazChat.info(room.data.name() + " restarted.");
+			TazChat.info(room.data.name() + " restarted" + (hasStart ? ": go to the red start." : "."));
 			return;
 		}
 		int cur = currentStep();
-		if (skipKey && cur >= 0) progress.done.add(cur);
+		if (skipKey && cur != DONE) counted(cur);
 		// Arriving on a spot of this step (or one of the next ones) ticks it off, with everything before it.
+		// A spot with a bat or an item waits for that secret; the red start starts the timer as soon as you're on it.
 		int from = indexOf(currentStep());
 		for (int i = Math.min(steps.length - 1, from + LOOKAHEAD); from >= 0 && i >= from; i--) {
-			if (on.contains(steps[i]) && !standing.contains(steps[i])) {
-				markThrough(steps[i]);
-				break;
+			int step = steps[i];
+			if (!on.contains(step) || standing.contains(step)) continue;
+			if (step == START) startTimer(now);
+			if (needsSecret(step)) {
+				if (i > from) markThrough(steps[i - 1]);
+			} else {
+				markThrough(step);
 			}
+			break;
 		}
 		standing = on;
-		if (progress.endMs == 0 && currentStep() < 0) finish(now);
+		if (progress.endMs == 0 && currentStep() == DONE) finish(now);
 	}
 
 	private static void enter(DungeonRooms.Room r, long now) {
@@ -242,24 +259,27 @@ public final class SecretTrainer extends TextHud {
 		List<Placed> list = new ArrayList<>();
 		for (SecretRoutes.Waypoint w : SecretRoutes.forRoom(r.data.name())) {
 			BlockPos p = r.toReal(w.pos());
-			list.add(new Placed(w, p, r.toReal(w.box(), p), w.step()));
+			Kind kind = w.kind();
+			int step = w.step() >= 0 ? w.step() : kind == Kind.START ? START : HINT;
+			list.add(new Placed(w, kind, p, r.toReal(w.box(), p), step));
 		}
 		placed = list;
-		steps = list.stream().mapToInt(Placed::step).filter(s -> s >= 0).distinct().sorted().toArray();
+		steps = list.stream().mapToInt(Placed::step).filter(s -> s != HINT).distinct().sorted().toArray();
+		hasStart = steps.length > 0 && steps[0] == START;
 		progress = RUN.computeIfAbsent(r.data.name(), n -> new Progress());
-		if (progress.startMs == 0) progress.startMs = now;
+		if (!hasStart && progress.startMs == 0) progress.startMs = now;
 	}
 
-	/** The lowest step not done yet, or -1 when the route is done. */
+	/** The first step not done yet (START for the red start), or DONE. */
 	private static int currentStep() {
-		if (progress == null) return -1;
+		if (progress == null) return DONE;
 		for (int s : steps) if (!progress.done.contains(s)) return s;
-		return -1;
+		return DONE;
 	}
 
 	private static int nextStep(int step) {
 		for (int s : steps) if (s > step && !progress.done.contains(s)) return s;
-		return -1;
+		return DONE;
 	}
 
 	private static int indexOf(int step) {
@@ -267,12 +287,22 @@ public final class SecretTrainer extends TextHud {
 		return -1;
 	}
 
+	private static boolean needsSecret(int step) {
+		return placed.stream().anyMatch(p -> p.step() == step && p.wp().needsSecret());
+	}
+
+	private static void startTimer(long now) {
+		if (progress.startMs == 0) progress.startMs = now;
+	}
+
 	private static void markThrough(int step) {
 		for (int s : steps) if (s <= step) progress.done.add(s);
+		startTimer(System.currentTimeMillis());
 	}
 
 	private static void finish(long now) {
 		progress.endMs = now;
+		startTimer(now);
 		if (SecretsConfig.get().mode != SecretsConfig.Mode.GUIDE) return;
 		String name = room.data.name();
 		long time = now - progress.startMs;
@@ -295,7 +325,7 @@ public final class SecretTrainer extends TextHud {
 		Vec3 c = Vec3.atCenterOf(pos);
 		for (int step : steps) {
 			if (progress.done.contains(step)) continue;
-			if (placed.stream().anyMatch(p -> p.step() == step && (p.pos().equals(pos) || p.box().inflate(0.1).contains(c)))) {
+			if (placed.stream().anyMatch(p -> p.step() == step && p.kind() != Kind.TEXT && (p.pos().equals(pos) || p.box().inflate(0.1).contains(c)))) {
 				counted(step);
 				return;
 			}
@@ -309,16 +339,18 @@ public final class SecretTrainer extends TextHud {
 		if (e instanceof ItemEntity item) {
 			String name = ITEM_NAMES.remove(item.getId());
 			if (name == null) name = item.getItem().getHoverName().getString();
-			if (item.distanceTo(mc.player) <= 6 && DROPS.stream().anyMatch(name::contains)) secretAt(item.position(), ITEM_NEAR);
+			if (item.distanceTo(mc.player) <= 6 && DROPS.stream().anyMatch(name::contains)) secretAt(item.position(), ITEM_NEAR, "item");
 		} else if (e.getType() == EntityType.BAT && e.distanceTo(mc.player) <= 20) {
-			secretAt(e.position(), BAT_NEAR);
+			secretAt(e.position(), BAT_NEAR, "bat");
 		}
 	}
 
-	private static void secretAt(Vec3 at, double near) {
+	/** A secret item or bat at this spot: the first step left with a waypoint near it (or a spot waiting for one). */
+	private static void secretAt(Vec3 at, double near, String what) {
 		for (int step : steps) {
 			if (progress.done.contains(step)) continue;
-			if (placed.stream().anyMatch(p -> p.step() == step && p.box().getCenter().distanceTo(at) <= near)) {
+			if (placed.stream().anyMatch(p -> p.step() == step && p.box().getCenter().distanceTo(at)
+					<= (p.wp().needsSecret() && p.wp().note().toLowerCase().contains(what) && what.equals("bat") ? HYPERION_NEAR : near))) {
 				counted(step);
 				return;
 			}
@@ -327,6 +359,7 @@ public final class SecretTrainer extends TextHud {
 
 	private static void counted(int step) {
 		progress.done.add(step);
+		startTimer(System.currentTimeMillis());
 		lastCountedMs = System.currentTimeMillis();
 	}
 
@@ -340,16 +373,12 @@ public final class SecretTrainer extends TextHud {
 				&& System.currentTimeMillis() - lastCountedMs > SAME_SECRET_MS) {
 			int cur = currentStep();
 			Vec3 me = mc.player.position();
-			if (cur >= 0 && placed.stream().anyMatch(p -> p.step() == cur && secretish(p) && p.box().getCenter().distanceTo(me) <= COUNT_NEAR)) {
+			if (cur != DONE && placed.stream().anyMatch(p -> p.step() == cur && (p.kind() == Kind.SECRET || p.wp().needsSecret())
+					&& p.box().getCenter().distanceTo(me) <= (p.wp().needsSecret() ? HYPERION_NEAR : COUNT_NEAR))) {
 				counted(cur);
 			}
 		}
 		secretsSeen = found;
-	}
-
-	private static boolean secretish(Placed p) {
-		String n = p.wp().note().toLowerCase();
-		return p.wp().small() || n.contains("item") || n.contains("bat") || n.contains("secret");
 	}
 
 	// ---- best times
@@ -381,8 +410,13 @@ public final class SecretTrainer extends TextHud {
 		return room == null ? null : room.data.name();
 	}
 
+	/** The current step: START, a step number, or DONE. */
 	public static int step() {
 		return currentStep();
+	}
+
+	public static boolean started() {
+		return progress != null && progress.startMs > 0;
 	}
 
 	public static List<BlockPos> positions() {
@@ -410,7 +444,7 @@ public final class SecretTrainer extends TextHud {
 	/** Normal mode: every waypoint left in the room, as Odin draws it. */
 	private static void renderAll(WorldRenderer.Batch batch) {
 		for (Placed p : placed) {
-			if (p.step() >= 0 && progress.done.contains(p.step())) continue;
+			if (p.step() != HINT && progress.done.contains(p.step())) continue;
 			boolean walls = !p.wp().depth();
 			int rgb = p.wp().argb() & 0xFFFFFF;
 			if (p.wp().visible()) {
@@ -421,22 +455,24 @@ public final class SecretTrainer extends TextHud {
 		}
 	}
 
-	/** Guide mode: the next step bright, with a path from your crosshair, the one after faint, and the hints. */
+	/** Guide mode: the next step bright, with a path from your crosshair and what to do there, the one after faint, and the hints. */
 	private static void renderGuide(WorldRenderer.Batch batch, SecretsConfig cfg) {
 		int cur = currentStep();
 		if (cfg.hints) {
 			for (Placed p : placed) {
-				if (p.step() >= 0 || p.top().distanceTo(batch.camera) > HINT_RANGE) continue;
-				if (p.wp().visible()) batch.outline(p.box(), 0x70000000 | (p.wp().argb() & 0xFFFFFF), 1.5f, true);
-				if (p.wp().title() != null) batch.label(p.top().add(0, 0.35, 0), p.wp().title(), 0xFFAAAAAA, true);
+				if (p.step() != HINT || p.top().distanceTo(batch.camera) > HINT_RANGE) continue;
+				if (p.wp().visible()) batch.outline(p.box(), 0x80000000 | (p.wp().argb() & 0xFFFFFF), 1.5f, true);
+				String text = p.kind() == Kind.AIM ? "aim here" + (p.wp().title() == null ? "" : ": " + p.wp().title())
+						: p.kind() == Kind.PRINCE && p.wp().title() == null ? "prince" : p.wp().title();
+				if (text != null) batch.label(p.top().add(0, 0.35, 0), text, p.kind() == Kind.TEXT ? 0xFFFFFFFF : 0xFFAAAAAA, true);
 			}
 		}
-		if (cur < 0) return;
+		if (cur == DONE) return;
 		int next = nextStep(cur);
-		if (cfg.showNext && next >= 0) {
+		if (cfg.showNext && next != DONE) {
 			for (Placed p : placed) {
 				if (p.step() != next) continue;
-				batch.outline(p.box(), 0x90000000 | (p.wp().argb() & 0xFFFFFF), 1.5f, true);
+				if (p.wp().visible()) batch.outline(p.box(), 0x90000000 | (p.wp().argb() & 0xFFFFFF), 1.5f, true);
 				batch.label(p.top().add(0, 0.35, 0), "then " + label(p), 0xFFAAAAAA, true);
 			}
 		}
@@ -444,33 +480,55 @@ public final class SecretTrainer extends TextHud {
 		for (Placed p : placed) {
 			if (p.step() != cur) continue;
 			int rgb = p.wp().argb() & 0xFFFFFF;
-			batch.filled(p.box().inflate(0.02), 0x40000000 | rgb, true);
-			batch.outline(p.box().inflate(0.02), 0xFF000000 | rgb, 3.5f, true);
+			if (p.wp().visible()) {
+				if (p.kind() != Kind.AIM) batch.filled(p.box().inflate(0.02), 0x40000000 | rgb, true);
+				batch.outline(p.box().inflate(0.02), 0xFF000000 | rgb, 3.5f, true);
+			}
 			long dist = Math.round(p.top().distanceTo(batch.camera));
 			batch.label(p.top().add(0, 0.45, 0), label(p) + "  " + dist + "m", 0xFF000000 | rgb, true, 1);
-			if (nearest == null || p.top().distanceToSqr(batch.camera) < nearest.top().distanceToSqr(batch.camera)) nearest = p;
+			String how = how(p);
+			if (!how.isEmpty()) batch.label(p.top().add(0, 0.45, 0), how, 0xFFDDDDDD, true);
+			if (p.kind() != Kind.TEXT && (nearest == null || p.top().distanceToSqr(batch.camera) < nearest.top().distanceToSqr(batch.camera))) nearest = p;
 		}
 		if (cfg.lines && nearest != null) {
 			batch.line(WorldRenderer.crosshair(batch.camera), nearest.box().getCenter(), 0xC0000000 | (nearest.wp().argb() & 0xFFFFFF), 2.0f, true);
 		}
 	}
 
-	/** "4 item", "7", "2 down". */
+	/** "Start", "Start bat", "4 item", "2 down". */
 	private static String label(Placed p) {
 		String n = p.wp().note();
-		return p.step() + (n.isEmpty() ? "" : " " + n);
+		String head = p.step() == START ? "Start" : String.valueOf(p.step());
+		return head + (n.isEmpty() ? "" : " " + n);
 	}
 
-	/** What a step is, for the HUD: its note and whether it's a secret to get or a spot to stand on. */
-	private static String describe(int step) {
-		String n = "";
-		boolean secret = false;
+	/** What to do at a waypoint, from the legend: "Etherwarp · pick up the item", "Aim here and right-click to teleport...". */
+	private static String how(Placed p) {
+		String explain = SecretRoutes.explain(p.kind(), p.wp().note());
+		String kind = switch (p.kind()) {
+			case START -> "Start here";
+			case ETHERWARP -> "Etherwarp";
+			case SECRET -> "Chest / lever / essence";
+			case AIM -> "";
+			case PRINCE -> "Prince";
+			default -> "";
+		};
+		if (explain.isEmpty()) return kind;
+		return kind.isEmpty() ? capital(explain) : kind + " · " + explain;
+	}
+
+	private static String capital(String s) {
+		return s.isEmpty() ? s : Character.toUpperCase(s.charAt(0)) + s.substring(1);
+	}
+
+	/** The waypoint that says what a step is (a spot or secret over an aim spot or note). */
+	private static Placed main(int step) {
+		Placed best = null;
 		for (Placed p : placed) {
 			if (p.step() != step) continue;
-			if (n.isEmpty()) n = p.wp().note();
-			secret |= p.wp().small();
+			if (best == null || (best.kind() == Kind.AIM || best.kind() == Kind.TEXT) && p.kind() != Kind.AIM && p.kind() != Kind.TEXT) best = p;
 		}
-		return (n.isEmpty() ? "" : "§f" + n + " ") + "§7(" + (secret ? "secret" : "spot") + ")";
+		return best;
 	}
 
 	// ---- HUD
@@ -492,8 +550,9 @@ public final class SecretTrainer extends TextHud {
 		if (room == null || progress == null) {
 			if (preview) {
 				lines.add("§c§lSecrets §7· §fMossy §e0:12.3 §7(best 0:10.1)");
-				lines.add("§fStep §b4§7/7 §fitem §7(secret) · 6m");
-				lines.add("§7then §f5 §7(spot)");
+				lines.add("§fStep §b4§7/7 §dEtherwarp §7· 6m");
+				lines.add("§fitem §7· pick up the item");
+				lines.add("§7then §f5 down");
 			}
 			return lines;
 		}
@@ -509,19 +568,38 @@ public final class SecretTrainer extends TextHud {
 			return lines;
 		}
 		long now = System.currentTimeMillis();
-		long time = (progress.endMs > 0 ? progress.endMs : now) - progress.startMs;
 		Long b = best().get(name);
-		lines.add("§c§lSecrets §7· §f" + name + " §e" + TextUtil.formatTimeTenths(time) + (b != null ? " §7(best " + TextUtil.formatTimeTenths(b) + ")" : ""));
+		String bestText = b != null ? " §7(best " + TextUtil.formatTimeTenths(b) + ")" : "";
+		if (progress.startMs == 0) {
+			lines.add("§c§lSecrets §7· §f" + name + bestText);
+		} else {
+			long time = (progress.endMs > 0 ? progress.endMs : now) - progress.startMs;
+			lines.add("§c§lSecrets §7· §f" + name + " §e" + TextUtil.formatTimeTenths(time) + bestText);
+		}
 		int cur = currentStep();
-		if (cur < 0) {
+		if (cur == DONE) {
 			lines.add("§aRoute done");
 		} else {
 			Minecraft mc = Minecraft.getInstance();
 			double d = Double.MAX_VALUE;
-			for (Placed p : placed) if (p.step() == cur && mc.player != null) d = Math.min(d, p.top().distanceTo(mc.player.position()));
-			lines.add("§fStep §b" + cur + "§7/" + steps[steps.length - 1] + " " + describe(cur) + (d < Double.MAX_VALUE ? " · " + Math.round(d) + "m" : ""));
+			for (Placed p : placed) if (p.step() == cur && p.kind() != Kind.TEXT && mc.player != null) d = Math.min(d, p.top().distanceTo(mc.player.position()));
+			String dist = d < Double.MAX_VALUE ? " §7· " + Math.round(d) + "m" : "";
+			Placed main = main(cur);
+			if (cur == START) {
+				lines.add("§c§lStart §7· stand on the red block" + dist);
+			} else {
+				lines.add("§fStep §b" + cur + "§7/" + steps[steps.length - 1] + " " + main.kind().color + main.kind().label + dist);
+			}
+			String explain = SecretRoutes.explain(main.kind(), main.wp().note());
+			String noteText = main.wp().note();
+			if (!noteText.isEmpty() || !explain.isEmpty()) {
+				lines.add("§f" + noteText + (explain.isEmpty() ? "" : (noteText.isEmpty() ? "§7" : " §7· ") + explain));
+			}
 			int next = nextStep(cur);
-			if (cfg.showNext && next >= 0) lines.add("§7then §f" + next + " " + describe(next));
+			if (cfg.showNext && next != DONE) {
+				Placed n = main(next);
+				lines.add("§7then §f" + label(n) + " §7(" + n.kind().label.toLowerCase() + ")");
+			}
 		}
 		if (note != null && now < noteUntilMs) lines.add("§6" + note);
 		return lines;

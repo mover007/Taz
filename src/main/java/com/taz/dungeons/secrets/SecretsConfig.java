@@ -40,9 +40,11 @@ public final class SecretsConfig {
 	public boolean enabled = false;
 
 	@Expose
-	@ConfigOption(name = "Mode", desc = "Normal shows every waypoint in the room, like Odin. Guide shows only the next step of the route "
-			+ "(waypoints titled 1, 2, 3...) and the one after, with a path from your crosshair; a step ticks off when you stand on "
-			+ "it, click its chest / lever / skull, pick up its item or kill its bat. Each room is timed against your best.")
+	@ConfigOption(name = "Mode", desc = "Normal shows every waypoint in the room, like Odin. Guide starts each room at the red start, then "
+			+ "shows only the next step of the route (waypoints titled 1, 2, 3...) and the one after, with a path from your crosshair "
+			+ "and what to do there (etherwarp, open the chest, aim and teleport, kill the bat with Hyperion...). A step ticks off when "
+			+ "you arrive on it, click its chest / lever / skull, pick up its item or kill its bat. Each room is timed from the red "
+			+ "start against your best.")
 	@ConfigEditorDropdown
 	public Mode mode = Mode.GUIDE;
 
