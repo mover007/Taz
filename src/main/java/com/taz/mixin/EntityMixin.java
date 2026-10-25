@@ -19,6 +19,11 @@ public class EntityMixin {
 			return;
 		}
 		int hunting = HuntingMobs.glowColor((Entity) (Object) this);
-		if (hunting >= 0) cir.setReturnValue(hunting);
+		if (hunting >= 0) {
+			cir.setReturnValue(hunting);
+			return;
+		}
+		int glow = com.taz.render.Glow.color((Entity) (Object) this);
+		if (glow >= 0) cir.setReturnValue(glow);
 	}
 }

@@ -138,6 +138,7 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.general.PetDisplay());
 		TazHud.register(new com.taz.general.SpringBoots());
 		TazHud.register(new com.taz.general.KickTimer());
+		TazHud.register(new com.taz.dungeons.info.BloodCamp());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -163,8 +164,24 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(SecretTrainer::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.info.TerracottaTimer::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.general.SpringBoots::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.highlight.DoorsAndKeys::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.highlight.SecretClicked::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.info.BloodCamp::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.info.MageBeam::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.TerminalHighlight::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.general.EtherwarpGuess::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.general.GyroWand::render);
+		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
+			if (level.isClientSide()) safely("Terminal highlight click", () -> com.taz.dungeons.f7.TerminalHighlight.onClick(entity));
+			return net.minecraft.world.InteractionResult.PASS;
+		});
+		net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
+			if (level.isClientSide()) safely("Terminal highlight click", () -> com.taz.dungeons.f7.TerminalHighlight.onClick(entity));
+			return net.minecraft.world.InteractionResult.PASS;
+		});
 		UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
 			if (level.isClientSide()) safely("Secret routes click", () -> SecretTrainer.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
+			if (level.isClientSide()) safely("Secret clicked", () -> com.taz.dungeons.highlight.SecretClicked.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
 			return InteractionResult.PASS;
 		});
 		ClientEntityEvents.ENTITY_UNLOAD.register((entity, level) -> safely("Secret routes entity", () -> SecretTrainer.onEntityGone(entity)));
@@ -287,11 +304,26 @@ public final class Taz implements ClientModInitializer {
 		safely("Mask timers", com.taz.dungeons.info.MaskTimers::onServerTick);
 		safely("Tick timers", com.taz.dungeons.f7.TickTimers::onServerTick);
 		safely("Terracotta timer", com.taz.dungeons.info.TerracottaTimer::onServerTick);
+		safely("Blood camp", com.taz.dungeons.info.BloodCamp::onServerTick);
 	}
 
 	/** An entity event (ClientPacketListenerMixin): 3 is a mob's death. */
 	public static void onEntityEvent(net.minecraft.world.entity.Entity entity, byte id) {
 		safely("Score alerts", () -> com.taz.dungeons.info.ScoreAlerts.onEntityEvent(entity, id));
+		safely("Secret clicked", () -> com.taz.dungeons.highlight.SecretClicked.onEntityEvent(entity, id));
+	}
+
+	/** An item entity picked up by someone (ClientPacketListenerMixin), before it's removed. */
+	public static void onItemTaken(net.minecraft.world.entity.Entity item, int collector) {
+		safely("Secret clicked", () -> com.taz.dungeons.highlight.SecretClicked.onItemTaken(item, collector));
+	}
+
+	/** A particle the server sends (ClientPacketListenerMixin); true hides it. */
+	public static boolean onParticle(net.minecraft.core.particles.ParticleOptions particle, double x, double y, double z, float dx, float dy, float dz) {
+		boolean[] hide = {false};
+		safely("Gyro wand", () -> com.taz.general.GyroWand.onParticle(particle, x, y, z, dx, dy, dz));
+		safely("Mage beam", () -> hide[0] |= com.taz.dungeons.info.MageBeam.onParticle(particle, x, y, z));
+		return hide[0];
 	}
 
 	/** The tab list's footer (ClientPacketListenerMixin): the dungeon's blessings. */
@@ -344,6 +376,9 @@ public final class Taz implements ClientModInitializer {
 		safely("Ragnarock chat", () -> com.taz.general.Ragnarock.onChat(line));
 		safely("Pet display chat", () -> com.taz.general.PetDisplay.onChat(content.getString(), line));
 		safely("Kick timer chat", () -> com.taz.general.KickTimer.onChat(line));
+		safely("Doors and keys chat", () -> com.taz.dungeons.highlight.DoorsAndKeys.onChat(line));
+		safely("Secret clicked chat", () -> com.taz.dungeons.highlight.SecretClicked.onChat(line));
+		safely("Blood camp chat", () -> com.taz.dungeons.info.BloodCamp.onChat(line));
 	}
 
 	/** Every action bar message (GuiMixin), for every feature. */
@@ -422,6 +457,11 @@ public final class Taz implements ClientModInitializer {
 		safely("Spring boots", () -> com.taz.general.SpringBoots.tick(mc));
 		safely("Pet display", () -> com.taz.general.PetDisplay.tick(mc));
 		safely("Dungeon party", () -> DungeonParty.tick(mc));
+		safely("Starred mobs", () -> com.taz.dungeons.highlight.StarredMobs.tick(mc));
+		safely("Doors and keys", () -> com.taz.dungeons.highlight.DoorsAndKeys.tick(mc));
+		safely("Blood camp", () -> com.taz.dungeons.info.BloodCamp.tick(mc));
+		safely("Terminal highlight", () -> com.taz.dungeons.f7.TerminalHighlight.tick(mc));
+		safely("Door fix", () -> com.taz.dungeons.f7.DoorFix.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();
 	}

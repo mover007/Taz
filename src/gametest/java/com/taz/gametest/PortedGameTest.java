@@ -33,12 +33,14 @@ import java.util.stream.Stream;
 
 /**
  * Features ported from Odin and NoammAddons. Parts: performance, blessings, masks, ragnarock, ticktimers, terracotta,
- * scorealerts, springboots, pets, kicktimer ("ported" runs them all). Hypixel sends a ping packet every server tick but
+ * scorealerts, springboots, pets, kicktimer, starredmobs, doorskeys, secretclicked, etherwarp, gyro, magebeam, bloodcamp,
+ * terminals, doorfix ("ported" runs them all). Hypixel sends a ping packet every server tick but
  * singleplayer doesn't, so the tests run the server-tick clock themselves. Runs with -Dtaz.dungeons.anywhere=true.
  */
 public class PortedGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"performance", "blessings", "masks", "ragnarock", "ticktimers", "terracotta", "scorealerts",
-			"springboots", "pets", "kicktimer"};
+			"springboots", "pets", "kicktimer", "starredmobs", "doorskeys", "secretclicked", "etherwarp", "gyro", "magebeam", "bloodcamp", "terminals",
+			"doorfix"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -68,6 +70,15 @@ public class PortedGameTest implements FabricClientGameTest {
 			if (runs("springboots")) springBoots();
 			if (runs("pets")) pets();
 			if (runs("kicktimer")) kickTimer();
+			if (runs("starredmobs")) starredMobs();
+			if (runs("doorskeys")) doorsAndKeys();
+			if (runs("secretclicked")) secretClicked();
+			if (runs("etherwarp")) etherwarp();
+			if (runs("gyro")) gyro();
+			if (runs("magebeam")) mageBeam();
+			if (runs("bloodcamp")) bloodCamp();
+			if (runs("terminals")) terminals();
+			if (runs("doorfix")) doorFix();
 			ctx.takeScreenshot("ported-huds");
 		}
 		System.out.println("[PortedGameTest] PASSED");
@@ -224,7 +235,241 @@ public class PortedGameTest implements FabricClientGameTest {
 				&& hud(KickTimer.class).get(0).startsWith("Kicked from SkyBlock "));
 	}
 
+	private void starredMobs() {
+		ctx.runOnClient(mc -> Taz.config().dungeons.starredMobs.enabled = true);
+		platform(300, 100, 300);
+		cmd("summon zombie 303 100 300 {NoAI:1b}");
+		cmd("summon armor_stand 303 102 300 {CustomName:\"✯ Zombie 1.2M❤\",Invisible:1b,NoGravity:1b}");
+		cmd("summon armor_stand 300 102 304 {CustomName:\"Lurker 50❤\",Invisible:1b,CustomNameVisible:1b,NoGravity:1b}");
+		cmd("summon bat 297 101 300 {NoAI:1b,attributes:[{id:\"minecraft:max_health\",base:100}]}");
+		cmd("tp @p 299 101 300 -90 15");
+		ctx.waitTicks(20);
+		check("starred mobs: the zombie under the starred name glows red", ctx.computeOnClient(mc -> {
+			net.minecraft.world.entity.Entity z = nearest(mc, net.minecraft.world.entity.monster.zombie.Zombie.class);
+			return z != null && com.taz.dungeons.highlight.StarredMobs.glowing(z) && com.taz.render.Glow.color(z) == 0xFF3030;
+		}));
+		check("starred mobs: the bonus bat glows white", ctx.computeOnClient(mc -> {
+			net.minecraft.world.entity.Entity b = nearest(mc, net.minecraft.world.entity.ambient.Bat.class);
+			return b != null && com.taz.render.Glow.color(b) == 0xFFFFFF;
+		}));
+		check("starred mobs: the plain mob's name is hidden", ctx.computeOnClient(mc -> mc.level.getEntitiesOfClass(
+				net.minecraft.world.entity.decoration.ArmorStand.class, mc.player.getBoundingBox().inflate(10),
+				a -> a.hasCustomName() && a.getCustomName().getString().startsWith("Lurker")).stream().noneMatch(a -> a.isCustomNameVisible())));
+		ctx.takeScreenshot("ported-starred-mobs");
+		cmd("kill @e[type=!player]");
+		ctx.runOnClient(mc -> Taz.config().dungeons.starredMobs.enabled = false);
+	}
+
+	private void doorsAndKeys() {
+		ctx.runOnClient(mc -> Taz.config().dungeons.doorsAndKeys.enabled = true);
+		platform(-185, 71, -185);
+		cmd("fill -170 69 -186 -168 72 -184 coal_block");
+		cmd("fill -186 69 -170 -184 72 -168 red_terracotta");
+		ctx.waitTicks(25);
+		check("doors: a wither and a blood door next to your room (" + ctx.computeOnClient(mc -> com.taz.dungeons.highlight.DoorsAndKeys.doors()) + ")",
+				ctx.computeOnClient(mc -> com.taz.dungeons.highlight.DoorsAndKeys.doors().size()) == 2);
+		check("doors: locked without a key", ctx.computeOnClient(mc -> com.taz.dungeons.highlight.DoorsAndKeys.doors().stream()
+				.noneMatch(com.taz.dungeons.highlight.DoorsAndKeys::openable)));
+		tell("[MVP+] Player has obtained Wither Key!");
+		check("doors: the wither door opens with the key", ctx.computeOnClient(mc -> com.taz.dungeons.highlight.DoorsAndKeys.doors().stream()
+				.anyMatch(d -> !d.blood() && com.taz.dungeons.highlight.DoorsAndKeys.openable(d))));
+		tell("Player opened a WITHER door!");
+		check("doors: key used", ctx.computeOnClient(mc -> com.taz.dungeons.highlight.DoorsAndKeys.doors().stream()
+				.noneMatch(com.taz.dungeons.highlight.DoorsAndKeys::openable)));
+		cmd("summon armor_stand -182 72 -182 {CustomName:\"Wither Key\",Invisible:1b,NoGravity:1b}");
+		ctx.waitTicks(15);
+		check("keys: the Wither Key found and announced (" + Alert.lastTitle + ")",
+				ctx.computeOnClient(mc -> com.taz.dungeons.highlight.DoorsAndKeys.key() != null) && Alert.lastTitle.contains("Wither Key"));
+		ctx.takeScreenshot("ported-doors");
+		tell("The BLOOD DOOR has been opened!");
+		ctx.waitTicks(12);
+		check("doors: the blood door is gone once opened", ctx.computeOnClient(mc -> com.taz.dungeons.highlight.DoorsAndKeys.doors().stream()
+				.noneMatch(com.taz.dungeons.highlight.DoorsAndKeys.Door::blood)));
+		cmd("kill @e[type=armor_stand]");
+		ctx.runOnClient(mc -> Taz.config().dungeons.doorsAndKeys.enabled = false);
+	}
+
+	private void secretClicked() {
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.secretClicked.enabled = true;
+			com.taz.dungeons.highlight.SecretClicked.reset();
+		});
+		platform(400, 100, 400);
+		cmd("setblock 402 101 400 chest");
+		ctx.waitTicks(3);
+		ctx.runOnClient(mc -> {
+			BlockPos chest = new BlockPos(402, 101, 400);
+			com.taz.dungeons.highlight.SecretClicked.onInteract(chest, mc.level.getBlockState(chest));
+		});
+		check("secret clicked: a box on the chest", ctx.computeOnClient(mc -> com.taz.dungeons.highlight.SecretClicked.boxes()) == 1);
+		tell("That chest is locked!");
+		check("secret clicked: locked", ctx.computeOnClient(mc -> com.taz.dungeons.highlight.SecretClicked.locked()));
+		cmd("summon bat 400 103 404 {NoAI:1b}");
+		ctx.waitTicks(5);
+		cmd("kill @e[type=bat]");
+		ctx.waitTicks(5);
+		check("secret clicked: a box where the bat died", ctx.computeOnClient(mc -> com.taz.dungeons.highlight.SecretClicked.boxes()) == 2);
+		cmd("summon item 400 101 398 {Item:{id:\"minecraft:paper\",count:1},PickupDelay:0}");
+		cmd("tp @p 400 101 398");
+		ctx.waitTicks(15);
+		check("secret clicked: a box where you picked up the item (" + ctx.computeOnClient(mc -> com.taz.dungeons.highlight.SecretClicked.boxes()) + ")",
+				ctx.computeOnClient(mc -> com.taz.dungeons.highlight.SecretClicked.boxes()) == 3);
+		ctx.runOnClient(mc -> Taz.config().dungeons.secretClicked.enabled = false);
+	}
+
+	private void etherwarp() {
+		ctx.runOnClient(mc -> Taz.config().general.etherwarp.enabled = true);
+		platform(500, 100, 500);
+		cmd("tp @p 500 101 500 0 90");
+		cmd("item replace entity @p weapon.mainhand with diamond_shovel[custom_data={id:\"ASPECT_OF_THE_VOID\",ethermerge:1,tuned_transmission:3}]");
+		ctx.runOnClient(mc -> mc.options.keyShift.setDown(true));
+		ctx.waitTicks(10);
+		check("etherwarp: range 57 + 3", ctx.computeOnClient(mc -> com.taz.general.EtherwarpGuess.range(mc.player.getMainHandItem())) == 60);
+		check("etherwarp: lands on the block under you", ctx.computeOnClient(mc -> {
+			com.taz.util.EtherRaycast.Hit hit = com.taz.general.EtherwarpGuess.guess();
+			return hit != null && hit.ok() && hit.pos().equals(new BlockPos(500, 100, 500));
+		}));
+		cmd("setblock 500 101 500 skeleton_skull");
+		cmd("tp @p 500 102 500 0 90");
+		cmd("setblock 500 101 501 stone");
+		ctx.waitTicks(5);
+		check("etherwarp: fails with a skull where your feet go", ctx.computeOnClient(mc -> {
+			com.taz.util.EtherRaycast.Hit hit = com.taz.general.EtherwarpGuess.guess();
+			return hit != null && !hit.ok();
+		}));
+		ctx.runOnClient(mc -> mc.options.keyShift.setDown(false));
+		ctx.waitTicks(3);
+		check("etherwarp: nothing when not sneaking", ctx.computeOnClient(mc -> com.taz.general.EtherwarpGuess.guess() == null));
+		cmd("item replace entity @p weapon.mainhand with air");
+		ctx.runOnClient(mc -> Taz.config().general.etherwarp.enabled = false);
+	}
+
+	private void gyro() {
+		ctx.runOnClient(mc -> {
+			Taz.config().general.gyroWand.enabled = true;
+			com.taz.general.GyroWand.reset();
+		});
+		platform(600, 100, 600);
+		cmd("tp @p 600 101 600 0 90");
+		cmd("item replace entity @p weapon.mainhand with blaze_rod[custom_data={id:\"GYROKINETIC_WAND\"}]");
+		ctx.waitTicks(5);
+		check("gyro: aimed at the block under you", ctx.computeOnClient(mc -> new net.minecraft.world.phys.Vec3(600.5, 101, 600.5).equals(com.taz.general.GyroWand.target())));
+		ctx.takeScreenshot("ported-gyro");
+		sp.getServer().runOnServer(server -> {
+			for (int i = 0; i < 5; i++) server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "particle minecraft:witch 604 102.2 600 0 0 0 0 1 force");
+		});
+		ctx.waitTicks(5);
+		check("gyro: the burst of witch particles starts the cooldown", ctx.computeOnClient(mc -> com.taz.general.GyroWand.onCooldown()));
+		cmd("item replace entity @p weapon.mainhand with air");
+		ctx.runOnClient(mc -> Taz.config().general.gyroWand.enabled = false);
+	}
+
+	private void mageBeam() {
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.mageBeam.enabled = true;
+			com.taz.dungeons.info.MageBeam.reset();
+		});
+		platform(700, 100, 700);
+		cmd("tp @p 700 101 701 -60 10");
+		sp.getServer().runOnServer(server -> {
+			for (int i = 0; i < 6; i++) {
+				server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "particle minecraft:firework " + (702 + i) + " 102.5 700 0 0 0 0 1 force");
+			}
+		});
+		ctx.waitTicks(3);
+		check("mage beam: six sparks in a line make one beam", ctx.computeOnClient(mc -> com.taz.dungeons.info.MageBeam.beams()) == 1);
+		ctx.takeScreenshot("ported-mage-beam");
+		ctx.runOnClient(mc -> Taz.config().dungeons.mageBeam.enabled = false);
+	}
+
+	private void bloodCamp() {
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.bloodCamp.enabled = true;
+			com.taz.dungeons.info.BloodCamp.clear();
+		});
+		tell("[BOSS] The Watcher: Ah, you've finally arrived.");
+		check("blood camp: he moves in 20.5s (" + hud(com.taz.dungeons.info.BloodCamp.class) + ")",
+				hud(com.taz.dungeons.info.BloodCamp.class).equals(List.of("Watcher moves in 20.50s")));
+		serverTicks(410);
+		check("blood camp: kill mobs", "§c§lKill Mobs".equals(Alert.lastTitle) && hud(com.taz.dungeons.info.BloodCamp.class).isEmpty());
+		platform(800, 100, 800);
+		cmd("summon zombie 805 101 800 {NoAI:1b,equipment:{head:{id:\"minecraft:player_head\",count:1,components:{\"minecraft:profile\":{properties:[{name:\"textures\",value:\"eyJ0ZXh0dXJlcyI6IHsiU0tJTiI6IHsidXJsIjogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNTY2MmI2ZmI0YjhiNTg2ZGM0Y2RmODAzYjA0NDRkOWI0MWQyNDVjZGY2NjhkYWIzOGZhNmMwNjRhZmU4ZTQ2MSJ9fX0=\"}]}}}}}");
+		ctx.waitTicks(15);
+		check("blood camp: found the Watcher by his head", ctx.computeOnClient(mc -> com.taz.dungeons.info.BloodCamp.watcher() != null));
+		cmd("summon armor_stand 805 101 803 {NoGravity:1b,Tags:[\"bloodmob\"],equipment:{head:{id:\"minecraft:player_head\",count:1,components:{\"minecraft:profile\":{properties:[{name:\"textures\",value:\"eyJ0ZXh0dXJlcyI6IHsiU0tJTiI6IHsidXJsIjogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWE3OTg2MGFjYTc5OTQwN2MwZmFhMTBiMWJiY2Y0Mjk5OGZhZDRlYmNmMzFkN2EyMTQxODA4MjZiNGFjOTRlMSJ9fX0=\"}]}}}}}");
+		ctx.waitTicks(3);
+		check("blood camp: a mob flying out", ctx.computeOnClient(mc -> com.taz.dungeons.info.BloodCamp.flying()) == 1);
+		cmd("tp @e[tag=bloodmob] 808 101 803");
+		cmd("tp @p 798 101 800 -80 10");
+		ctx.waitTicks(10);
+		serverTicks(20);
+		check("blood camp: it lands 16.1 blocks out, in 2.9s", ctx.computeOnClient(mc -> {
+			net.minecraft.world.entity.Entity stand = nearest(mc, net.minecraft.world.entity.decoration.ArmorStand.class);
+			net.minecraft.world.phys.Vec3 end = com.taz.dungeons.info.BloodCamp.landing(stand);
+			return end != null && Math.abs(end.x - (805.5 + 16.1)) < 0.01 && Math.abs(end.z - 803.5) < 0.01
+					&& Math.abs(com.taz.dungeons.info.BloodCamp.secondsLeft(stand) - 2.9) < 0.01;
+		}));
+		ctx.takeScreenshot("ported-blood-camp");
+		cmd("kill @e[type=!player]");
+		ctx.runOnClient(mc -> Taz.config().dungeons.bloodCamp.enabled = false);
+	}
+
+	private void terminals() {
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.terminals.enabled = true;
+			DungeonLocation.setTestFloor("F7");
+		});
+		platform(105, 112, 73);
+		cmd("summon armor_stand 110 113 73 {CustomName:\"Inactive Terminal\",NoGravity:1b}");
+		cmd("tp @p 105 113 73 -90 10");
+		ctx.waitTicks(25);
+		check("terminals: in Phase 3, section 1", ctx.computeOnClient(mc -> DungeonLocation.f7Phase() == 3 && DungeonLocation.p3Section() == 1));
+		check("terminals: the inactive terminal found", ctx.computeOnClient(mc -> com.taz.dungeons.f7.TerminalHighlight.inactive()) == 1);
+		ctx.takeScreenshot("ported-terminals");
+		cmd("data merge entity @e[type=armor_stand,limit=1,sort=nearest] {CustomName:\"Terminal Active\"}");
+		ctx.waitTicks(10);
+		check("terminals: gone once done", ctx.computeOnClient(mc -> com.taz.dungeons.f7.TerminalHighlight.inactive()) == 0);
+		cmd("kill @e[type=armor_stand]");
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.terminals.enabled = false;
+			DungeonLocation.setTestFloor(null);
+		});
+	}
+
+	private void doorFix() {
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.doorFix.enabled = true;
+			DungeonLocation.setTestFloor("F7");
+		});
+		cmd("setblock 1 111 104 stone");
+		cmd("setblock 1 112 104 iron_door[facing=north,half=lower]");
+		cmd("setblock 1 113 104 iron_door[facing=north,half=upper]");
+		platform(8, 112, 100);
+		ctx.waitTicks(25);
+		check("door fix: in section 3", ctx.computeOnClient(mc -> DungeonLocation.p3Section() == 3));
+		check("door fix: the door turned east", ctx.computeOnClient(mc -> mc.level.getBlockState(new BlockPos(1, 112, 104)) == com.taz.dungeons.f7.DoorFix.fixed()));
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.doorFix.enabled = false;
+			DungeonLocation.setTestFloor(null);
+		});
+	}
+
 	// ---- helpers
+
+	/** A stone floor under you at x y z, and you on it. */
+	private void platform(int x, int y, int z) {
+		cmd("tp @p " + x + " " + (y + 1) + " " + z);
+		ctx.waitTicks(10);
+		sp.getClientLevel().waitForChunksRender();
+		cmd("fill " + (x - 2) + " " + y + " " + (z - 2) + " " + (x + 2) + " " + y + " " + (z + 2) + " stone");
+		cmd("tp @p " + x + " " + (y + 1) + " " + z);
+		ctx.waitTicks(5);
+	}
+
+	private static net.minecraft.world.entity.Entity nearest(net.minecraft.client.Minecraft mc, Class<? extends net.minecraft.world.entity.Entity> type) {
+		return mc.level.getEntitiesOfClass(type, mc.player.getBoundingBox().inflate(20)).stream()
+				.min(java.util.Comparator.comparingDouble(e -> e.distanceToSqr(mc.player))).orElse(null);
+	}
 
 	private String shown() {
 		return ctx.computeOnClient(mc -> TickTimers.shown());

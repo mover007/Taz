@@ -9,12 +9,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Makes the tracked NPC and Galatea's hunting mobs use the vanilla glowing outline, which is drawn through walls. */
+/** Makes the tracked NPC, Galatea's hunting mobs and the dungeon highlights use the vanilla glowing outline, which is drawn through walls. */
 @Mixin(Minecraft.class)
 public class MinecraftMixin {
 	@Inject(method = "shouldEntityAppearGlowing", at = @At("HEAD"), cancellable = true)
 	private void taz$glowTrackedNpc(Entity entity, CallbackInfoReturnable<Boolean> cir) {
-		if (NpcTracker.isHighlighted(entity) || HuntingMobs.glowColor(entity) >= 0) {
+		if (NpcTracker.isHighlighted(entity) || HuntingMobs.glowColor(entity) >= 0 || com.taz.render.Glow.color(entity) >= 0) {
 			cir.setReturnValue(true);
 		}
 	}

@@ -5,7 +5,9 @@ import com.taz.general.AlertsConfig;
 import com.taz.general.ChatFilterConfig;
 import com.taz.general.CommandKeysConfig;
 import com.taz.general.DarkAuctionConfig;
+import com.taz.general.EtherwarpConfig;
 import com.taz.general.EventTimersConfig;
+import com.taz.general.GyroWandConfig;
 import com.taz.general.KickTimerConfig;
 import com.taz.general.PerformanceHudConfig;
 import com.taz.general.PetDisplayConfig;
@@ -77,4 +79,14 @@ public final class GeneralCategory {
 	@ConfigOption(name = "Kick Timer", desc = "How long ago Hypixel kicked you from SkyBlock, so you know when you can rejoin.")
 	@Accordion
 	public KickTimerConfig kickTimer = new KickTimerConfig();
+
+	@Expose
+	@ConfigOption(name = "Etherwarp", desc = "While you sneak with an Etherwarp item, a box where you'd land.")
+	@Accordion
+	public EtherwarpConfig etherwarp = new EtherwarpConfig();
+
+	@Expose
+	@ConfigOption(name = "Gyro Wand", desc = "While you hold the Gyrokinetic Wand, a ring where its pull lands, grey on cooldown.")
+	@Accordion
+	public GyroWandConfig gyroWand = new GyroWandConfig();
 }

@@ -5,8 +5,10 @@ import com.taz.dungeons.util.LagMonitor;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
+import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ClientboundTabListPacket;
+import net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket;
 import net.minecraft.network.protocol.ping.ClientboundPongResponsePacket;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
@@ -63,6 +65,32 @@ public abstract class ClientPacketListenerMixin {
 	private void taz$onEntityEvent(ClientboundEntityEventPacket packet, CallbackInfo ci) {
 		Entity entity = packet.getEntity(((ClientPacketListener) (Object) this).getLevel());
 		if (entity != null) Taz.onEntityEvent(entity, packet.getEventId());
+	}
+
+	/** An item picked up (a dungeon secret item), before the item entity is removed. */
+	@Inject(
+			method = "handleTakeItemEntity",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+					shift = At.Shift.AFTER),
+			require = 0)
+	private void taz$onTakeItem(ClientboundTakeItemEntityPacket packet, CallbackInfo ci) {
+		Entity item = ((ClientPacketListener) (Object) this).getLevel().getEntity(packet.getItemId());
+		if (item != null) Taz.onItemTaken(item, packet.getPlayerId());
+	}
+
+	/** Particles from the server (the Gyro Wand going off, the Mage beam); Taz can hide them. */
+	@Inject(
+			method = "handleParticleEvent",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+					shift = At.Shift.AFTER),
+			cancellable = true,
+			require = 0)
+	private void taz$onParticle(ClientboundLevelParticlesPacket packet, CallbackInfo ci) {
+		if (Taz.onParticle(packet.getParticle(), packet.getX(), packet.getY(), packet.getZ(), packet.getXDist(), packet.getYDist(), packet.getZDist())) ci.cancel();
 	}
 
 	/** The tab list's header and footer (the footer lists the dungeon's blessings). */

@@ -2,7 +2,12 @@ package com.taz.config;
 
 import com.google.gson.annotations.Expose;
 import com.taz.dungeons.config.ModConfig;
+import com.taz.dungeons.highlight.DoorsAndKeysConfig;
+import com.taz.dungeons.highlight.SecretClickedConfig;
+import com.taz.dungeons.highlight.StarredMobsConfig;
 import com.taz.dungeons.info.BlessingsConfig;
+import com.taz.dungeons.info.BloodCampConfig;
+import com.taz.dungeons.info.MageBeamConfig;
 import com.taz.dungeons.info.MaskTimersConfig;
 import com.taz.dungeons.info.RoomAlertsConfig;
 import com.taz.dungeons.info.ScoreAlertsConfig;
@@ -61,4 +66,29 @@ public final class DungeonsCategory {
 	@ConfigOption(name = "Terracotta Timer", desc = "Floor 6 boss: a countdown over each dead Terracotta until it comes back.")
 	@Accordion
 	public TerracottaTimerConfig terracotta = new TerracottaTimerConfig();
+
+	@Expose
+	@ConfigOption(name = "Starred Mobs", desc = "Starred mobs, mini-bosses and bonus bats glow through walls; teammates glow in their class colour.")
+	@Accordion
+	public StarredMobsConfig starredMobs = new StarredMobsConfig();
+
+	@Expose
+	@ConfigOption(name = "Doors & Keys", desc = "Boxes the wither and blood doors (white once you have the key) and the keys themselves.")
+	@Accordion
+	public DoorsAndKeysConfig doorsAndKeys = new DoorsAndKeysConfig();
+
+	@Expose
+	@ConfigOption(name = "Secret Clicked", desc = "A box on each secret you click or pick up, and a chime.")
+	@Accordion
+	public SecretClickedConfig secretClicked = new SecretClickedConfig();
+
+	@Expose
+	@ConfigOption(name = "Blood Camp", desc = "When the Watcher moves, and where each of his mobs will land and when.")
+	@Accordion
+	public BloodCampConfig bloodCamp = new BloodCampConfig();
+
+	@Expose
+	@ConfigOption(name = "Mage Beam", desc = "The Mage's beam as one solid red line instead of firework sparks.")
+	@Accordion
+	public MageBeamConfig mageBeam = new MageBeamConfig();
 }
