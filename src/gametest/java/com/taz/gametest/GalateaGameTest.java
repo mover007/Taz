@@ -618,6 +618,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 			RouteAssist.importFromClipboard();
 			Taz.config().galatea.route.mode = RouteConfig.Mode.TRAINING;
 			Taz.config().galatea.route.reach = 2;
+			Taz.config().galatea.route.endStops = true;
 			RouteAssist.restart();
 		});
 		cmd("tp @p " + x + " " + y + " " + (z - 6) + " facing " + (x + 12) + " " + y + " " + z);
@@ -632,7 +633,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.waitTicks(3);
 		ctx.takeScreenshot("galatea-route-training");
 		cmd("fill " + (x + 5) + " " + y + " " + z + " " + (x + 6) + " " + (y + 5) + " " + (z + 1) + " air");
-		ctx.waitTicks(15);
+		ctx.waitTicks(30);
 		lines = hudLines(RouteAssist.class);
 		check("route: tree 1's logs gone, next is tree 2 via E1 and E2 (" + lines + ")", !ctx.computeOnClient(mc -> RouteAssist.atTree())
 				&& lines.stream().anyMatch(l -> l.startsWith("Next: Tree 2")) && lines.stream().anyMatch(l -> l.equals("Warp: E1 → E2")));
@@ -645,23 +646,50 @@ public class GalateaGameTest implements FabricClientGameTest {
 		check("route: at tree 2", ctx.computeOnClient(mc -> RouteAssist.atTree()) && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 3);
 		tell("You helped cut 100% of the Fig Tree.");
 		lines = hudLines(RouteAssist.class);
-		check("route: tree gift message moves on to the last leg (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Miria") && l.contains("end of lap"))
+		check("route: tree gift message moves on to the end stops (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Miria") && l.contains("end of lap"))
 				&& lines.stream().anyMatch(l -> l.equals("Warp: TP1")));
 		goTo(x + 48, y, z);
 		long lap = ctx.computeOnClient(mc -> RouteAssist.lastLapMs());
 		check("route: lap finished and timed (" + lap + " ms)", lap > 0 && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 0
 				&& ctx.computeOnClient(mc -> TreeRoutes.active().bestLapMs) == lap);
-		// Lap 2: tree 1 is already chopped (its logs are gone), so walking on to the next leg skips it.
+
+		// Lap 2: tree 1 isn't grown (its logs are gone), so it's skipped by itself; tree 2 says it's regenerating.
 		goTo(x + 4, y, z);
-		check("route: an already chopped tree says so", hudLines(RouteAssist.class).stream().anyMatch(l -> l.contains("already chopped")));
-		goTo(x + 22, y, z);
+		check("route: lap 2 at tree 1", ctx.computeOnClient(mc -> RouteAssist.atTree()) && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 0);
+		ctx.waitTicks(30);
 		lines = hudLines(RouteAssist.class);
-		check("route: walking on skips it, with a split (" + lines + ")", !ctx.computeOnClient(mc -> RouteAssist.atTree())
-				&& ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 3 && lines.stream().anyMatch(l -> l.startsWith("Tree 1 ")));
+		check("route: a tree that isn't grown is skipped, with a split (" + lines + ")", !ctx.computeOnClient(mc -> RouteAssist.atTree())
+				&& ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 1 && lines.contains("Skipped Tree 1 (not grown)")
+				&& lines.stream().anyMatch(l -> l.startsWith("Next: Tree 2")) && lines.stream().anyMatch(l -> l.startsWith("Tree 1 ")));
+		goTo(x + 30, y, z);
+		tell("You cannot damage a tree while it is regenerating!");
+		lines = hudLines(RouteAssist.class);
+		check("route: a regenerating tree is skipped (" + lines + ")", !ctx.computeOnClient(mc -> RouteAssist.atTree())
+				&& lines.contains("Skipped Tree 2 (regenerating)") && lines.stream().anyMatch(l -> l.contains("Miria")));
+
+		// End stops off: leaving a tree moves on, and the lap ends at the last tree.
+		cmd("fill " + (x + 5) + " " + y + " " + z + " " + (x + 6) + " " + (y + 5) + " " + (z + 1) + " stripped_spruce_wood");
+		ctx.runOnClient(mc -> {
+			Taz.config().galatea.route.endStops = false;
+			RouteAssist.restart();
+		});
+		goTo(x + 4, y, z);
+		goTo(x + 4, y, z - 20);
+		check("route: leaving the tree moves on", !ctx.computeOnClient(mc -> RouteAssist.atTree()) && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 1);
 		ctx.runOnClient(mc -> Taz.config().galatea.route.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4);
 		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4, 2);
 		ctx.waitTicks(3);
-		check("route: restart key", ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 0);
+		check("route: restart key", ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 0
+				&& hudLines(RouteAssist.class).stream().anyMatch(l -> l.contains("Go to Tree 1 to start")));
+		goTo(x + 4, y, z);
+		goTo(x + 30, y, z);
+		check("route: no end stops, tree 2 is the last", ctx.computeOnClient(mc -> RouteAssist.atTree()) && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 3);
+		tell("You helped cut 100% of the Fig Tree.");
+		long lap3 = ctx.computeOnClient(mc -> RouteAssist.lastLapMs());
+		lines = hudLines(RouteAssist.class);
+		check("route: the lap ends at the last tree and starts over (" + lines + ")", lap3 != lap && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 0
+				&& lines.stream().anyMatch(l -> l.contains("Go to Tree 1 to start")));
+		cmd("fill " + (x + 5) + " " + y + " " + z + " " + (x + 6) + " " + (y + 5) + " " + (z + 1) + " air");
 		ctx.runOnClient(mc -> {
 			Taz.config().galatea.route.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN;
 			Taz.config().galatea.route.mode = RouteConfig.Mode.NORMAL;

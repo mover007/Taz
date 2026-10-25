@@ -23,8 +23,9 @@ import java.util.regex.Pattern;
  * Tree Route Assist. Normal mode draws the whole route of the island you're on. Training mode guides you one tree at a
  * time: the route is split into legs (the warps and teleports, then a tree), and only the current leg shows, with the
  * tree as the target and the warps numbered on the way. Reaching a warp ticks it off; the next tree comes up once this
- * one is done: your "You helped cut 100% of the Fig Tree." or TIMBER! message, or its logs gone. Walking on to the next
- * leg (a tree that was already chopped) skips ahead too. Laps are timed, with a split at every tree.
+ * one is done: your "You helped cut 100% of the Fig Tree." or TIMBER! message, its logs gone, or you leaving it. A tree
+ * that isn't grown when you get there (or says it's regenerating) is skipped by itself. Laps are timed, with a split at
+ * every tree. With the end stops off, the lap ends at the last tree and starts over at the first.
  */
 public final class RouteAssist extends TextHud {
 	private static final double DRAW_RANGE = 160;
@@ -32,6 +33,14 @@ public final class RouteAssist extends TextHud {
 	private static final double TREE_NEAR = 16;
 	/** A tree counts as felled when this share of the logs seen on arrival are gone. */
 	private static final double FELLED_SHARE = 0.35;
+	/** Fewer logs than this around a tree's point: it isn't grown (chopped, or not back yet). */
+	private static final int MIN_TREE_LOGS = 8;
+	/** Logs are counted for this long after you reach a tree, before it can be called not grown. */
+	private static final long LOOK_MS = 1000;
+	/** Going this far from the tree means you've moved on. */
+	private static final double LEAVE = 16;
+	private static final long NOTE_MS = 5000;
+	private static final String REGENERATING = "You cannot damage a tree while it is regenerating!";
 	private static final Pattern TREE_DONE = Pattern.compile("^(?:You helped cut [\\d.]+% of the \\w+ Tree\\.|TIMBER! You felled the entire \\w+ Tree!)");
 	private static final KeyWatcher RESTART = new KeyWatcher();
 	private static final KeyWatcher SKIP = new KeyWatcher();
@@ -41,8 +50,12 @@ public final class RouteAssist extends TextHud {
 	private static int next;
 	/** At the current leg's tree, chopping it. */
 	private static boolean atTree;
-	/** Logs around the tree when you got there (0 = none seen: it was already chopped). */
+	/** Logs around the tree when you got there (the most seen in the first second). */
 	private static int logsOnArrival;
+	private static long arrivedMs;
+	/** "Skipped Tree 3 (not grown)", shown for a few seconds. */
+	private static String note;
+	private static long noteUntilMs;
 	/** Lap start (ms), 0 before the first point is reached. */
 	private static long lapStartMs;
 	private static long[] splits = new long[0];
@@ -129,10 +142,19 @@ public final class RouteAssist extends TextHud {
 		return route.points.get(i).kind() == TreeRoutes.Kind.TREE;
 	}
 
+	/** The route's last point: its last tree when the end stops (teleports, Miria) are turned off. */
+	static int last() {
+		if (!RouteConfig.get().endStops) {
+			for (int i = route.points.size() - 1; i >= 0; i--) if (isTree(i)) return i;
+		}
+		return route.points.size() - 1;
+	}
+
 	/** The point a leg starting at {@code from} leads to: the first tree from there, or the route's last point. */
 	static int legEnd(int from) {
-		for (int i = from; i < route.points.size(); i++) if (isTree(i)) return i;
-		return route.points.size() - 1;
+		int last = last();
+		for (int i = from; i < last; i++) if (isTree(i)) return i;
+		return last;
 	}
 
 	private static boolean near(Vec3 me, int i, double reach) {
@@ -143,9 +165,9 @@ public final class RouteAssist extends TextHud {
 	private static int logsAround(Minecraft mc, BlockPos p) {
 		int n = 0;
 		BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
-		for (int x = -4; x <= 4; x++) {
-			for (int y = -2; y <= 14; y++) {
-				for (int z = -4; z <= 4; z++) {
+		for (int x = -6; x <= 6; x++) {
+			for (int y = -4; y <= 16; y++) {
+				for (int z = -6; z <= 6; z++) {
 					BlockState s = mc.level.getBlockState(m.set(p.getX() + x, p.getY() + y, p.getZ() + z));
 					if (TreeTracker.kindOf(s) != null || s.is(BlockTags.LOGS)) n++;
 				}
@@ -161,6 +183,7 @@ public final class RouteAssist extends TextHud {
 		next = 0;
 		atTree = false;
 		logsOnArrival = 0;
+		arrivedMs = 0;
 		lapStartMs = 0;
 		lastSplitDelta = Long.MIN_VALUE;
 		lastSplitName = null;
@@ -203,44 +226,70 @@ public final class RouteAssist extends TextHud {
 		}
 		if (!atTree && near(me, end, reach)) {
 			if (isTree(end)) {
-				atTree = true;
-				next = end;
-				logsOnArrival = logsAround(mc, route.points.get(end).pos());
+				arrive(mc, end, now);
 			} else {
 				legDone(now, true); // the last stop
 				return;
 			}
 		}
-		if (atTree && logsOnArrival > 0 && ++ticks % 10 == 0
-				&& logsAround(mc, route.points.get(end).pos()) <= logsOnArrival * (1 - FELLED_SHARE)) {
-			legDone(now, true); // its logs are gone: felled
-			return;
+		if (atTree) {
+			if (!near(me, end, LEAVE)) {
+				legDone(now, true); // you went on: done with it, or skipping it
+				return;
+			}
+			if (++ticks % 5 == 0) {
+				int logs = logsAround(mc, route.points.get(end).pos());
+				if (now - arrivedMs < LOOK_MS) {
+					logsOnArrival = Math.max(logsOnArrival, logs);
+				} else if (logsOnArrival < MIN_TREE_LOGS) {
+					skip(now, "not grown");
+					return;
+				} else if (logs <= logsOnArrival * (1 - FELLED_SHARE)) {
+					legDone(now, true); // its logs are gone: felled
+					return;
+				}
+			}
 		}
-		// Moved on to the next leg (this tree was already chopped, or you skipped it).
-		if (end + 1 < route.points.size()) {
+		// Warped straight on to the next leg.
+		if (end < last()) {
 			int after = legEnd(end + 1);
 			for (int i = after; i > end; i--) {
 				if (near(me, i, reach)) {
 					legDone(now, true);
-					next = i == after && isTree(after) ? after : i + 1;
-					if (i == after && isTree(after)) {
-						atTree = true;
-						logsOnArrival = logsAround(mc, route.points.get(after).pos());
-					}
+					if (i == after && isTree(after)) arrive(mc, after, now);
+					else next = i + 1;
 					return;
 				}
 			}
 		}
 	}
 
-	/** A plain-text chat line: your tree-done message finishes the leg's tree. */
+	private static void arrive(Minecraft mc, int i, long now) {
+		atTree = true;
+		next = i;
+		arrivedMs = now;
+		logsOnArrival = logsAround(mc, route.points.get(i).pos());
+	}
+
+	/** The current tree can't be chopped now: on to the next one, saying so on the HUD. */
+	private static void skip(long now, String why) {
+		note = "Skipped " + route.points.get(legEnd(next)).describe() + " (" + why + ")";
+		noteUntilMs = now + NOTE_MS;
+		legDone(now, true);
+	}
+
+	/** A plain-text chat line: your tree-done message finishes the leg's tree; a regenerating one is skipped. */
 	public static void onChat(String line) {
 		RouteConfig cfg = RouteConfig.get();
 		Minecraft mc = Minecraft.getInstance();
 		if (!cfg.enabled || cfg.mode != RouteConfig.Mode.TRAINING || route == null || lapStartMs == 0 || mc.player == null) return;
-		if (!TREE_DONE.matcher(line).find()) return;
+		boolean done = TREE_DONE.matcher(line).find();
+		boolean regenerating = line.startsWith(REGENERATING);
+		if (!done && !regenerating) return;
 		int end = legEnd(next);
-		if (isTree(end) && near(mc.player.position(), end, TREE_NEAR)) legDone(System.currentTimeMillis(), true);
+		if (!isTree(end) || !near(mc.player.position(), end, TREE_NEAR)) return;
+		if (done) legDone(System.currentTimeMillis(), true);
+		else if (atTree) skip(System.currentTimeMillis(), "regenerating");
 	}
 
 	/** The current leg's tree (or last stop) is done: split, then on to the next leg. */
@@ -256,7 +305,7 @@ public final class RouteAssist extends TextHud {
 		atTree = false;
 		logsOnArrival = 0;
 		next = end + 1;
-		if (next >= route.points.size()) finishLap(now);
+		if (next > last()) finishLap(now);
 	}
 
 	private static void finishLap(long now) {
@@ -308,14 +357,15 @@ public final class RouteAssist extends TextHud {
 	/** Normal mode: every point, numbered, with path lines. */
 	private static void renderAll(WorldRenderer.Batch batch, RouteConfig cfg) {
 		List<TreeRoutes.Point> pts = route.points;
-		for (int i = 0; i < pts.size(); i++) {
+		int last = last();
+		for (int i = 0; i <= last; i++) {
 			TreeRoutes.Point p = pts.get(i);
 			Vec3 c = Vec3.atCenterOf(p.pos());
 			if (c.distanceToSqr(batch.camera) > DRAW_RANGE * DRAW_RANGE) continue;
 			int color = 0xFF000000 | p.rgb();
 			batch.outline(new AABB(p.pos()), (color & 0xFFFFFF) | 0xC0000000, 2.0f, true);
 			batch.label(c.add(0, 0.8, 0), p.name(), color, true);
-			if (cfg.lines && i + 1 < pts.size()) batch.line(c, Vec3.atCenterOf(pts.get(i + 1).pos()), (color & 0xFFFFFF) | 0x60000000, 2.0f, true);
+			if (cfg.lines && i + 1 <= last) batch.line(c, Vec3.atCenterOf(pts.get(i + 1).pos()), (color & 0xFFFFFF) | 0x60000000, 2.0f, true);
 		}
 	}
 
@@ -325,8 +375,9 @@ public final class RouteAssist extends TextHud {
 		boolean started = lapStartMs > 0;
 		int end = started ? legEnd(next) : 0;
 		int from = started ? Math.min(next, end) : 0;
+		int last = last();
 		if (cfg.showRest) {
-			for (int i = 0; i < pts.size(); i++) {
+			for (int i = 0; i <= last; i++) {
 				if (i >= from && i <= end) continue;
 				batch.outline(new AABB(pts.get(i).pos()), 0x40000000 | pts.get(i).rgb(), 1.5f, true);
 			}
@@ -348,11 +399,19 @@ public final class RouteAssist extends TextHud {
 				batch.line(c, c.add(0, 40, 0), (color & 0xFFFFFF) | 0x90000000, 4.0f, true);
 				String what = !started ? "Start: " + p.describe() : atTree ? "Chop " + p.describe() : p.describe();
 				batch.label(c.add(0, 1.0, 0), what + "  " + dist + "m", color, true, 1);
-				if (atTree && logsOnArrival == 0) batch.label(c.add(0, 1.0, 0), "already chopped? walk on to skip it", 0xFFAAAAAA, true);
 			} else {
 				batch.outline(box, color, 2.5f, true);
 				batch.label(c.add(0, 0.8, 0), step++ + ". " + p.describe() + "  " + dist + "m", color, true);
 			}
+		}
+		// While chopping, where to go after: the next leg's first point (Tree 1 again after the last).
+		if (started && atTree) {
+			TreeRoutes.Point p = pts.get(end < last ? end + 1 : 0);
+			Vec3 c = Vec3.atCenterOf(p.pos());
+			long dist = Math.round(Math.sqrt(c.distanceToSqr(batch.camera)));
+			batch.outline(new AABB(p.pos()), 0x90000000 | p.rgb(), 2.0f, true);
+			batch.line(Vec3.atCenterOf(pts.get(end).pos()), c, 0x60000000 | p.rgb(), 1.5f, true);
+			batch.label(c.add(0, 0.8, 0), "then " + p.describe() + "  " + dist + "m", 0xFFAAAAAA, true);
 		}
 	}
 
@@ -400,7 +459,7 @@ public final class RouteAssist extends TextHud {
 		Minecraft mc = Minecraft.getInstance();
 		long dist = mc.player == null ? 0 : Math.round(Math.sqrt(mc.player.position().distanceToSqr(Vec3.atCenterOf(target.pos()))));
 		if (atTree) {
-			lines.add("§fChop §b" + target.describe() + (logsOnArrival == 0 ? " §7(already chopped? walk on)" : ""));
+			lines.add("§fChop §b" + target.describe());
 		} else {
 			lines.add("§fNext: §b" + target.describe() + " §7· " + dist + "m" + (isTree(end) ? "" : " §7(end of lap)"));
 		}
@@ -411,6 +470,7 @@ public final class RouteAssist extends TextHud {
 			String sign = lastSplitDelta <= 0 ? "§a-" : "§c+";
 			lines.add("§7" + lastSplitName + " " + sign + TextUtil.formatTimeTenths(Math.abs(lastSplitDelta)));
 		}
+		if (note != null && now < noteUntilMs) lines.add("§6" + note);
 		return lines;
 	}
 }

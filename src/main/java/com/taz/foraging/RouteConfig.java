@@ -43,10 +43,16 @@ public final class RouteConfig {
 	@Expose
 	@ConfigOption(name = "Mode", desc = "Normal shows every point of the route. Guide shows only the next tree (box, beam, distance) and the "
 			+ "warps / teleports to it, numbered on a path from your crosshair; each ticks off when you reach it. The next tree comes up "
-			+ "when this one's done (your tree gift or TIMBER! message, or its logs gone), or when you walk on past it. "
-			+ "Laps are timed with a split at every tree.")
+			+ "when this one's done (your tree gift or TIMBER! message, or its logs gone) or when you leave it. A tree that isn't "
+			+ "grown (or is regenerating) is skipped by itself. Laps are timed with a split at every tree.")
 	@ConfigEditorDropdown
 	public Mode mode = Mode.NORMAL;
+
+	@Expose
+	@ConfigOption(name = "End stops after the last tree", desc = "The teleports and stops your route has after its last tree "
+			+ "(like TP1... and Miria). Off: the lap ends at the last tree and the route starts straight over at Tree 1.")
+	@ConfigEditorBoolean
+	public boolean endStops = false;
 
 	@ConfigOption(name = "Import from clipboard", desc = "Copy a route in Skyblocker (Waypoints > Share > Export) and press this. "
 			+ "A route made for no island gets the island you're standing on.")
