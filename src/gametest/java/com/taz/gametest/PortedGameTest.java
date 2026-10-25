@@ -34,13 +34,13 @@ import java.util.stream.Stream;
 /**
  * Features ported from Odin and NoammAddons. Parts: performance, blessings, masks, ragnarock, ticktimers, terracotta,
  * scorealerts, springboots, pets, kicktimer, starredmobs, doorskeys, secretclicked, etherwarp, gyro, magebeam, bloodcamp,
- * terminals, doorfix ("ported" runs them all). Hypixel sends a ping packet every server tick but
+ * terminals, doorfix, termsolver, simonsays, arrowalign, dragons ("ported" runs them all). Hypixel sends a ping packet every server tick but
  * singleplayer doesn't, so the tests run the server-tick clock themselves. Runs with -Dtaz.dungeons.anywhere=true.
  */
 public class PortedGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"performance", "blessings", "masks", "ragnarock", "ticktimers", "terracotta", "scorealerts",
 			"springboots", "pets", "kicktimer", "starredmobs", "doorskeys", "secretclicked", "etherwarp", "gyro", "magebeam", "bloodcamp", "terminals",
-			"doorfix"};
+			"doorfix", "termsolver", "simonsays", "arrowalign", "dragons"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -79,6 +79,10 @@ public class PortedGameTest implements FabricClientGameTest {
 			if (runs("bloodcamp")) bloodCamp();
 			if (runs("terminals")) terminals();
 			if (runs("doorfix")) doorFix();
+			if (runs("termsolver")) terminalSolver();
+			if (runs("simonsays")) simonSays();
+			if (runs("arrowalign")) arrowAlign();
+			if (runs("dragons")) dragons();
 			ctx.takeScreenshot("ported-huds");
 		}
 		System.out.println("[PortedGameTest] PASSED");
@@ -450,6 +454,133 @@ public class PortedGameTest implements FabricClientGameTest {
 		check("door fix: the door turned east", ctx.computeOnClient(mc -> mc.level.getBlockState(new BlockPos(1, 112, 104)) == com.taz.dungeons.f7.DoorFix.fixed()));
 		ctx.runOnClient(mc -> {
 			Taz.config().floor7.doorFix.enabled = false;
+			DungeonLocation.setTestFloor(null);
+		});
+	}
+
+	private void terminalSolver() {
+		ctx.runOnClient(mc -> Taz.config().floor7.terminalSolver.enabled = true);
+		check("terminal solver: rubix, one right click to make them all orange", ctx.computeOnClient(mc -> {
+			com.taz.dungeons.f7.TerminalSolver.testOpen(com.taz.dungeons.f7.TerminalSolver.Type.RUBIX, null);
+			List<ItemStack> items = new java.util.ArrayList<>();
+			for (int i = 0; i < 45; i++) items.add(new ItemStack(Items.BLACK_STAINED_GLASS_PANE));
+			for (int i : new int[] {12, 13, 14, 21, 22, 23, 30, 31, 32}) items.set(i, new ItemStack(Items.ORANGE_STAINED_GLASS_PANE));
+			items.set(12, new ItemStack(Items.YELLOW_STAINED_GLASS_PANE));
+			com.taz.dungeons.f7.TerminalSolver.solve(items);
+			return com.taz.dungeons.f7.TerminalSolver.labels().equals(java.util.Map.of(12, "-1"));
+		}));
+		check("terminal solver: starts with 'B', not the shiny one", ctx.computeOnClient(mc -> {
+			com.taz.dungeons.f7.TerminalSolver.testOpen(com.taz.dungeons.f7.TerminalSolver.Type.STARTS_WITH, "B");
+			ItemStack shiny = new ItemStack(Items.BONE);
+			shiny.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+			com.taz.dungeons.f7.TerminalSolver.solve(List.of(new ItemStack(Items.BREAD), new ItemStack(Items.APPLE), shiny, new ItemStack(Items.BOOK)));
+			return com.taz.dungeons.f7.TerminalSolver.colors().keySet().equals(java.util.Set.of(0, 3));
+		}));
+		check("terminal solver: select all the white items", ctx.computeOnClient(mc -> {
+			com.taz.dungeons.f7.TerminalSolver.testOpen(com.taz.dungeons.f7.TerminalSolver.Type.COLORS, "WHITE");
+			com.taz.dungeons.f7.TerminalSolver.solve(List.of(new ItemStack(Items.WHITE_WOOL), new ItemStack(Items.BONE_MEAL), new ItemStack(Items.RED_WOOL)));
+			return com.taz.dungeons.f7.TerminalSolver.colors().keySet().equals(java.util.Set.of(0, 1));
+		}));
+		platform(900, 100, 900);
+		cmd("setblock 902 101 900 chest{CustomName:\"Click in order!\",Items:[{Slot:10b,id:\"minecraft:red_stained_glass_pane\",count:3},"
+				+ "{Slot:11b,id:\"minecraft:red_stained_glass_pane\",count:1},{Slot:12b,id:\"minecraft:red_stained_glass_pane\",count:2},"
+				+ "{Slot:13b,id:\"minecraft:lime_stained_glass_pane\",count:4}]}");
+		ctx.waitTicks(3);
+		ctx.runOnClient(mc -> mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
+				new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(new BlockPos(902, 101, 900)), net.minecraft.core.Direction.UP,
+						new BlockPos(902, 101, 900), false)));
+		ctx.waitTicks(10);
+		check("terminal solver: numbers in order (" + ctx.computeOnClient(mc -> com.taz.dungeons.f7.TerminalSolver.labels()) + ")", ctx.computeOnClient(mc ->
+				com.taz.dungeons.f7.TerminalSolver.type() == com.taz.dungeons.f7.TerminalSolver.Type.NUMBERS
+						&& com.taz.dungeons.f7.TerminalSolver.colors().get(11) == 0xFFFF2E2E && com.taz.dungeons.f7.TerminalSolver.colors().get(12) == 0xFFFFB0B0
+						&& com.taz.dungeons.f7.TerminalSolver.colors().get(10) == 0xFFB3121B && !com.taz.dungeons.f7.TerminalSolver.colors().containsKey(13)
+						&& "1".equals(com.taz.dungeons.f7.TerminalSolver.labels().get(11))));
+		ctx.takeScreenshot("ported-terminal-solver");
+		ctx.runOnClient(mc -> mc.player.closeContainer());
+		ctx.waitTicks(3);
+		ctx.runOnClient(mc -> Taz.config().floor7.terminalSolver.enabled = false);
+	}
+
+	private void simonSays() {
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.simonSays.enabled = true;
+			DungeonLocation.setTestFloor("F7");
+			com.taz.dungeons.f7.SimonSays.reset();
+		});
+		platform(105, 119, 93);
+		cmd("fill 111 120 92 111 123 95 sea_lantern");
+		cmd("fill 110 120 92 110 123 95 stone_button[facing=west]");
+		ctx.waitTicks(25);
+		check("simon says: in Phase 3", ctx.computeOnClient(mc -> DungeonLocation.f7Phase() == 3));
+		cmd("setblock 111 121 93 obsidian");
+		ctx.waitTicks(3);
+		check("simon says: one lantern lit", ctx.computeOnClient(mc -> com.taz.dungeons.f7.SimonSays.order().equals(List.of(new BlockPos(111, 121, 93)))));
+		cmd("setblock 110 121 93 stone_button[facing=west,powered=true]");
+		ctx.waitTicks(3);
+		cmd("setblock 111 123 95 obsidian");
+		ctx.waitTicks(3);
+		cmd("setblock 111 120 92 obsidian");
+		ctx.waitTicks(3);
+		check("simon says: the next round in order (" + ctx.computeOnClient(mc -> com.taz.dungeons.f7.SimonSays.order()) + ")", ctx.computeOnClient(mc ->
+				com.taz.dungeons.f7.SimonSays.order().equals(List.of(new BlockPos(111, 123, 95), new BlockPos(111, 120, 92)))
+						&& com.taz.dungeons.f7.SimonSays.next() == 0));
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.simonSays.enabled = false;
+			DungeonLocation.setTestFloor(null);
+		});
+	}
+
+	private void arrowAlign() {
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.arrowAlign.enabled = true;
+			DungeonLocation.setTestFloor("F7");
+		});
+		platform(3, 119, 77);
+		cmd("fill -3 120 75 -3 124 79 stone");
+		for (int i : new int[] {5, 7, 9, 10, 12, 14, 15, 17, 19}) {
+			cmd("summon item_frame -2 " + (120 + i % 5) + " " + (75 + i / 5) + " {Facing:5b,Fixed:1b,Item:{id:\"minecraft:arrow\",count:1},ItemRotation:0b}");
+		}
+		ctx.waitTicks(25);
+		check("arrow align: one click on each of the 9 frames (" + ctx.computeOnClient(mc -> com.taz.dungeons.f7.ArrowAlign.left()) + ")",
+				ctx.computeOnClient(mc -> com.taz.dungeons.f7.ArrowAlign.left().size() == 9
+						&& com.taz.dungeons.f7.ArrowAlign.left().values().stream().allMatch(n -> n == 1)));
+		ctx.takeScreenshot("ported-arrow-align");
+		ctx.runOnClient(mc -> com.taz.dungeons.f7.ArrowAlign.onClick(mc.level.getEntitiesOfClass(net.minecraft.world.entity.decoration.ItemFrame.class,
+				mc.player.getBoundingBox().inflate(10)).stream().filter(f -> f.blockPosition().equals(new BlockPos(-2, 120, 76))).findFirst().orElseThrow()));
+		check("arrow align: done once clicked", ctx.computeOnClient(mc -> com.taz.dungeons.f7.ArrowAlign.left().size()) == 8);
+		cmd("kill @e[type=item_frame]");
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.arrowAlign.enabled = false;
+			DungeonLocation.setTestFloor(null);
+		});
+	}
+
+	private void dragons() {
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.witherDragons.enabled = true;
+			DungeonLocation.setTestFloor("F7");
+			com.taz.dungeons.f7.WitherDragons.clear();
+		});
+		platform(40, 20, 70);
+		ctx.waitTicks(25);
+		check("dragons: in Phase 5", ctx.computeOnClient(mc -> DungeonLocation.f7Phase() == 5));
+		cmd("particle minecraft:flame 27.0 19.0 59.0 2 3 2 0 20 force");
+		ctx.waitTicks(3);
+		check("dragons: Red is spawning (" + Alert.lastTitle + ")", ctx.computeOnClient(mc -> com.taz.dungeons.f7.WitherDragons.Dragon.RED.state()
+				== com.taz.dungeons.f7.WitherDragons.State.SPAWNING) && "§c§lRed is spawning!".equals(Alert.lastTitle)
+				&& hud(com.taz.dungeons.f7.WitherDragons.class).equals(List.of("Red 5.0s")));
+		ctx.takeScreenshot("ported-dragons");
+		serverTicks(101);
+		check("dragons: spawned after 5 seconds", ctx.computeOnClient(mc -> com.taz.dungeons.f7.WitherDragons.Dragon.RED.state()
+				== com.taz.dungeons.f7.WitherDragons.State.ALIVE));
+		cmd("summon ender_dragon 27 20 59 {NoAI:1b}");
+		ctx.waitTicks(5);
+		cmd("kill @e[type=ender_dragon]");
+		ctx.waitTicks(10);
+		check("dragons: dead once killed", ctx.computeOnClient(mc -> com.taz.dungeons.f7.WitherDragons.Dragon.RED.state()
+				== com.taz.dungeons.f7.WitherDragons.State.DEAD));
+		ctx.runOnClient(mc -> {
+			Taz.config().floor7.witherDragons.enabled = false;
 			DungeonLocation.setTestFloor(null);
 		});
 	}

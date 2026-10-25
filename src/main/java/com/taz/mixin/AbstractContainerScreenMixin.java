@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import com.taz.dungeons.f7.TerminalSolver;
 
 /**
  * Sees the "Confirm Donation" click so museum donations come off the list straight away, and draws the
@@ -18,6 +19,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(AbstractContainerScreen.class)
 public class AbstractContainerScreenMixin {
+	/** In a Floor 7 terminal, Taz draws the slots (only the ones to click show). */
+	@Inject(method = "extractSlots", at = @At("HEAD"), require = 0)
+	private void taz$terminalBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, CallbackInfo ci) {
+		TerminalSolver.background((AbstractContainerScreen<?>) (Object) this, g);
+	}
+
+	@Inject(method = "extractSlot", at = @At("HEAD"), cancellable = true, require = 0)
+	private void taz$terminalSlot(GuiGraphicsExtractor g, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+		if (TerminalSolver.slot((AbstractContainerScreen<?>) (Object) this, g, slot)) ci.cancel();
+	}
+
+	@Inject(method = "extractTooltip", at = @At("HEAD"), cancellable = true, require = 0)
+	private void taz$terminalTooltip(GuiGraphicsExtractor g, int mouseX, int mouseY, CallbackInfo ci) {
+		if (TerminalSolver.active((AbstractContainerScreen<?>) (Object) this)) ci.cancel();
+	}
+
 	@Inject(method = "extractSlot", at = @At("HEAD"))
 	private void taz$slotBackground(GuiGraphicsExtractor g, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
 		ItemOverlays.background(g, slot);
@@ -32,5 +49,6 @@ public class AbstractContainerScreenMixin {
 	@Inject(method = "slotClicked", at = @At("HEAD"))
 	private void taz$onSlotClicked(@Nullable Slot slot, int slotId, int buttonNum, ContainerInput containerInput, CallbackInfo ci) {
 		if (com.taz.xpassist.SkyblockXpAssist.enabled()) ProgressDetector.onSlotClick((AbstractContainerScreen<?>) (Object) this, slotId);
+		TerminalSolver.onClick((AbstractContainerScreen<?>) (Object) this, slotId);
 	}
 }

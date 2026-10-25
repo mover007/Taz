@@ -91,7 +91,8 @@ public abstract class ClientPacketListenerMixin {
 			cancellable = true,
 			require = 0)
 	private void taz$onParticle(ClientboundLevelParticlesPacket packet, CallbackInfo ci) {
-		if (Taz.onParticle(packet.getParticle(), packet.getX(), packet.getY(), packet.getZ(), packet.getXDist(), packet.getYDist(), packet.getZDist())) ci.cancel();
+		if (Taz.onParticle(packet.getParticle(), packet.getX(), packet.getY(), packet.getZ(), packet.getXDist(), packet.getYDist(), packet.getZDist(), packet.getMaxSpeed(),
+				packet.getCount())) ci.cancel();
 	}
 
 	/** The server moving you (a teleport pad in the Teleport Maze). */
@@ -125,9 +126,10 @@ public abstract class ClientPacketListenerMixin {
 					value = "INVOKE",
 					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
 					shift = At.Shift.AFTER),
+			cancellable = true,
 			require = 0)
 	private void taz$onSound(ClientboundSoundPacket packet, CallbackInfo ci) {
-		Taz.onSound(packet.getSound().value().location().getPath(), packet.getPitch());
+		if (Taz.onSound(packet.getSound().value().location().getPath(), packet.getPitch())) ci.cancel();
 	}
 
 	/** The answer to Taz's ping request: your ping. */

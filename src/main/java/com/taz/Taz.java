@@ -140,6 +140,7 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.general.KickTimer());
 		TazHud.register(new com.taz.dungeons.info.BloodCamp());
 		TazHud.register(new com.taz.dungeons.puzzles.Quiz());
+		TazHud.register(new com.taz.dungeons.f7.WitherDragons());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -173,8 +174,12 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(com.taz.general.EtherwarpGuess::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.general.GyroWand::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.puzzles.Puzzles::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.SimonSays::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.ArrowAlign::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.WitherDragons::render);
 		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
 			if (level.isClientSide()) safely("Terminal highlight click", () -> com.taz.dungeons.f7.TerminalHighlight.onClick(entity));
+			if (level.isClientSide() && hand == net.minecraft.world.InteractionHand.MAIN_HAND) safely("Arrow align click", () -> com.taz.dungeons.f7.ArrowAlign.onClick(entity));
 			return net.minecraft.world.InteractionResult.PASS;
 		});
 		net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
@@ -185,6 +190,7 @@ public final class Taz implements ClientModInitializer {
 			if (level.isClientSide()) safely("Secret routes click", () -> SecretTrainer.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
 			if (level.isClientSide()) safely("Secret clicked", () -> com.taz.dungeons.highlight.SecretClicked.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
 			if (level.isClientSide()) safely("Puzzle click", () -> com.taz.dungeons.puzzles.Puzzles.onUseBlock(hit.getBlockPos()));
+			if (level.isClientSide()) safely("Simon says click", () -> com.taz.dungeons.f7.SimonSays.onUseBlock(hit.getBlockPos()));
 			return InteractionResult.PASS;
 		});
 		ClientEntityEvents.ENTITY_UNLOAD.register((entity, level) -> safely("Secret routes entity", () -> SecretTrainer.onEntityGone(entity)));
@@ -301,6 +307,8 @@ public final class Taz implements ClientModInitializer {
 		safely("Secret routes block", () -> SecretTrainer.onBlockChanged(pos, oldState, newState));
 		safely("Terracotta timer", () -> com.taz.dungeons.info.TerracottaTimer.onBlockChanged(pos, oldState, newState));
 		safely("Puzzles block", () -> com.taz.dungeons.puzzles.Puzzles.onBlockChanged(pos, oldState, newState));
+		safely("Simon says block", () -> com.taz.dungeons.f7.SimonSays.onBlockChanged(pos, oldState, newState));
+		safely("Wither dragons block", () -> com.taz.dungeons.f7.WitherDragons.onBlockChanged(pos, oldState, newState));
 	}
 
 	/** Every server tick (Hypixel's ping packet, ClientCommonPacketListenerImplMixin): the clock for tick timers. */
@@ -310,6 +318,8 @@ public final class Taz implements ClientModInitializer {
 		safely("Terracotta timer", com.taz.dungeons.info.TerracottaTimer::onServerTick);
 		safely("Blood camp", com.taz.dungeons.info.BloodCamp::onServerTick);
 		safely("Puzzles", com.taz.dungeons.puzzles.Puzzles::onServerTick);
+		safely("Simon says", com.taz.dungeons.f7.SimonSays::onServerTick);
+		safely("Wither dragons", com.taz.dungeons.f7.WitherDragons::onServerTick);
 	}
 
 	/** An entity event (ClientPacketListenerMixin): 3 is a mob's death. */
@@ -330,8 +340,10 @@ public final class Taz implements ClientModInitializer {
 	}
 
 	/** A particle the server sends (ClientPacketListenerMixin); true hides it. */
-	public static boolean onParticle(net.minecraft.core.particles.ParticleOptions particle, double x, double y, double z, float dx, float dy, float dz) {
+	public static boolean onParticle(net.minecraft.core.particles.ParticleOptions particle, double x, double y, double z, float dx, float dy, float dz,
+			float speed, int count) {
 		boolean[] hide = {false};
+		safely("Wither dragons", () -> com.taz.dungeons.f7.WitherDragons.onParticle(particle, x, y, z, dx, dy, dz, speed, count));
 		safely("Gyro wand", () -> com.taz.general.GyroWand.onParticle(particle, x, y, z, dx, dy, dz));
 		safely("Mage beam", () -> hide[0] |= com.taz.dungeons.info.MageBeam.onParticle(particle, x, y, z));
 		return hide[0];
@@ -343,9 +355,10 @@ public final class Taz implements ClientModInitializer {
 	}
 
 	/** Every sound the server plays (ClientPacketListenerMixin): its id ("entity.wolf.death") and pitch. */
-	public static void onSound(String id, float pitch) {
+	public static boolean onSound(String id, float pitch) {
 		safely("Ragnarock", () -> com.taz.general.Ragnarock.onSound(id, pitch));
 		safely("Spring boots", () -> com.taz.general.SpringBoots.onSound(id, pitch));
+		return com.taz.dungeons.f7.TerminalSolver.muteSound(id, pitch);
 	}
 
 	/** Block events (ClientPacketListenerMixin): a chest lid opening. */
@@ -476,6 +489,9 @@ public final class Taz implements ClientModInitializer {
 		safely("Terminal highlight", () -> com.taz.dungeons.f7.TerminalHighlight.tick(mc));
 		safely("Door fix", () -> com.taz.dungeons.f7.DoorFix.tick(mc));
 		safely("Puzzles", () -> com.taz.dungeons.puzzles.Puzzles.tick(mc));
+		safely("Terminal solver", () -> com.taz.dungeons.f7.TerminalSolver.tick(mc));
+		safely("Arrow align", () -> com.taz.dungeons.f7.ArrowAlign.tick(mc));
+		safely("Wither dragons", () -> com.taz.dungeons.f7.WitherDragons.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();
 	}
