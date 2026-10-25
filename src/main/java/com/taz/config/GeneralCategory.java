@@ -159,4 +159,14 @@ public final class GeneralCategory {
 	@ConfigOption(name = "Auction Price Input", desc = "A text box for auction prices with an undercut mode.")
 	@Accordion
 	public com.taz.general.AuctionInputConfig auctionInput = new com.taz.general.AuctionInputConfig();
+
+	@Expose
+	@ConfigOption(name = "Dark Mode", desc = "Darkens the world with a black tint.")
+	@Accordion
+	public com.taz.general.DarkModeConfig darkMode = new com.taz.general.DarkModeConfig();
+
+	@Expose
+	@ConfigOption(name = "Storage Overlay", desc = "/storage shows every ender chest page and backpack with its items at once.")
+	@Accordion
+	public com.taz.general.StorageOverlayConfig storageOverlay = new com.taz.general.StorageOverlayConfig();
 }

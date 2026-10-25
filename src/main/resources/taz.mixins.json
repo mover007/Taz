@@ -18,6 +18,7 @@
 		"ItemInHandRendererMixin",
 		"LivingEntityMixin",
 		"LocalPlayerMixin",
+		"MapItemSavedDataAccessor",
 		"MinecraftMixin",
 		"MouseHandlerMixin",
 		"PlayerMixin",

@@ -85,6 +85,11 @@ public final class DungeonRooms {
 			this.data = data;
 		}
 
+		/** Its grid tiles {x, z} (0-5 each, x east, z south). */
+		public List<int[]> tiles() {
+			return tiles;
+		}
+
 		public boolean resolved() {
 			return rotation != null && clay != null;
 		}
@@ -164,6 +169,16 @@ public final class DungeonRooms {
 	/** The room you're in (with its rotation known), or null outside the dungeon's rooms. */
 	public static Room current() {
 		return current;
+	}
+
+	/** The room Taz has found on grid tile x, z (0-5), or null. */
+	public static Room at(int x, int z) {
+		return x >= 0 && x < GRID && z >= 0 && z < GRID ? TILES[x + z * GRID] : null;
+	}
+
+	/** Every room Taz has found this run. */
+	public static java.util.Collection<Room> all() {
+		return ROOMS.values();
 	}
 
 	public static Room named(String name) {

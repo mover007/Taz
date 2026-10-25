@@ -12,6 +12,7 @@ public class ContainerScreenMixin {
 	/** Leap Menu: no chest behind Taz's boxes. */
 	@Inject(method = "extractBackground", at = @At("HEAD"), cancellable = true, require = 0)
 	private void taz$noChest(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-		if (com.taz.dungeons.info.LeapMenu.active((ContainerScreen) (Object) this)) ci.cancel();
+		ContainerScreen self = (ContainerScreen) (Object) this;
+		if (com.taz.dungeons.info.LeapMenu.active(self) || com.taz.general.StorageOverlay.active(self)) ci.cancel();
 	}
 }

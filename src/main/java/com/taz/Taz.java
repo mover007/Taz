@@ -141,6 +141,9 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.dungeons.info.BloodCamp());
 		TazHud.register(new com.taz.dungeons.puzzles.Quiz());
 		TazHud.register(new com.taz.dungeons.f7.WitherDragons());
+		TazHud.register(new com.taz.dungeons.map.DungeonMap());
+		TazHud.register(new com.taz.dungeons.map.MapInfo.Score());
+		TazHud.register(new com.taz.dungeons.map.MapInfo.RoomSecrets());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -178,6 +181,7 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.ArrowAlign::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.WitherDragons::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.general.BlockOverlay::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.map.MapInfo::render);
 		LevelRenderEvents.BEFORE_BLOCK_OUTLINE.register((context, outline) -> !com.taz.general.BlockOverlay.replaces());
 		net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.MODIFY_CHAT.register(com.taz.general.ChatTweaks::emoji);
 		net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.MODIFY_COMMAND.register(command ->
@@ -433,6 +437,8 @@ public final class Taz implements ClientModInitializer {
 		safely("Secret routes", () -> SecretTrainer.onActionBar(text));
 		safely("Room secret times", () -> RoomSecretTimes.onActionBar(text));
 		safely("Room alerts", () -> com.taz.dungeons.info.RoomAlerts.onActionBar(text));
+		safely("Dungeon map", () -> com.taz.dungeons.map.DungeonMap.onActionBar(text));
+		safely("Map info", () -> com.taz.dungeons.map.MapInfo.onActionBar(text));
 	}
 
 	/** Runs one feature's handler; a broken feature logs its error instead of breaking the others. */
@@ -510,6 +516,9 @@ public final class Taz implements ClientModInitializer {
 		safely("Chat commands", com.taz.general.ChatCommands::tick);
 		safely("Tweaks", () -> com.taz.general.Tweaks.tick(mc));
 		safely("Run extras", () -> com.taz.dungeons.run.RunExtras.tick(mc));
+		safely("Dungeon map", () -> com.taz.dungeons.map.DungeonMap.tick(mc));
+		safely("Map info", () -> com.taz.dungeons.map.MapInfo.tick(mc));
+		safely("Storage overlay", () -> com.taz.general.StorageOverlay.tick(mc));
 		safely("Auto requeue", () -> com.taz.dungeons.info.AutoRequeue.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();

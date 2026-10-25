@@ -113,4 +113,14 @@ public final class DungeonsCategory {
 	@ConfigOption(name = "Party Finder", desc = "Stats of players who join, Auto Kick, and missing classes in the Party Finder menu.")
 	@Accordion
 	public com.taz.dungeons.info.PartyFinderConfig partyFinder = new com.taz.dungeons.info.PartyFinderConfig();
+
+	@Expose
+	@ConfigOption(name = "Dungeon Map", desc = "Hypixel's dungeon map redrawn bigger, with room names, secrets and teammates' faces.")
+	@Accordion
+	public com.taz.dungeons.map.DungeonMapConfig map = new com.taz.dungeons.map.DungeonMapConfig();
+
+	@Expose
+	@ConfigOption(name = "Map Info", desc = "A score HUD, the room's secrets, and the Blood portal boxed at 300 score.")
+	@Accordion
+	public com.taz.dungeons.map.MapInfoConfig mapInfo = new com.taz.dungeons.map.MapInfoConfig();
 }

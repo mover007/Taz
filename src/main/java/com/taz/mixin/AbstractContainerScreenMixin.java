@@ -39,13 +39,22 @@ public class AbstractContainerScreenMixin {
 			org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
 		AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
 		if (com.taz.dungeons.info.LeapMenu.onClick(self, event.x(), event.y(), event.button())
+				|| com.taz.general.StorageOverlay.onClick(self, event.x(), event.y())
 				|| com.taz.general.InventoryKeys.onClick(self, hoveredSlot, event.button())) cir.setReturnValue(true);
 	}
 
 	/** Leap Menu: Taz's four boxes instead of the chest. */
 	@Inject(method = "extractRenderState", at = @At("HEAD"), cancellable = true, require = 0)
 	private void taz$leapMenu(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-		if (com.taz.dungeons.info.LeapMenu.render((AbstractContainerScreen<?>) (Object) this, g, mouseX, mouseY)) ci.cancel();
+		AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+		if (com.taz.dungeons.info.LeapMenu.render(self, g, mouseX, mouseY) || com.taz.general.StorageOverlay.render(self, g, mouseX, mouseY)) ci.cancel();
+	}
+
+	/** Storage Overlay: the mouse wheel scrolls it. */
+	@Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, require = 0)
+	private void taz$scroll(double mouseX, double mouseY, double scrollX, double scrollY,
+			org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+		if (com.taz.general.StorageOverlay.onScroll((AbstractContainerScreen<?>) (Object) this, scrollY)) cir.setReturnValue(true);
 	}
 
 	@Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)

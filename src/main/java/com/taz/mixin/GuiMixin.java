@@ -17,6 +17,17 @@ public class GuiMixin {
 		com.taz.Taz.onActionBar(message);
 	}
 
+	/** Dark Mode: a tint before the HUD draws (over the world) or after (over the HUD too). */
+	@Inject(method = "extractRenderState", at = @At("HEAD"), require = 0)
+	private void taz$darkBefore(net.minecraft.client.gui.GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker delta, CallbackInfo ci) {
+		com.taz.general.DarkMode.draw(g, false);
+	}
+
+	@Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
+	private void taz$darkAfter(net.minecraft.client.gui.GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker delta, CallbackInfo ci) {
+		com.taz.general.DarkMode.draw(g, true);
+	}
+
 	/** Hotbar slots: the rarity colour behind each item. */
 	@Inject(method = "extractSlot", at = @At("HEAD"), require = 0)
 	private void taz$hotbarSlot(net.minecraft.client.gui.GuiGraphicsExtractor g, int x, int y, net.minecraft.client.DeltaTracker delta,

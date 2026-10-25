@@ -23,6 +23,8 @@ public final class DungeonParty {
 	private static final Pattern PARTY = Pattern.compile("^Party \\((\\d+)\\)");
 	private static final Map<String, String> CLASSES = new HashMap<>();
 	private static final Map<String, Integer> LEVELS = new HashMap<>();
+	/** Names as the tab list lists them (dead ones too). */
+	private static final java.util.List<String> ORDER = new java.util.ArrayList<>();
 	private static int size = -1;
 	private static ClientLevel level;
 	private static int ticks;
@@ -37,22 +39,29 @@ public final class DungeonParty {
 			CLASSES.clear();
 			LEVELS.clear();
 			DEAD_NOW.clear();
+			ORDER.clear();
 			size = -1;
 		}
 		ClientPacketListener connection = mc.getConnection();
 		if (connection == null || ++ticks % 40 != 0) return;
-		for (PlayerInfo info : connection.getListedOnlinePlayers()) {
+		java.util.List<String> order = new java.util.ArrayList<>();
+		java.util.List<PlayerInfo> infos = new java.util.ArrayList<>(connection.getListedOnlinePlayers());
+		infos.sort(java.util.Comparator.comparing((PlayerInfo i) -> i.getTeam() == null ? "" : i.getTeam().getName())
+				.thenComparing(i -> i.getProfile().name(), String.CASE_INSENSITIVE_ORDER));
+		for (PlayerInfo info : infos) {
 			Component display = info.getTabListDisplayName();
 			if (display == null) continue;
 			String line = TextUtil.cleanScoreboard(TextUtil.cleanChat(display.getString()));
 			Matcher dead = DEAD.matcher(line);
 			if (dead.find()) {
 				DEAD_NOW.add(dead.group(1).toLowerCase());
+				order.add(dead.group(1));
 				continue;
 			}
 			Matcher m = MEMBER.matcher(line);
 			if (m.find()) {
 				DEAD_NOW.remove(m.group(1).toLowerCase());
+				order.add(m.group(1));
 				CLASSES.put(m.group(1).toLowerCase(), m.group(2));
 				if (m.group(3) != null) LEVELS.put(m.group(1).toLowerCase(), roman(m.group(3)));
 				continue;
@@ -60,11 +69,20 @@ public final class DungeonParty {
 			m = PARTY.matcher(line);
 			if (m.find()) size = Integer.parseInt(m.group(1));
 		}
+		if (!order.isEmpty()) {
+			ORDER.clear();
+			ORDER.addAll(order);
+		}
 	}
 
 	/** "Healer", "Archer"... or null when Taz hasn't seen it. */
 	public static String classOf(String name) {
 		return CLASSES.get(name.toLowerCase());
+	}
+
+	/** Everyone in the run as the tab list orders them (Hypixel's map markers follow this order). */
+	public static java.util.List<String> order() {
+		return ORDER;
 	}
 
 	/** Whether the tab list shows them as dead right now. */

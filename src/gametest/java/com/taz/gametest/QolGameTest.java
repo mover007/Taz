@@ -23,12 +23,13 @@ import java.util.stream.Stream;
 
 /**
  * Quality-of-life features from Odin and NoammAddons. Parts: chatcommands, chattweaks, shortcuts, slotbinds, loadouts,
- * autorequeue, renderopt, tweaks, helditem, blockoverlay, soundvolumes, leapmenu, partyfinder, auctioninput, runextras ("qol" runs them
- * all).
+ * autorequeue, renderopt, tweaks, helditem, blockoverlay, soundvolumes, leapmenu, partyfinder, auctioninput, runextras, dungeonmap,
+ * mapinfo, darkmode, storage ("qol" runs them all).
  */
 public class QolGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"chatcommands", "chattweaks", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
-			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras"};
+			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras", "dungeonmap", "mapinfo", "darkmode",
+			"storage"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -63,6 +64,10 @@ public class QolGameTest implements FabricClientGameTest {
 			if (runs("partyfinder")) partyFinder();
 			if (runs("auctioninput")) auctionInput();
 			if (runs("runextras")) runExtras();
+			if (runs("dungeonmap")) dungeonMap();
+			if (runs("mapinfo")) mapInfo();
+			if (runs("darkmode")) darkMode();
+			if (runs("storage")) storage();
 		}
 		System.out.println("[QolGameTest] PASSED");
 	}
@@ -355,6 +360,103 @@ public class QolGameTest implements FabricClientGameTest {
 	private void runExtras() {
 		tell("[MVP+] Friend opened a WITHER door!");
 		check("run extras: a wither door counted", ctx.computeOnClient(mc -> com.taz.dungeons.run.RunExtras.witherDoors()) == 1);
+	}
+
+	private static void paint(byte[] map, int x1, int z1, int x2, int z2, int color) {
+		for (int z = z1; z <= z2; z++) for (int x = x1; x <= x2; x++) map[z * 128 + x] = (byte) color;
+	}
+
+	private void dungeonMap() {
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.map.enabled = true;
+			DungeonLocation.setTestFloor("F7");
+		});
+		ctx.waitTicks(25);
+		byte[] map = new byte[128 * 128];
+		paint(map, 5, 5, 20, 20, 30);
+		paint(map, 25, 5, 40, 20, 63);
+		paint(map, 31, 11, 34, 14, 34);
+		paint(map, 21, 11, 24, 15, 63);
+		paint(map, 45, 5, 60, 20, 66);
+		paint(map, 51, 11, 54, 14, 18);
+		paint(map, 41, 11, 44, 15, 119);
+		paint(map, 5, 25, 20, 40, 85);
+		check("dungeon map: found the entrance (16-block rooms)", ctx.computeOnClient(mc -> com.taz.dungeons.map.DungeonMap.testRead(map))
+				&& ctx.computeOnClient(mc -> com.taz.dungeons.map.DungeonMap.roomSize()) == 16);
+		check("dungeon map: the rooms and doors (" + ctx.computeOnClient(mc -> com.taz.dungeons.map.DungeonMap.describe(2, 0) + ", "
+				+ com.taz.dungeons.map.DungeonMap.describe(3, 0)) + ")", ctx.computeOnClient(mc ->
+				com.taz.dungeons.map.DungeonMap.describe(0, 0).equals("ROOM ENTRANCE DISCOVERED")
+						&& com.taz.dungeons.map.DungeonMap.describe(2, 0).equals("ROOM NORMAL CLEARED")
+						&& com.taz.dungeons.map.DungeonMap.describe(1, 0).startsWith("DOOR")
+						&& com.taz.dungeons.map.DungeonMap.describe(4, 0).equals("ROOM PUZZLE FAILED")
+						&& com.taz.dungeons.map.DungeonMap.describe(3, 0).startsWith("DOOR")
+						&& com.taz.dungeons.map.DungeonMap.describe(0, 2).equals("ROOM NORMAL UNOPENED")));
+		ctx.takeScreenshot("qol-dungeon-map");
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.map.enabled = false;
+			DungeonLocation.setTestFloor(null);
+		});
+	}
+
+	private void mapInfo() {
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.mapInfo.enabled = true;
+			com.taz.dungeons.map.MapInfo.testScore(302);
+			com.taz.dungeons.map.MapInfo.onActionBar("§c1200/1200❤     §a2/5 Secrets     §b500/500✎ Mana");
+		});
+		check("map info: score and room secrets (" + hudLines(com.taz.dungeons.map.MapInfo.Score.class) + " "
+				+ hudLines(com.taz.dungeons.map.MapInfo.RoomSecrets.class) + ")",
+				hudLines(com.taz.dungeons.map.MapInfo.Score.class).equals(List.of("Score 302"))
+						&& hudLines(com.taz.dungeons.map.MapInfo.RoomSecrets.class).equals(List.of("2/5")));
+		ctx.runOnClient(mc -> Taz.config().dungeons.mapInfo.enabled = false);
+	}
+
+	private void darkMode() {
+		ctx.runOnClient(mc -> Taz.config().general.darkMode.enabled = true);
+		ctx.waitTicks(3);
+		ctx.takeScreenshot("qol-dark-mode");
+		ctx.runOnClient(mc -> Taz.config().general.darkMode.enabled = false);
+	}
+
+	private void storage() {
+		ctx.runOnClient(mc -> {
+			Taz.config().general.storageOverlay.enabled = true;
+			com.taz.general.StorageOverlay.pages().clear();
+		});
+		cmd("tp @p 14 -60 0");
+		cmd("setblock 14 -60 2 chest{CustomName:\"Ender Chest (1/9)\",Items:[{Slot:9b,id:\"minecraft:diamond\",count:5},"
+				+ "{Slot:10b,id:\"minecraft:golden_apple\",count:1}]}");
+		cmd("setblock 16 -60 2 chest{CustomName:\"Storage\",Items:[{Slot:9b,id:\"minecraft:ender_chest\",count:1},"
+				+ "{Slot:10b,id:\"minecraft:ender_chest\",count:1},{Slot:27b,id:\"minecraft:red_stained_glass_pane\",count:1}]}");
+		ctx.waitTicks(10);
+		openChest(14, -60, 2);
+		ctx.waitTicks(15);
+		check("storage: ender chest page 1 remembered", ctx.computeOnClient(mc -> {
+			var page = com.taz.general.StorageOverlay.pages().get(0);
+			return page != null && page.get(0).is(Items.DIAMOND) && page.get(0).getCount() == 5 && page.get(1).is(Items.GOLDEN_APPLE);
+		}));
+		ctx.runOnClient(mc -> mc.player.closeContainer());
+		cmd("tp @p 16 -60 0");
+		ctx.waitTicks(5);
+		openChest(16, -60, 2);
+		ctx.waitTicks(15);
+		check("storage: the overlay on the Storage menu, page 2 known but not seen yet", ctx.computeOnClient(mc -> mc.screen instanceof AbstractContainerScreen<?> sc
+				&& com.taz.general.StorageOverlay.active(sc) && com.taz.general.StorageOverlay.pages().containsKey(1)
+				&& com.taz.general.StorageOverlay.pages().get(1) == null && !com.taz.general.StorageOverlay.pages().containsKey(9)));
+		ctx.takeScreenshot("qol-storage-overlay");
+		ctx.runOnClient(mc -> {
+			mc.player.closeContainer();
+			Taz.config().general.storageOverlay.enabled = false;
+		});
+	}
+
+	private List<String> hudLines(Class<?> type) {
+		return ctx.computeOnClient(mc -> {
+			for (com.taz.hud.MovableHud h : com.taz.hud.TazHud.all()) {
+				if (type.isInstance(h)) return ((com.taz.hud.TextHud) h).shownLines(false).stream().map(net.minecraft.ChatFormatting::stripFormatting).toList();
+			}
+			throw new AssertionError(type.getSimpleName() + " not registered");
+		});
 	}
 
 	// ---- helpers
