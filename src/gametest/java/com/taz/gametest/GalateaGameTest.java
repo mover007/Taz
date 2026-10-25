@@ -606,10 +606,13 @@ public class GalateaGameTest implements FabricClientGameTest {
 				&& Islands.guess(0, 0).equals("unknown") && Islands.name("foraging_3").equals("Torrhus Canyon"));
 		ctx.runOnClient(mc -> TreeRoutes.delete(TreeRoutes.all().get(0)));
 
-		// A short route next to you, as plain JSON, to run in Training mode.
+		// A short route next to you, as plain JSON: tree 1, two etherwarps, tree 2, a teleport, then the end.
 		int x = start.getX(), y = start.getY(), z = start.getZ();
 		String json = "[{\"name\":\"Test route\",\"island\":\"unknown\",\"waypoints\":["
-				+ point(x + 4, y, z, "1") + "," + point(x + 12, y, z, "E1") + "," + point(x + 20, y, z, "2") + "," + point(x + 28, y, z, "Miria") + "]}]";
+				+ point(x + 4, y, z, "1") + "," + point(x + 14, y, z, "E1") + "," + point(x + 22, y, z, "E2") + ","
+				+ point(x + 30, y, z, "2") + "," + point(x + 40, y, z, "TP1") + "," + point(x + 48, y, z, "Miria") + "]}]";
+		cmd("fill " + (x + 5) + " " + y + " " + z + " " + (x + 6) + " " + (y + 5) + " " + (z + 1) + " stripped_spruce_wood");
+		cmd("fill " + (x + 31) + " " + y + " " + z + " " + (x + 32) + " " + (y + 5) + " " + (z + 1) + " stripped_spruce_wood");
 		ctx.runOnClient(mc -> {
 			mc.keyboardHandler.setClipboard(json);
 			RouteAssist.importFromClipboard();
@@ -619,20 +622,42 @@ public class GalateaGameTest implements FabricClientGameTest {
 		});
 		cmd("tp @p " + x + " " + y + " " + (z - 6) + " facing " + (x + 12) + " " + y + " " + z);
 		ctx.waitTicks(5);
-		check("route: training waits at the first point", ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 0);
-		ctx.takeScreenshot("galatea-route-training");
+		List<String> lines = hudLines(RouteAssist.class);
+		check("route: waits for the first tree (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Go to Tree 1 to start")));
 		goTo(x + 4, y, z);
-		check("route: reached tree 1, next is E1", ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 1);
-		goTo(x + 12, y, z);
-		goTo(x + 28, y, z); // skipped tree 2: reaching a later point still counts
+		check("route: at tree 1, chop it", ctx.computeOnClient(mc -> RouteAssist.atTree()) && hudLines(RouteAssist.class).stream().anyMatch(l -> l.contains("Chop Tree 1")));
+		cmd("tp @p " + (x + 1) + " " + (y + 2) + " " + (z - 5) + " facing " + (x + 22) + " " + y + " " + z);
+		ctx.waitTicks(3);
+		cmd("tp @p " + (x + 4) + " " + y + " " + z);
+		ctx.waitTicks(3);
+		ctx.takeScreenshot("galatea-route-training");
+		cmd("fill " + (x + 5) + " " + y + " " + z + " " + (x + 6) + " " + (y + 5) + " " + (z + 1) + " air");
+		ctx.waitTicks(15);
+		lines = hudLines(RouteAssist.class);
+		check("route: tree 1's logs gone, next is tree 2 via E1 and E2 (" + lines + ")", !ctx.computeOnClient(mc -> RouteAssist.atTree())
+				&& lines.stream().anyMatch(l -> l.startsWith("Next: Tree 2")) && lines.stream().anyMatch(l -> l.equals("Warp: E1 → E2")));
+		cmd("tp @p " + (x + 8) + " " + (y + 2) + " " + (z - 6) + " facing " + (x + 26) + " " + y + " " + z);
+		ctx.waitTicks(5);
+		ctx.takeScreenshot("galatea-route-next-tree");
+		goTo(x + 14, y, z);
+		check("route: E1 ticked off", hudLines(RouteAssist.class).stream().anyMatch(l -> l.equals("Warp: E2")));
+		goTo(x + 30, y, z);
+		check("route: at tree 2", ctx.computeOnClient(mc -> RouteAssist.atTree()) && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 3);
+		tell("You helped cut 100% of the Fig Tree.");
+		lines = hudLines(RouteAssist.class);
+		check("route: tree gift message moves on to the last leg (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Miria") && l.contains("end of lap"))
+				&& lines.stream().anyMatch(l -> l.equals("Warp: TP1")));
+		goTo(x + 48, y, z);
 		long lap = ctx.computeOnClient(mc -> RouteAssist.lastLapMs());
 		check("route: lap finished and timed (" + lap + " ms)", lap > 0 && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 0
 				&& ctx.computeOnClient(mc -> TreeRoutes.active().bestLapMs) == lap);
+		// Lap 2: tree 1 is already chopped (its logs are gone), so walking on to the next leg skips it.
 		goTo(x + 4, y, z);
-		goTo(x + 12, y, z);
-		List<String> lines = hudLines(RouteAssist.class);
-		check("route: HUD with next point, lap and split (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Next: Tree 2"))
-				&& lines.stream().anyMatch(l -> l.startsWith("Lap")) && lines.stream().anyMatch(l -> l.startsWith("E1 ")));
+		check("route: an already chopped tree says so", hudLines(RouteAssist.class).stream().anyMatch(l -> l.contains("already chopped")));
+		goTo(x + 22, y, z);
+		lines = hudLines(RouteAssist.class);
+		check("route: walking on skips it, with a split (" + lines + ")", !ctx.computeOnClient(mc -> RouteAssist.atTree())
+				&& ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 3 && lines.stream().anyMatch(l -> l.startsWith("Tree 1 ")));
 		ctx.runOnClient(mc -> Taz.config().galatea.route.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4);
 		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4, 2);
 		ctx.waitTicks(3);
@@ -641,9 +666,10 @@ public class GalateaGameTest implements FabricClientGameTest {
 			Taz.config().galatea.route.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN;
 			Taz.config().galatea.route.mode = RouteConfig.Mode.NORMAL;
 		});
-		cmd("tp @p " + x + " " + (y + 3) + " " + (z - 10) + " facing " + (x + 16) + " " + y + " " + z);
+		cmd("tp @p " + x + " " + (y + 3) + " " + (z - 14) + " facing " + (x + 24) + " " + y + " " + z);
 		ctx.waitTicks(5);
 		ctx.takeScreenshot("galatea-route-normal");
+		cmd("fill " + (x + 31) + " " + y + " " + z + " " + (x + 32) + " " + (y + 5) + " " + (z + 1) + " air");
 		ctx.runOnClient(mc -> {
 			for (TreeRoutes.Route r : new java.util.ArrayList<>(TreeRoutes.all())) TreeRoutes.delete(r);
 			Taz.config().galatea.route.enabled = false;

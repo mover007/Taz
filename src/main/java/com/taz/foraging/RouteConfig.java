@@ -18,7 +18,7 @@ import org.lwjgl.glfw.GLFW;
 public final class RouteConfig {
 	public enum Mode {
 		NORMAL("Normal: show the whole route"),
-		TRAINING("Training: guide me point by point, timed");
+		TRAINING("Guide: next tree and the warps to it, timed");
 
 		private final String label;
 
@@ -34,14 +34,17 @@ public final class RouteConfig {
 
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Your tree route (imported from Skyblocker: copy its export, then Import below). A route only shows on "
-			+ "the island it's for. Training mode leads you to the next warp or tree in order and times your laps and splits.")
+			+ "the island it's for. Guide mode shows just the next tree and the warps that get you there, and moves on by itself "
+			+ "when the tree is done.")
 	@ConfigEditorBoolean
 	@SearchTag("tree route waypoints skyblocker import export training etherwarp lap splits")
 	public boolean enabled = false;
 
 	@Expose
-	@ConfigOption(name = "Mode", desc = "Normal shows every point of the route; Training shows the next one (and the one after), with a pointer, "
-			+ "lap timer and splits against your best.")
+	@ConfigOption(name = "Mode", desc = "Normal shows every point of the route. Guide shows only the next tree (box, beam, distance) and the "
+			+ "warps / teleports to it, numbered on a path from your crosshair; each ticks off when you reach it. The next tree comes up "
+			+ "when this one's done (your tree gift or TIMBER! message, or its logs gone), or when you walk on past it. "
+			+ "Laps are timed with a split at every tree.")
 	@ConfigEditorDropdown
 	public Mode mode = Mode.NORMAL;
 
@@ -69,12 +72,12 @@ public final class RouteConfig {
 	};
 
 	@Expose
-	@ConfigOption(name = "Reach distance", desc = "How close (blocks) counts as reaching a point in Training mode.")
+	@ConfigOption(name = "Reach distance", desc = "How close (blocks) counts as reaching a warp or tree in Guide mode.")
 	@ConfigEditorSlider(minValue = 2, maxValue = 10, minStep = 1)
 	public int reach = 4;
 
 	@Expose
-	@ConfigOption(name = "Show the rest (Training)", desc = "In Training mode, show the rest of the route faintly too.")
+	@ConfigOption(name = "Show the rest (Guide)", desc = "In Guide mode, also outline the rest of the route faintly.")
 	@ConfigEditorBoolean
 	public boolean showRest = false;
 
@@ -84,12 +87,12 @@ public final class RouteConfig {
 	public boolean lines = true;
 
 	@Expose
-	@ConfigOption(name = "Restart key", desc = "Training: start the route over from the first point.")
+	@ConfigOption(name = "Restart key", desc = "Guide: start the route over from the first tree.")
 	@ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_UNKNOWN)
 	public int restartKey = GLFW.GLFW_KEY_UNKNOWN;
 
 	@Expose
-	@ConfigOption(name = "Skip key", desc = "Training: skip to the point after the next.")
+	@ConfigOption(name = "Skip key", desc = "Guide: skip this tree and go on to the next.")
 	@ConfigEditorKeybind(defaultKey = GLFW.GLFW_KEY_UNKNOWN)
 	public int skipKey = GLFW.GLFW_KEY_UNKNOWN;
 

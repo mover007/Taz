@@ -273,6 +273,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Tree progress chat", () -> TreeProgress.onChat(line));
 		safely("Sweep details chat", () -> SweepDetails.onChat(line));
 		safely("Fairy souls chat", () -> FairySouls.onChat(line));
+		safely("Tree route chat", () -> RouteAssist.onChat(line));
 		safely("Tree gifts chat", () -> TreeGifts.onChat(content, line));
 		safely("Starlyn contest chat", () -> StarlynContest.onChat(line));
 		safely("Protected trees chat", () -> ProtectedTrees.onChat(line));

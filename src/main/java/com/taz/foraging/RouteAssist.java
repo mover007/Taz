@@ -9,33 +9,47 @@ import com.taz.util.KeyWatcher;
 import com.taz.util.TazChat;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
- * Tree Route Assist. Normal mode draws the active route of the island you're on. Training mode leads you through it
- * in order: the next point gets a box and a pointer, reaching it (within the reach distance) moves on, and each lap is
- * timed with splits against your best. Reaching one of the next few points counts too, so skipping one doesn't stall.
+ * Tree Route Assist. Normal mode draws the whole route of the island you're on. Training mode guides you one tree at a
+ * time: the route is split into legs (the warps and teleports, then a tree), and only the current leg shows, with the
+ * tree as the target and the warps numbered on the way. Reaching a warp ticks it off; the next tree comes up once this
+ * one is done: your "You helped cut 100% of the Fig Tree." or TIMBER! message, or its logs gone. Walking on to the next
+ * leg (a tree that was already chopped) skips ahead too. Laps are timed, with a split at every tree.
  */
 public final class RouteAssist extends TextHud {
-	/** How many points ahead reaching one still counts (a skipped warp). */
-	private static final int LOOKAHEAD = 3;
 	private static final double DRAW_RANGE = 160;
+	/** The tree-done messages count when you're this close to the tree. */
+	private static final double TREE_NEAR = 16;
+	/** A tree counts as felled when this share of the logs seen on arrival are gone. */
+	private static final double FELLED_SHARE = 0.35;
+	private static final Pattern TREE_DONE = Pattern.compile("^(?:You helped cut [\\d.]+% of the \\w+ Tree\\.|TIMBER! You felled the entire \\w+ Tree!)");
 	private static final KeyWatcher RESTART = new KeyWatcher();
 	private static final KeyWatcher SKIP = new KeyWatcher();
 
 	private static TreeRoutes.Route route;
-	/** Next point to reach. */
+	/** The next point to reach: a warp of the current leg, or its tree. */
 	private static int next;
+	/** At the current leg's tree, chopping it. */
+	private static boolean atTree;
+	/** Logs around the tree when you got there (0 = none seen: it was already chopped). */
+	private static int logsOnArrival;
 	/** Lap start (ms), 0 before the first point is reached. */
 	private static long lapStartMs;
 	private static long[] splits = new long[0];
 	private static long lastSplitDelta = Long.MIN_VALUE;
 	private static String lastSplitName;
 	private static long lastLapMs;
+	private static int ticks;
 
 	public RouteAssist() {
 		super("Tree Route", 0.70, 0.08);
@@ -109,11 +123,44 @@ public final class RouteAssist extends TextHud {
 		TazChat.info("Best times for \"" + r.name + "\" forgotten.");
 	}
 
+	// ---- legs
+
+	private static boolean isTree(int i) {
+		return route.points.get(i).kind() == TreeRoutes.Kind.TREE;
+	}
+
+	/** The point a leg starting at {@code from} leads to: the first tree from there, or the route's last point. */
+	static int legEnd(int from) {
+		for (int i = from; i < route.points.size(); i++) if (isTree(i)) return i;
+		return route.points.size() - 1;
+	}
+
+	private static boolean near(Vec3 me, int i, double reach) {
+		return me.distanceToSqr(Vec3.atBottomCenterOf(route.points.get(i).pos())) <= reach * reach;
+	}
+
+	/** Tree logs around a route point (Galatea's trees, or any vanilla log). */
+	private static int logsAround(Minecraft mc, BlockPos p) {
+		int n = 0;
+		BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
+		for (int x = -4; x <= 4; x++) {
+			for (int y = -2; y <= 14; y++) {
+				for (int z = -4; z <= 4; z++) {
+					BlockState s = mc.level.getBlockState(m.set(p.getX() + x, p.getY() + y, p.getZ() + z));
+					if (TreeTracker.kindOf(s) != null || s.is(BlockTags.LOGS)) n++;
+				}
+			}
+		}
+		return n;
+	}
+
 	// ---- training
 
 	/** Back to the first point, timer stopped. */
 	public static void restart() {
 		next = 0;
+		atTree = false;
+		logsOnArrival = 0;
 		lapStartMs = 0;
 		lastSplitDelta = Long.MIN_VALUE;
 		lastSplitName = null;
@@ -126,42 +173,95 @@ public final class RouteAssist extends TextHud {
 		RouteConfig cfg = RouteConfig.get();
 		boolean restartKey = RESTART.pressed(mc, cfg.restartKey);
 		boolean skipKey = SKIP.pressed(mc, cfg.skipKey);
-		if (!cfg.enabled || mc.player == null) return;
+		if (!cfg.enabled || mc.player == null || mc.level == null) return;
 		TreeRoutes.Route active = TreeRoutes.active();
 		if (active != route) restart(); // another island, or another route
 		if (route == null || route.points.isEmpty() || cfg.mode != RouteConfig.Mode.TRAINING) return;
+		long now = System.currentTimeMillis();
 		if (restartKey) {
 			restart();
 			TazChat.info("Route restarted.");
 		}
-		if (skipKey) next = Math.min(next + 1, route.points.size() - 1);
-		long now = System.currentTimeMillis();
+		if (skipKey) legDone(now, false);
 		Vec3 me = mc.player.position();
-		double reach = cfg.reach * (double) cfg.reach;
-		// A lap always starts at the first point; after that, reaching one of the next few counts (a skipped warp).
-		int last = next == 0 ? 1 : Math.min(next + LOOKAHEAD, route.points.size());
-		for (int i = next; i < last; i++) {
-			if (me.distanceToSqr(Vec3.atBottomCenterOf(route.points.get(i).pos())) > reach) continue;
-			reached(i, now);
-			break;
+		double reach = cfg.reach;
+		int end = legEnd(next);
+
+		// A lap starts at the first point.
+		if (lapStartMs == 0) {
+			if (!near(me, 0, reach)) return;
+			lapStartMs = now;
+			next = 0;
+			end = legEnd(0);
+		}
+		// Warps and teleports on the way tick off as you reach them (or a later one).
+		for (int i = end - 1; i >= next; i--) {
+			if (near(me, i, reach)) {
+				next = i + 1;
+				break;
+			}
+		}
+		if (!atTree && near(me, end, reach)) {
+			if (isTree(end)) {
+				atTree = true;
+				next = end;
+				logsOnArrival = logsAround(mc, route.points.get(end).pos());
+			} else {
+				legDone(now, true); // the last stop
+				return;
+			}
+		}
+		if (atTree && logsOnArrival > 0 && ++ticks % 10 == 0
+				&& logsAround(mc, route.points.get(end).pos()) <= logsOnArrival * (1 - FELLED_SHARE)) {
+			legDone(now, true); // its logs are gone: felled
+			return;
+		}
+		// Moved on to the next leg (this tree was already chopped, or you skipped it).
+		if (end + 1 < route.points.size()) {
+			int after = legEnd(end + 1);
+			for (int i = after; i > end; i--) {
+				if (near(me, i, reach)) {
+					legDone(now, true);
+					next = i == after && isTree(after) ? after : i + 1;
+					if (i == after && isTree(after)) {
+						atTree = true;
+						logsOnArrival = logsAround(mc, route.points.get(after).pos());
+					}
+					return;
+				}
+			}
 		}
 	}
 
-	private static void reached(int i, long now) {
-		if (i == 0) lapStartMs = now; // leaving the start counts from here
-		if (lapStartMs > 0) {
-			splits[i] = now - lapStartMs;
-			if (route.bestSplits.length == route.points.size() && route.bestSplits[i] > 0 && i > 0) {
-				lastSplitDelta = splits[i] - route.bestSplits[i];
-				lastSplitName = route.points.get(i).name();
+	/** A plain-text chat line: your tree-done message finishes the leg's tree. */
+	public static void onChat(String line) {
+		RouteConfig cfg = RouteConfig.get();
+		Minecraft mc = Minecraft.getInstance();
+		if (!cfg.enabled || cfg.mode != RouteConfig.Mode.TRAINING || route == null || lapStartMs == 0 || mc.player == null) return;
+		if (!TREE_DONE.matcher(line).find()) return;
+		int end = legEnd(next);
+		if (isTree(end) && near(mc.player.position(), end, TREE_NEAR)) legDone(System.currentTimeMillis(), true);
+	}
+
+	/** The current leg's tree (or last stop) is done: split, then on to the next leg. */
+	private static void legDone(long now, boolean reached) {
+		int end = legEnd(next);
+		if (reached && lapStartMs > 0) {
+			splits[end] = now - lapStartMs;
+			if (route.bestSplits.length == route.points.size() && route.bestSplits[end] > 0) {
+				lastSplitDelta = splits[end] - route.bestSplits[end];
+				lastSplitName = route.points.get(end).describe();
 			}
 		}
-		next = i + 1;
+		atTree = false;
+		logsOnArrival = 0;
+		next = end + 1;
 		if (next >= route.points.size()) finishLap(now);
 	}
 
 	private static void finishLap(long now) {
 		next = 0;
+		atTree = false;
 		if (lapStartMs == 0) return;
 		long lap = now - lapStartMs;
 		lastLapMs = lap;
@@ -183,6 +283,10 @@ public final class RouteAssist extends TextHud {
 		return next;
 	}
 
+	public static boolean atTree() {
+		return atTree;
+	}
+
 	public static long lastLapMs() {
 		return lastLapMs;
 	}
@@ -194,35 +298,61 @@ public final class RouteAssist extends TextHud {
 		RouteConfig cfg = RouteConfig.get();
 		if (!cfg.enabled || route == null || route.points.isEmpty()) return;
 		try (WorldRenderer.Batch batch = WorldRenderer.begin(context)) {
-			List<TreeRoutes.Point> pts = route.points;
-			boolean training = cfg.mode == RouteConfig.Mode.TRAINING;
-			for (int i = 0; i < pts.size(); i++) {
-				TreeRoutes.Point p = pts.get(i);
-				boolean isNext = training && i == next, isAfter = training && i == next + 1;
-				boolean faint = training && !isNext && !isAfter;
-				if (faint && !cfg.showRest) continue;
-				Vec3 c = Vec3.atCenterOf(p.pos());
-				if (c.distanceToSqr(batch.camera) > DRAW_RANGE * DRAW_RANGE && !isNext) continue;
-				int color = 0xFF000000 | p.rgb();
-				int alpha = isNext ? 0xFF000000 : faint ? 0x50000000 : 0xC0000000;
-				AABB box = new AABB(p.pos());
-				batch.outline(box, (color & 0xFFFFFF) | alpha, isNext ? 3.0f : 2.0f, true);
-				if (isNext) batch.filled(box, (color & 0xFFFFFF) | 0x30000000, true);
-				if (!faint || isAfter) {
-					String label = (training ? (isNext ? "Next: " : "Then: ") + p.describe() : p.name())
-							+ (isNext ? "  " + Math.round(Math.sqrt(c.distanceToSqr(batch.camera))) + "m" : "");
-					batch.label(c.add(0, 0.8, 0), label, (color & 0xFFFFFF) | 0xFF000000, true);
-				}
-				if (cfg.lines && i + 1 < pts.size() && (!training || i == next || cfg.showRest)) {
-					batch.line(c, Vec3.atCenterOf(pts.get(i + 1).pos()), (color & 0xFFFFFF) | (training ? 0x90000000 : 0x60000000), 2.0f, true);
-				}
-			}
-			if (training && next < pts.size()) {
-				Vec3 target = Vec3.atCenterOf(pts.get(next).pos());
-				batch.line(WorldRenderer.crosshair(batch.camera), target, 0xC0000000 | pts.get(next).rgb(), 2.0f, true);
-			}
+			if (cfg.mode == RouteConfig.Mode.TRAINING) renderLeg(batch, cfg);
+			else renderAll(batch, cfg);
 		} catch (Exception e) {
 			Taz.LOGGER.error("Tree route failed to draw", e);
+		}
+	}
+
+	/** Normal mode: every point, numbered, with path lines. */
+	private static void renderAll(WorldRenderer.Batch batch, RouteConfig cfg) {
+		List<TreeRoutes.Point> pts = route.points;
+		for (int i = 0; i < pts.size(); i++) {
+			TreeRoutes.Point p = pts.get(i);
+			Vec3 c = Vec3.atCenterOf(p.pos());
+			if (c.distanceToSqr(batch.camera) > DRAW_RANGE * DRAW_RANGE) continue;
+			int color = 0xFF000000 | p.rgb();
+			batch.outline(new AABB(p.pos()), (color & 0xFFFFFF) | 0xC0000000, 2.0f, true);
+			batch.label(c.add(0, 0.8, 0), p.name(), color, true);
+			if (cfg.lines && i + 1 < pts.size()) batch.line(c, Vec3.atCenterOf(pts.get(i + 1).pos()), (color & 0xFFFFFF) | 0x60000000, 2.0f, true);
+		}
+	}
+
+	/** Training mode: the next tree as the target, and the warps to it numbered on a path from your crosshair. */
+	private static void renderLeg(WorldRenderer.Batch batch, RouteConfig cfg) {
+		List<TreeRoutes.Point> pts = route.points;
+		boolean started = lapStartMs > 0;
+		int end = started ? legEnd(next) : 0;
+		int from = started ? Math.min(next, end) : 0;
+		if (cfg.showRest) {
+			for (int i = 0; i < pts.size(); i++) {
+				if (i >= from && i <= end) continue;
+				batch.outline(new AABB(pts.get(i).pos()), 0x40000000 | pts.get(i).rgb(), 1.5f, true);
+			}
+		}
+		Vec3 prev = WorldRenderer.crosshair(batch.camera);
+		int step = 1;
+		for (int i = from; i <= end; i++) {
+			TreeRoutes.Point p = pts.get(i);
+			Vec3 c = Vec3.atCenterOf(p.pos());
+			int color = 0xFF000000 | p.rgb();
+			AABB box = new AABB(p.pos());
+			if (cfg.lines || i == from) batch.line(prev, c, (color & 0xFFFFFF) | 0xC0000000, 2.0f, true);
+			prev = c;
+			long dist = Math.round(Math.sqrt(c.distanceToSqr(batch.camera)));
+			if (i == end) {
+				// the target: big box, a beam, and what to do
+				batch.filled(box.inflate(0.1), (color & 0xFFFFFF) | 0x40000000, true);
+				batch.outline(box.inflate(0.1), color, 3.5f, true);
+				batch.line(c, c.add(0, 40, 0), (color & 0xFFFFFF) | 0x90000000, 4.0f, true);
+				String what = !started ? "Start: " + p.describe() : atTree ? "Chop " + p.describe() : p.describe();
+				batch.label(c.add(0, 1.0, 0), what + "  " + dist + "m", color, true, 1);
+				if (atTree && logsOnArrival == 0) batch.label(c.add(0, 1.0, 0), "already chopped? walk on to skip it", 0xFFAAAAAA, true);
+			} else {
+				batch.outline(box, color, 2.5f, true);
+				batch.label(c.add(0, 0.8, 0), step++ + ". " + p.describe() + "  " + dist + "m", color, true);
+			}
 		}
 	}
 
@@ -244,32 +374,43 @@ public final class RouteAssist extends TextHud {
 		RouteConfig cfg = RouteConfig.get();
 		if (route == null) {
 			if (preview) {
-				lines.add("§a§lTree Route §7(Training)");
-				lines.add("§fNext: §bEtherwarp E4 §7(9/37) · 23m");
-				lines.add("§fLap §e1:12.3 §7· best 2:31.4");
+				lines.add("§a§lTree Route §7· Lap §e1:12.3 §7(best 2:31.4)");
+				lines.add("§fNext: §bTree 4 §7· 35m");
+				lines.add("§7Warp: §fE4 §7→ §fE5");
 			}
 			return lines;
 		}
 		boolean training = cfg.mode == RouteConfig.Mode.TRAINING;
-		lines.add("§a§l" + route.name + (training ? " §7(Training)" : ""));
 		if (!training) {
+			lines.add("§a§l" + route.name);
 			lines.add("§7" + route.points.size() + " points" + (route.bestLapMs > 0 ? " · best " + TextUtil.formatTimeTenths(route.bestLapMs) : ""));
 			return lines;
 		}
-		Minecraft mc = Minecraft.getInstance();
-		if (next < route.points.size() && mc.player != null) {
-			TreeRoutes.Point p = route.points.get(next);
-			long dist = Math.round(Math.sqrt(mc.player.position().distanceToSqr(Vec3.atCenterOf(p.pos()))));
-			lines.add("§fNext: §b" + p.describe() + " §7(" + (next + 1) + "/" + route.points.size() + ") · " + dist + "m");
-		}
 		long now = System.currentTimeMillis();
-		String lap = lapStartMs > 0 ? "§e" + TextUtil.formatTimeTenths(now - lapStartMs) : "§7go to " + route.points.get(0).describe() + " to start";
-		lines.add("§fLap " + lap + (route.bestLapMs > 0 ? " §7· best " + TextUtil.formatTimeTenths(route.bestLapMs) : ""));
+		String best = route.bestLapMs > 0 ? " §7(best " + TextUtil.formatTimeTenths(route.bestLapMs) + ")" : "";
+		if (lapStartMs == 0) {
+			lines.add("§a§l" + route.name + best);
+			lines.add("§fGo to §b" + route.points.get(0).describe() + " §fto start");
+			if (lastLapMs > 0) lines.add("§7Last lap §f" + TextUtil.formatTimeTenths(lastLapMs));
+			return lines;
+		}
+		lines.add("§a§l" + route.name + " §7· Lap §e" + TextUtil.formatTimeTenths(now - lapStartMs) + best);
+		int end = legEnd(next);
+		TreeRoutes.Point target = route.points.get(end);
+		Minecraft mc = Minecraft.getInstance();
+		long dist = mc.player == null ? 0 : Math.round(Math.sqrt(mc.player.position().distanceToSqr(Vec3.atCenterOf(target.pos()))));
+		if (atTree) {
+			lines.add("§fChop §b" + target.describe() + (logsOnArrival == 0 ? " §7(already chopped? walk on)" : ""));
+		} else {
+			lines.add("§fNext: §b" + target.describe() + " §7· " + dist + "m" + (isTree(end) ? "" : " §7(end of lap)"));
+		}
+		List<String> warps = new ArrayList<>();
+		for (int i = next; i < end; i++) warps.add(route.points.get(i).name());
+		if (!warps.isEmpty()) lines.add("§7Warp: §f" + String.join(" §7→ §f", warps));
 		if (lastSplitDelta != Long.MIN_VALUE) {
 			String sign = lastSplitDelta <= 0 ? "§a-" : "§c+";
 			lines.add("§7" + lastSplitName + " " + sign + TextUtil.formatTimeTenths(Math.abs(lastSplitDelta)));
 		}
-		if (lastLapMs > 0 && lapStartMs == 0) lines.add("§7Last lap §f" + TextUtil.formatTimeTenths(lastLapMs));
 		return lines;
 	}
 }
