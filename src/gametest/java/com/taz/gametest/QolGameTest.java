@@ -23,11 +23,12 @@ import java.util.stream.Stream;
 
 /**
  * Quality-of-life features from Odin and NoammAddons. Parts: chatcommands, chattweaks, shortcuts, slotbinds, loadouts,
- * autorequeue, renderopt, tweaks, helditem, blockoverlay, soundvolumes ("qol" runs them all).
+ * autorequeue, renderopt, tweaks, helditem, blockoverlay, soundvolumes, leapmenu, partyfinder, auctioninput, runextras ("qol" runs them
+ * all).
  */
 public class QolGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"chatcommands", "chattweaks", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
-			"helditem", "blockoverlay", "soundvolumes"};
+			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -58,6 +59,10 @@ public class QolGameTest implements FabricClientGameTest {
 			if (runs("helditem")) heldItem();
 			if (runs("blockoverlay")) blockOverlay();
 			if (runs("soundvolumes")) soundVolumes();
+			if (runs("leapmenu")) leapMenu();
+			if (runs("partyfinder")) partyFinder();
+			if (runs("auctioninput")) auctionInput();
+			if (runs("runextras")) runExtras();
 		}
 		System.out.println("[QolGameTest] PASSED");
 	}
@@ -257,6 +262,99 @@ public class QolGameTest implements FabricClientGameTest {
 		});
 		check("etherwarp sound: Hypixel's swapped for the XP orb", ctx.computeOnClient(mc -> com.taz.general.EtherwarpGuess.onSound("entity.ender_dragon.hurt", 0.53968257f)));
 		ctx.runOnClient(mc -> Taz.config().general.etherwarp.enabled = false);
+	}
+
+	private String head(int slot, String name) {
+		return "{Slot:" + slot + "b,id:\"minecraft:player_head\",count:1,components:{\"minecraft:custom_name\":\"" + name + "\"}}";
+	}
+
+	private void openChest(int x, int y, int z) {
+		ctx.runOnClient(mc -> mc.gameMode.useItemOn(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND,
+				new net.minecraft.world.phys.BlockHitResult(net.minecraft.world.phys.Vec3.atCenterOf(new BlockPos(x, y, z)), net.minecraft.core.Direction.UP,
+						new BlockPos(x, y, z), false)));
+		ctx.waitTicks(10);
+	}
+
+	private void leapMenu() {
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.leapMenu.enabled = true;
+			Taz.config().dungeons.leapMenu.message = "ILY ❤ {name}";
+			com.taz.dungeons.util.DungeonParty.setClass(mc.player.getName().getString(), "Archer");
+			com.taz.dungeons.util.DungeonParty.setClass("Alice", "Mage");
+			com.taz.dungeons.util.DungeonParty.setClass("Bob", "Tank");
+			com.taz.dungeons.util.DungeonParty.setClass("Cara", "Healer");
+			com.taz.dungeons.util.DungeonParty.setClass("Dan", "Berserk");
+		});
+		cmd("tp @p 6 -60 0");
+		cmd("setblock 6 -60 2 chest{CustomName:\"Spirit Leap\",Items:[" + head(11, "[MVP+] Alice") + "," + head(12, "[VIP] Bob") + "," + head(13, "Cara") + ","
+				+ head(14, "[MVP++] Dan") + "]}");
+		ctx.waitTicks(25);
+		openChest(6, -60, 2);
+		check("leap menu: the Spirit Leap menu", ctx.computeOnClient(mc -> mc.screen instanceof AbstractContainerScreen<?> s && com.taz.dungeons.info.LeapMenu.active(s)));
+		check("leap menu: placed by class like Odin (Mage, Berserk, Healer, Tank for an Archer)", ctx.computeOnClient(mc -> {
+			var e = com.taz.dungeons.info.LeapMenu.entries((AbstractContainerScreen<?>) mc.screen);
+			return e[0].name().equals("Alice") && e[1].name().equals("Dan") && e[2].name().equals("Cara") && e[3].name().equals("Bob") && e[0].slot() == 11;
+		}));
+		ctx.takeScreenshot("qol-leap-menu");
+		check("leap menu: key 1 leaps", ctx.computeOnClient(mc -> com.taz.dungeons.info.LeapMenu.onKey((AbstractContainerScreen<?>) mc.screen, GLFW.GLFW_KEY_1)));
+		ctx.runOnClient(mc -> mc.player.closeContainer());
+		int before = ctx.computeOnClient(mc -> TazChat.sent());
+		tell("You have teleported to Alice!");
+		check("leap menu: says who you leaped to", ctx.computeOnClient(mc -> TazChat.sent()) > before);
+		ctx.runOnClient(mc -> {
+			TazChat.clearParty();
+			Taz.config().dungeons.leapMenu.enabled = false;
+		});
+	}
+
+	private void partyFinder() {
+		ctx.runOnClient(mc -> {
+			var c = Taz.config().dungeons.partyFinder;
+			c.enabled = true;
+			c.floor = 6;
+			c.master = true;
+			c.maxSeconds = 150;
+		});
+		String member = "{\"stats\":{\"dungeons\":{\"catacombsLevel\":50,\"classAverage\":48.4,\"secretsFound\":56139,"
+				+ "\"floors\":{\"total\":{\"completions\":722}},\"masterFloors\":{\"6\":{\"fastestTimeSPlus\":126961},\"total\":{\"completions\":4338}}},"
+				+ "\"accessories\":{\"highestMagicalPower\":2048}}}";
+		check("party finder: stats read", ctx.computeOnClient(mc -> {
+			var st = com.taz.dungeons.info.PartyFinder.parse("mTaz", com.google.gson.JsonParser.parseString(member).getAsJsonObject());
+			return st.cata() == 50 && st.mp() == 2048 && st.pbMs() == 126961 && Math.abs(st.secretsPerRun() - 56139.0 / 5060) < 0.01
+					&& com.taz.dungeons.info.PartyFinder.describe(st).contains("M6 S+ 2:06")
+					&& com.taz.dungeons.info.PartyFinder.shortfall(st) == null;
+		}));
+		check("party finder: too slow for 2:30 when M6 is 2:31", ctx.computeOnClient(mc -> com.taz.dungeons.info.PartyFinder.shortfall(
+				new com.taz.dungeons.info.PartyFinder.Stats("x", 40, 40, 1000, 10, 900, 151000)) != null));
+		check("party finder: missing classes from the lore", ctx.computeOnClient(mc -> {
+			ItemStack h = new ItemStack(Items.PLAYER_HEAD);
+			h.set(DataComponents.LORE, new ItemLore(List.of(Component.literal(" Friend: Archer (50)"), Component.literal(" Other: Mage (48)"))));
+			return com.taz.dungeons.info.PartyFinder.missing(h).equals(List.of("Berserk", "Healer", "Tank"));
+		}));
+		ctx.runOnClient(mc -> Taz.config().dungeons.partyFinder.enabled = false);
+	}
+
+	private void auctionInput() {
+		ctx.runOnClient(mc -> Taz.config().general.auctionInput.enabled = true);
+		check("auction input: 10m, 2.5k, 1,000", ctx.computeOnClient(mc -> com.taz.general.AuctionInput.parse("10m")) == 10_000_000L
+				&& ctx.computeOnClient(mc -> com.taz.general.AuctionInput.parse("2.5k")) == 2500L
+				&& ctx.computeOnClient(mc -> com.taz.general.AuctionInput.parse("1,000")) == 1000L
+				&& ctx.computeOnClient(mc -> com.taz.general.AuctionInput.parse("abc")) == null);
+		cmd("tp @p 10 -60 0");
+		cmd("setblock 10 -60 2 chest{CustomName:\"Confirm BIN Auction\",Items:[{Slot:11b,id:\"minecraft:green_terracotta\",count:1}]}");
+		ctx.waitTicks(10);
+		openChest(10, -60, 2);
+		check("auction input: Enter confirms", ctx.computeOnClient(mc -> mc.screen instanceof AbstractContainerScreen<?> s
+				&& com.taz.general.AuctionInput.onKey(s, GLFW.GLFW_KEY_ENTER)));
+		ctx.runOnClient(mc -> {
+			mc.player.closeContainer();
+			Taz.config().general.auctionInput.enabled = false;
+		});
+	}
+
+	private void runExtras() {
+		tell("[MVP+] Friend opened a WITHER door!");
+		check("run extras: a wither door counted", ctx.computeOnClient(mc -> com.taz.dungeons.run.RunExtras.witherDoors()) == 1);
 	}
 
 	// ---- helpers

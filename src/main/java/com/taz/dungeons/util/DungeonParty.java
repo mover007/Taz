@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
  */
 public final class DungeonParty {
 	private static final Pattern MEMBER = Pattern.compile("([A-Za-z0-9_]{3,16}) ?\\((Archer|Berserk|Healer|Mage|Tank)\\b(?: ([IVXLCDM]+)\\b)?");
+	private static final Pattern DEAD = Pattern.compile("([A-Za-z0-9_]{3,16}) ?\\(DEAD\\)");
+	private static final java.util.Set<String> DEAD_NOW = new java.util.HashSet<>();
 	private static final Pattern PARTY = Pattern.compile("^Party \\((\\d+)\\)");
 	private static final Map<String, String> CLASSES = new HashMap<>();
 	private static final Map<String, Integer> LEVELS = new HashMap<>();
@@ -34,6 +36,7 @@ public final class DungeonParty {
 			level = mc.level;
 			CLASSES.clear();
 			LEVELS.clear();
+			DEAD_NOW.clear();
 			size = -1;
 		}
 		ClientPacketListener connection = mc.getConnection();
@@ -42,8 +45,14 @@ public final class DungeonParty {
 			Component display = info.getTabListDisplayName();
 			if (display == null) continue;
 			String line = TextUtil.cleanScoreboard(TextUtil.cleanChat(display.getString()));
+			Matcher dead = DEAD.matcher(line);
+			if (dead.find()) {
+				DEAD_NOW.add(dead.group(1).toLowerCase());
+				continue;
+			}
 			Matcher m = MEMBER.matcher(line);
 			if (m.find()) {
+				DEAD_NOW.remove(m.group(1).toLowerCase());
 				CLASSES.put(m.group(1).toLowerCase(), m.group(2));
 				if (m.group(3) != null) LEVELS.put(m.group(1).toLowerCase(), roman(m.group(3)));
 				continue;
@@ -56,6 +65,11 @@ public final class DungeonParty {
 	/** "Healer", "Archer"... or null when Taz hasn't seen it. */
 	public static String classOf(String name) {
 		return CLASSES.get(name.toLowerCase());
+	}
+
+	/** Whether the tab list shows them as dead right now. */
+	public static boolean dead(String name) {
+		return DEAD_NOW.contains(name.toLowerCase());
 	}
 
 	/** Their class level (from "Mage L"), or 0 when Taz hasn't seen it. */

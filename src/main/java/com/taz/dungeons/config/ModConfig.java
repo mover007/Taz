@@ -234,6 +234,18 @@ public final class ModConfig {
 		@ConfigOption(name = "'Learning' note", desc = "Shown while fewer than 3 runs are recorded on a floor.")
 		@ConfigEditorBoolean
 		public boolean learning = false;
+		@Expose
+		@ConfigOption(name = "Splits: wither doors", desc = "Under the splits, how many wither doors were opened. From NoammAddons' Run Splits.")
+		@ConfigEditorBoolean
+		public boolean witherDoors = false;
+		@Expose
+		@ConfigOption(name = "Splits: 300 score", desc = "Under the splits, when the run reached 300 score.")
+		@ConfigEditorBoolean
+		public boolean score300 = false;
+		@Expose
+		@ConfigOption(name = "Splits: lag lost", desc = "Under the splits, how much time the server's lag cost.")
+		@ConfigEditorBoolean
+		public boolean lagLost = false;
 	}
 
 	public static final class Score {

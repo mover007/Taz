@@ -29,13 +29,23 @@ public class AbstractContainerScreenMixin {
 	/** Slot Binds and Loadout Keybinds: keys and clicks in menus. */
 	@Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
 	private void taz$key(net.minecraft.client.input.KeyEvent event, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
-		if (com.taz.general.InventoryKeys.onKey((AbstractContainerScreen<?>) (Object) this, hoveredSlot, event.key())) cir.setReturnValue(true);
+		AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+		if (com.taz.dungeons.info.LeapMenu.onKey(self, event.key()) || com.taz.general.AuctionInput.onKey(self, event.key())
+				|| com.taz.general.InventoryKeys.onKey(self, hoveredSlot, event.key())) cir.setReturnValue(true);
 	}
 
 	@Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
 	private void taz$click(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick,
 			org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
-		if (com.taz.general.InventoryKeys.onClick((AbstractContainerScreen<?>) (Object) this, hoveredSlot, event.button())) cir.setReturnValue(true);
+		AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
+		if (com.taz.dungeons.info.LeapMenu.onClick(self, event.x(), event.y(), event.button())
+				|| com.taz.general.InventoryKeys.onClick(self, hoveredSlot, event.button())) cir.setReturnValue(true);
+	}
+
+	/** Leap Menu: Taz's four boxes instead of the chest. */
+	@Inject(method = "extractRenderState", at = @At("HEAD"), cancellable = true, require = 0)
+	private void taz$leapMenu(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+		if (com.taz.dungeons.info.LeapMenu.render((AbstractContainerScreen<?>) (Object) this, g, mouseX, mouseY)) ci.cancel();
 	}
 
 	@Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
@@ -68,11 +78,13 @@ public class AbstractContainerScreenMixin {
 	private void taz$slotForeground(GuiGraphicsExtractor g, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
 		ItemOverlays.foreground(g, slot);
 		com.taz.dungeons.info.MaskTimers.slot(g, slot);
+		com.taz.dungeons.info.PartyFinder.slot(g, slot);
 	}
 
 	@Inject(method = "slotClicked", at = @At("HEAD"))
 	private void taz$onSlotClicked(@Nullable Slot slot, int slotId, int buttonNum, ContainerInput containerInput, CallbackInfo ci) {
 		if (com.taz.xpassist.SkyblockXpAssist.enabled()) ProgressDetector.onSlotClick((AbstractContainerScreen<?>) (Object) this, slotId);
 		TerminalSolver.onClick((AbstractContainerScreen<?>) (Object) this, slotId);
+		com.taz.general.AuctionInput.onSlotClick((AbstractContainerScreen<?>) (Object) this, slotId);
 	}
 }

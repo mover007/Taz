@@ -154,4 +154,9 @@ public final class GeneralCategory {
 	@ConfigOption(name = "Sound Volumes", desc = "Make any sound louder or quieter.")
 	@Accordion
 	public com.taz.general.SoundVolumesConfig soundVolumes = new com.taz.general.SoundVolumesConfig();
+
+	@Expose
+	@ConfigOption(name = "Auction Price Input", desc = "A text box for auction prices with an undercut mode.")
+	@Accordion
+	public com.taz.general.AuctionInputConfig auctionInput = new com.taz.general.AuctionInputConfig();
 }

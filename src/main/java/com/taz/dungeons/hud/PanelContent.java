@@ -35,7 +35,7 @@ public final class PanelContent {
 		if (t.floor() == null || p == null || t.state() == RunTracker.State.IDLE) return List.of();
 		return switch (panel) {
 			case TIMER -> timer(t, p);
-			case SPLITS -> splits(p);
+			case SPLITS -> splits(p, t);
 			case SCORE -> score(t, score);
 			case SESSION -> session(t);
 		};
@@ -137,7 +137,7 @@ public final class PanelContent {
 				: "";
 	}
 
-	private static List<HudLine> splits(Predictor.Prediction p) {
+	private static List<HudLine> splits(Predictor.Prediction p, RunTracker t) {
 		if (p.splits().isEmpty()) return List.of();
 		List<HudLine> out = new ArrayList<>();
 		out.add(HudLine.of("Splits", GOLD));
@@ -151,6 +151,13 @@ public final class PanelContent {
 						TextUtil.formatTimeTenths(s.actualMs()) + " " + TextUtil.formatDelta(d), d <= 0 ? GREEN : RED));
 			}
 		}
+		ModConfig.TimerHud cfg = ModConfig.get().timer;
+		if (cfg.witherDoors) out.add(HudLine.kv("Wither doors", String.valueOf(com.taz.dungeons.run.RunExtras.witherDoors()), GRAY));
+		if (cfg.score300 && com.taz.dungeons.run.RunExtras.score300Ms() >= 0) {
+			out.add(HudLine.kv("300 score", TextUtil.formatTime(com.taz.dungeons.run.RunExtras.score300Ms()), WHITE));
+		}
+		long lag = com.taz.dungeons.run.RunExtras.lagLostMs(t);
+		if (cfg.lagLost && lag >= 1000) out.add(HudLine.kv("Lag lost", "+" + lag / 1000 + "s", RED));
 		return out;
 	}
 

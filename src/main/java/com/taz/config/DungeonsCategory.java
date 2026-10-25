@@ -103,4 +103,14 @@ public final class DungeonsCategory {
 	@ConfigOption(name = "Auto Requeue", desc = "When a run ends, queue the same floor again.")
 	@Accordion
 	public com.taz.dungeons.info.AutoRequeueConfig autoRequeue = new com.taz.dungeons.info.AutoRequeueConfig();
+
+	@Expose
+	@ConfigOption(name = "Leap Menu", desc = "The Spirit Leap menu as four big boxes, keys 1-4, and a party message when you leap.")
+	@Accordion
+	public com.taz.dungeons.info.LeapMenuConfig leapMenu = new com.taz.dungeons.info.LeapMenuConfig();
+
+	@Expose
+	@ConfigOption(name = "Party Finder", desc = "Stats of players who join, Auto Kick, and missing classes in the Party Finder menu.")
+	@Accordion
+	public com.taz.dungeons.info.PartyFinderConfig partyFinder = new com.taz.dungeons.info.PartyFinderConfig();
 }

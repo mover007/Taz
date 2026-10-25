@@ -200,12 +200,14 @@ public final class Taz implements ClientModInitializer {
 		});
 		ClientEntityEvents.ENTITY_UNLOAD.register((entity, level) -> safely("Secret routes entity", () -> SecretTrainer.onEntityGone(entity)));
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Secret routes screen", () -> SecretTrainer.onScreenOpened(screen)));
+		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Auction price input", () -> com.taz.general.AuctionInput.onScreen(screen)));
 		ClientReceiveMessageEvents.ALLOW_GAME.register(ChatFilter::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(SweepDetails::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(TreeGifts::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(StarlynContest::allow);
 		ClientReceiveMessageEvents.MODIFY_GAME.register(Waypoints::addButton);
 		ItemTooltipCallback.EVENT.register(PriceTooltips::onTooltip);
+		ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> safely("Party finder tooltip", () -> com.taz.dungeons.info.PartyFinder.tooltip(stack, lines)));
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			onServerChange();
 			if (startupMessage != null) TazChat.info(startupMessage);
@@ -412,9 +414,12 @@ public final class Taz implements ClientModInitializer {
 		safely("Blood camp chat", () -> com.taz.dungeons.info.BloodCamp.onChat(line));
 		safely("Puzzles chat", () -> com.taz.dungeons.puzzles.Puzzles.onChat(line));
 		safely("Party", () -> com.taz.util.Party.onChat(line));
+		safely("Run extras", () -> com.taz.dungeons.run.RunExtras.onChat(line));
 		safely("Chat commands", () -> com.taz.general.ChatCommands.onChat(line));
 		safely("Chat tweaks", () -> com.taz.general.ChatTweaks.onChat(line));
 		safely("Auto requeue", () -> com.taz.dungeons.info.AutoRequeue.onChat(line));
+		safely("Leap menu", () -> com.taz.dungeons.info.LeapMenu.onChat(line));
+		safely("Party finder", () -> com.taz.dungeons.info.PartyFinder.onChat(line));
 	}
 
 	/** Every action bar message (GuiMixin), for every feature. */
@@ -504,6 +509,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Wither dragons", () -> com.taz.dungeons.f7.WitherDragons.tick(mc));
 		safely("Chat commands", com.taz.general.ChatCommands::tick);
 		safely("Tweaks", () -> com.taz.general.Tweaks.tick(mc));
+		safely("Run extras", () -> com.taz.dungeons.run.RunExtras.tick(mc));
 		safely("Auto requeue", () -> com.taz.dungeons.info.AutoRequeue.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();
