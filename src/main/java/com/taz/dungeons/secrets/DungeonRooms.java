@@ -5,7 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.taz.Taz;
-import com.taz.foraging.GalateaRecorder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -210,7 +209,7 @@ public final class DungeonRooms {
 			return;
 		}
 		ticks++;
-		if (ticks % 20 == 1) inDungeon = ANYWHERE || GalateaRecorder.sidebarLines().stream().anyMatch(l -> l.contains("The Catacombs ("));
+		inDungeon = com.taz.dungeons.util.DungeonLocation.inDungeon();
 		if (!inDungeon) {
 			current = null;
 			return;

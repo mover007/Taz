@@ -2,6 +2,7 @@ package com.taz.config;
 
 import com.google.gson.annotations.Expose;
 import com.taz.dungeons.config.ModConfig;
+import com.taz.dungeons.info.BlessingsConfig;
 import com.taz.dungeons.secrets.RoomTimesConfig;
 import com.taz.dungeons.secrets.SecretsConfig;
 import com.taz.dungeons.skillissue.SkillIssueConfig;
@@ -31,4 +32,9 @@ public final class DungeonsCategory {
 			+ "Storm, blood...) and their class.")
 	@Accordion
 	public SkillIssueConfig skillIssue = new SkillIssueConfig();
+
+	@Expose
+	@ConfigOption(name = "Blessings", desc = "The dungeon's blessings and their levels.")
+	@Accordion
+	public BlessingsConfig blessings = new BlessingsConfig();
 }

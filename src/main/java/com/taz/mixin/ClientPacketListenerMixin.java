@@ -4,6 +4,10 @@ import com.taz.Taz;
 import com.taz.dungeons.util.LagMonitor;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
+import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
+import net.minecraft.network.protocol.game.ClientboundTabListPacket;
+import net.minecraft.network.protocol.ping.ClientboundPongResponsePacket;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import org.spongepowered.asm.mixin.Mixin;
@@ -45,6 +49,37 @@ public abstract class ClientPacketListenerMixin {
 			require = 0)
 	private void taz$onBlockEvent(ClientboundBlockEventPacket packet, CallbackInfo ci) {
 		Taz.onBlockEvent(packet.getPos(), packet.getBlock(), packet.getB0(), packet.getB1());
+	}
+
+	/** Entity events on the main thread (a mob's death animation starting: the Mimic dying). */
+	@Inject(
+			method = "handleEntityEvent",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+					shift = At.Shift.AFTER),
+			require = 0)
+	private void taz$onEntityEvent(ClientboundEntityEventPacket packet, CallbackInfo ci) {
+		Entity entity = packet.getEntity(((ClientPacketListener) (Object) this).getLevel());
+		if (entity != null) Taz.onEntityEvent(entity, packet.getEventId());
+	}
+
+	/** The tab list's header and footer (the footer lists the dungeon's blessings). */
+	@Inject(
+			method = "handleTabListCustomisation",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+					shift = At.Shift.AFTER),
+			require = 0)
+	private void taz$onTabList(ClientboundTabListPacket packet, CallbackInfo ci) {
+		Taz.onTabFooter(packet.footer().getString());
+	}
+
+	/** The answer to Taz's ping request: your ping. */
+	@Inject(method = "handlePongResponse", at = @At("HEAD"), require = 0)
+	private void taz$onPong(ClientboundPongResponsePacket packet, CallbackInfo ci) {
+		com.taz.general.PerformanceHud.onPong(packet.time());
 	}
 
 	/**

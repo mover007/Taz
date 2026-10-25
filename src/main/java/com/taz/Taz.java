@@ -129,6 +129,8 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new RouteAssist());
 		TazHud.register(new StarlynContest());
 		TazHud.register(new SecretTrainer());
+		TazHud.register(new com.taz.general.PerformanceHud());
+		TazHud.register(new com.taz.dungeons.info.Blessings());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -270,6 +272,23 @@ public final class Taz implements ClientModInitializer {
 		safely("Secret routes block", () -> SecretTrainer.onBlockChanged(pos, oldState, newState));
 	}
 
+	/** Every server tick (Hypixel's ping packet, ClientCommonPacketListenerImplMixin): the clock for tick timers. */
+	public static void onServerTick() {
+	}
+
+	/** An entity event (ClientPacketListenerMixin): 3 is a mob's death. */
+	public static void onEntityEvent(net.minecraft.world.entity.Entity entity, byte id) {
+	}
+
+	/** The tab list's footer (ClientPacketListenerMixin): the dungeon's blessings. */
+	public static void onTabFooter(String footer) {
+		safely("Blessings", () -> com.taz.dungeons.info.Blessings.onTabFooter(footer));
+	}
+
+	/** Every sound the client plays (SoundManagerMixin). */
+	public static void onSound(net.minecraft.client.resources.sounds.SoundInstance sound) {
+	}
+
 	/** Block events (ClientPacketListenerMixin): a chest lid opening. */
 	public static void onBlockEvent(BlockPos pos, Block block, int type, int data) {
 		safely("Secret routes block event", () -> SecretTrainer.onBlockEvent(pos, block, type, data));
@@ -370,7 +389,9 @@ public final class Taz implements ClientModInitializer {
 		safely("Starlyn contest", StarlynContest::tick);
 		safely("Galatea recorder", () -> GalateaRecorder.tick(mc));
 		safely("Party chat", TazChat::tick);
+		safely("Dungeon location", () -> com.taz.dungeons.util.DungeonLocation.tick(mc));
 		safely("Dungeon rooms", () -> DungeonRooms.tick(mc));
+		safely("Performance HUD", () -> com.taz.general.PerformanceHud.tick(mc));
 		safely("Dungeon party", () -> DungeonParty.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();

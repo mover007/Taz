@@ -6,6 +6,7 @@ import com.taz.general.ChatFilterConfig;
 import com.taz.general.CommandKeysConfig;
 import com.taz.general.DarkAuctionConfig;
 import com.taz.general.EventTimersConfig;
+import com.taz.general.PerformanceHudConfig;
 import com.taz.general.SkillTrackerConfig;
 import com.taz.general.WaypointsConfig;
 import io.github.notenoughupdates.moulconfig.annotations.Accordion;
@@ -47,4 +48,9 @@ public final class GeneralCategory {
 	@ConfigOption(name = "Chat Waypoints", desc = "Coordinates posted in chat become a beam to walk to, and a key sends yours to your party.")
 	@Accordion
 	public WaypointsConfig waypoints = new WaypointsConfig();
+
+	@Expose
+	@ConfigOption(name = "Performance HUD", desc = "Your FPS, the server's TPS and your ping.")
+	@Accordion
+	public PerformanceHudConfig performance = new PerformanceHudConfig();
 }
