@@ -10,6 +10,22 @@ import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
 /** Dungeons > Skill Issue in the Taz settings GUI (/taz). */
 public final class SkillIssueConfig {
+	public enum Tone {
+		TOXIC("Toxic"),
+		FRIENDLY("Friendly");
+
+		private final String label;
+
+		Tone(String label) {
+			this.label = label;
+		}
+
+		@Override
+		public String toString() {
+			return label;
+		}
+	}
+
 	public enum Where {
 		PARTY("Party chat"),
 		ME("Only me");
@@ -33,6 +49,12 @@ public final class SkillIssueConfig {
 	@ConfigEditorBoolean
 	@SearchTag("death roast joke party chat ghost died")
 	public boolean enabled = false;
+
+	@Expose
+	@ConfigOption(name = "Tone", desc = "Toxic: \"How did you die in terms, Steve? It's clicking colours.\", and your excuses blame the team. "
+			+ "Friendly: gentler jokes (\"Steve died doing terms. Outplayed by a GUI.\"). No swearing either way.")
+	@ConfigEditorDropdown
+	public Tone tone = Tone.TOXIC;
 
 	@Expose
 	@ConfigOption(name = "Where", desc = "Say it in party chat (not when you're solo), or only show it to you.")

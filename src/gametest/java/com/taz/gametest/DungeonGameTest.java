@@ -372,6 +372,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 			SkillIssueConfig cfg = Taz.config().dungeons.skillIssue;
 			cfg.enabled = true;
 			cfg.where = SkillIssueConfig.Where.PARTY;
+			cfg.tone = SkillIssueConfig.Tone.TOXIC;
 			cfg.yourself = true;
 		});
 		ctx.waitTicks(25);
@@ -397,7 +398,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 		tell(" ☠ Alex died to a trap and became a ghost.");
 		joke = lastJoke();
 		check("skill issue: a healer who found a trap (" + joke + ")", fits(joke, false, "Alex", "TRAP", null, "CORE", "Healer", 1)
-				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(false, "TRAP", null, "CORE", "Healer")).contains("Our healer {name} died. Physician, heal thyself."));
+				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(false, "TRAP", null, "CORE", "Healer")).contains("How does the HEALER die, {name}?"));
 		ctx.waitTicks(40);
 		tell(" ☠ Bob disconnected and became a ghost.");
 		joke = lastJoke();
@@ -406,7 +407,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 		tell(" ☠ You were killed by Storm and became a ghost.");
 		joke = lastJoke();
 		check("skill issue: you, killed by Storm, get an excuse (" + joke + ")", fits(joke, true, me, "KILLED", "Storm", "CORE", null, 1)
-				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(true, "KILLED", "Storm", "CORE", null)).contains("Storm got me. My game froze right when the lightning hit.")
+				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(true, "KILLED", "Storm", "CORE", null)).contains("Storm got me because nobody stunned him. Not my fault.")
 				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(true, "KILLED", "Storm", "CORE", null)).stream().noneMatch(t -> t.contains("{name}")));
 		ctx.waitTicks(40);
 		ctx.runOnClient(mc -> Taz.config().dungeons.skillIssue.yourself = false);
@@ -424,10 +425,18 @@ public class DungeonGameTest implements FabricClientGameTest {
 		String third = lastJoke();
 		tell(" ☠ Carl was killed by Goldor and became a ghost.");
 		check("skill issue: a wipe stops at 3 jokes in 5 seconds (" + third + ")", third.contains("Bob") && third.equals(lastJoke()));
+		check("tone: toxic roasts ask how you died in terms", ctx.computeOnClient(mc -> SkillIssue.jokesFor(false, "DIED", null, "TERMINALS", null))
+				.contains("How did you die in terms, {name}? It's clicking colours."));
+		ctx.runOnClient(mc -> Taz.config().dungeons.skillIssue.tone = SkillIssueConfig.Tone.FRIENDLY);
+		check("tone: friendly is gentler, and its excuses don't blame the team",
+				ctx.computeOnClient(mc -> SkillIssue.jokesFor(false, "TRAP", null, "CORE", "Healer")).contains("Our healer {name} died. Physician, heal thyself.")
+						&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(true, "KILLED", "Storm", "CORE", null)).contains("Storm got me. My game froze right when the lightning hit.")
+						&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(false, "DIED", null, "TERMINALS", null)).stream().noneMatch(t -> t.startsWith("How did you die")));
 		ctx.runOnClient(mc -> {
 			SkillIssue.sample();
 			SkillIssueConfig cfg = Taz.config().dungeons.skillIssue;
 			cfg.enabled = false;
+			cfg.tone = SkillIssueConfig.Tone.TOXIC;
 			cfg.yourself = true;
 		});
 		partyOutbox(me);
@@ -459,9 +468,10 @@ public class DungeonGameTest implements FabricClientGameTest {
 	private boolean fits(String joke, boolean self, String name, String cause, String killer, String phase, String dungeonClass, int count) {
 		if (joke == null || !joke.startsWith("[TAZ] ")) return false;
 		String text = joke.substring(6);
-		String suffix = count == 2 ? " (death #2)" : count > 2 ? " (death #" + count + ", it's a hobby now)" : "";
-		if (!text.endsWith(suffix)) return false;
-		String body = text.substring(0, text.length() - suffix.length());
+		java.util.regex.Matcher m = java.util.regex.Pattern.compile(" \\(death #(\\d+)(?:, [^)]+)?\\)$").matcher(text);
+		boolean counted = m.find();
+		if ((counted ? Integer.parseInt(m.group(1)) : 1) != count) return false;
+		String body = counted ? text.substring(0, m.start()) : text;
 		List<String> pool = ctx.computeOnClient(mc -> SkillIssue.jokesFor(self, cause, killer, phase, dungeonClass));
 		return pool.stream().anyMatch(t -> t.replace("{name}", name).replace("{killer}", killer == null ? "mob" : killer)
 				.replace("{boss}", "the boss").equals(body));

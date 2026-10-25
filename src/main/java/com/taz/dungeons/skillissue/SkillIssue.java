@@ -42,9 +42,12 @@ public final class SkillIssue {
 	/** How Hypixel says they died. */
 	enum Cause {KILLED, DIED, MOB, TRAP, CRUSHED, DISCONNECTED}
 
-	/** One set of lines: by phase, by cause, by class, by killer (a part of its name), any killer, and anything. */
-	private record Pool(Map<Phase, List<String>> phase, Map<Cause, List<String>> cause, Map<String, List<String>> classes,
-			Map<String, List<String>> killer, List<String> anyKiller, List<String> generic) {
+	/**
+	 * One set of lines: by phase, by cause, by class, by killer (a part of its name), any killer, and anything; and what
+	 * a third death on gets ("death #3, it's a hobby now").
+	 */
+	record Pool(Map<Phase, List<String>> phase, Map<Cause, List<String>> cause, Map<String, List<String>> classes,
+			Map<String, List<String>> killer, List<String> anyKiller, List<String> generic, String again) {
 	}
 
 	private static final Map<Phase, List<String>> PHASE = new EnumMap<>(Phase.class);
@@ -61,8 +64,8 @@ public final class SkillIssue {
 			"Press F for {name}.",
 			"{name} has joined the ghost squad.",
 			"{name} is now a professional ghost.");
-	/** Teammates' deaths get jokes. */
-	private static final Pool ROASTS = new Pool(PHASE, CAUSE, CLASS, KILLER, ANY_KILLER, GENERIC);
+	/** Teammates' deaths get jokes (the friendly tone; the toxic one is in ToxicLines). */
+	private static final Pool ROASTS = new Pool(PHASE, CAUSE, CLASS, KILLER, ANY_KILLER, GENERIC, "it's a hobby now");
 
 	// Your own deaths get excuses instead.
 	private static final Map<Phase, List<String>> EXCUSE_PHASE = new EnumMap<>(Phase.class);
@@ -76,7 +79,7 @@ public final class SkillIssue {
 			"My cat walked on my keyboard.",
 			"I blinked.",
 			"That one was the server's fault.",
-			"Died on purpose to see if being a ghost is fun."));
+			"Died on purpose to see if being a ghost is fun."), "it's a hobby now");
 
 	static {
 		EXCUSE_PHASE.put(Phase.CLEAR, List.of(
@@ -343,7 +346,7 @@ public final class SkillIssue {
 		String name = self ? mc.player.getName().getString() : who;
 		int count = DEATHS.merge(name.toLowerCase(), 1, Integer::sum);
 		if (self && !cfg.yourself) return;
-		Pool pool = self ? EXCUSES : ROASTS;
+		Pool pool = pool(self);
 		// Every death gets its joke straight away; only a wipe (more than 3 deaths in 5 seconds) is cut short.
 		long now = System.currentTimeMillis();
 		while (!RECENT.isEmpty() && now - RECENT.peekFirst() > WIPE_MS) RECENT.pollFirst();
@@ -392,6 +395,12 @@ public final class SkillIssue {
 		for (int i = 0; i < weight; i++) out.addAll(jokes);
 	}
 
+	/** The lines for this death: a roast for a teammate, an excuse for you, in the tone picked in the settings. */
+	private static Pool pool(boolean self) {
+		boolean toxic = SkillIssueConfig.get().tone == SkillIssueConfig.Tone.TOXIC;
+		return self ? (toxic ? ToxicLines.EXCUSES : EXCUSES) : (toxic ? ToxicLines.ROASTS : ROASTS);
+	}
+
 	/** One line, never the same one twice in a row, with a death count from their second death on. */
 	private static String joke(Pool lines, String name, Cause cause, String killer, Phase where, String dungeonClass, int count) {
 		List<String> pool = candidates(lines, cause, killer, where, dungeonClass);
@@ -401,16 +410,16 @@ public final class SkillIssue {
 		String joke = template.replace("{name}", name).replace("{killer}", killer == null ? "mob" : killer)
 				.replace("{boss}", boss == null ? "the boss" : boss);
 		if (count == 2) joke += " (death #2)";
-		else if (count > 2) joke += " (death #" + count + ", it's a hobby now)";
+		else if (count > 2) joke += " (death #" + count + ", " + lines.again() + ")";
 		return joke;
 	}
 
 	/** The "Try it" button: a few jokes about teammates and an excuse for you, shown only to you. */
 	public static void sample() {
-		TazChat.info(joke(ROASTS, "Steve", Cause.KILLED, "Goldor", Phase.TERMINALS, null, 1));
-		TazChat.info(joke(ROASTS, "Alex", Cause.KILLED, "Shadow Assassin", Phase.CLEAR, "Healer", 1));
-		TazChat.info(joke(ROASTS, "Steve", Cause.CRUSHED, null, Phase.STORM, "Archer", 2));
-		TazChat.info("When you die: " + joke(EXCUSES, "", Cause.KILLED, "Storm", Phase.STORM, null, 1));
+		TazChat.info(joke(pool(false), "Steve", Cause.KILLED, "Goldor", Phase.TERMINALS, null, 1));
+		TazChat.info(joke(pool(false), "Alex", Cause.KILLED, "Shadow Assassin", Phase.CLEAR, "Healer", 1));
+		TazChat.info(joke(pool(false), "Steve", Cause.CRUSHED, null, Phase.STORM, "Archer", 2));
+		TazChat.info("When you die: " + joke(pool(true), "", Cause.KILLED, "Storm", Phase.STORM, null, 1));
 	}
 
 	/** Test hooks. */
@@ -424,6 +433,6 @@ public final class SkillIssue {
 
 	/** Test hook: every line that fits a death (an excuse when it's yours). */
 	public static List<String> jokesFor(boolean self, String cause, String killer, String phase, String dungeonClass) {
-		return candidates(self ? EXCUSES : ROASTS, Cause.valueOf(cause), killer, Phase.valueOf(phase), dungeonClass);
+		return candidates(pool(self), Cause.valueOf(cause), killer, Phase.valueOf(phase), dungeonClass);
 	}
 }
