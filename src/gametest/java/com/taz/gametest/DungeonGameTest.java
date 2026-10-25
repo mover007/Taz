@@ -373,7 +373,6 @@ public class DungeonGameTest implements FabricClientGameTest {
 			cfg.enabled = true;
 			cfg.where = SkillIssueConfig.Where.PARTY;
 			cfg.yourself = true;
-			cfg.cooldownSec = 1;
 		});
 		ctx.waitTicks(25);
 		String me = ctx.computeOnClient(mc -> mc.player.getName().getString());
@@ -388,43 +387,72 @@ public class DungeonGameTest implements FabricClientGameTest {
 		tell(" ☠ Steve was killed by Goldor and became a ghost.");
 		String joke = lastJoke();
 		check("skill issue: a terminals joke about Steve (" + joke + ")", fits(joke, false, "Steve", "KILLED", "Goldor", "TERMINALS", null, 1));
-		ctx.waitTicks(25);
+		ctx.waitTicks(40);
 		tell("The Core entrance is opening!");
 		tell(" ☠ Steve was killed by Goldor and became a ghost.");
 		joke = lastJoke();
 		check("skill issue: core, and Steve's second death (" + joke + ")", phase().equals("CORE") && fits(joke, false, "Steve", "KILLED", "Goldor", "CORE", null, 2));
-		ctx.waitTicks(25);
+		ctx.waitTicks(40);
 		ctx.runOnClient(mc -> com.taz.dungeons.util.DungeonParty.setClass("Alex", "Healer"));
 		tell(" ☠ Alex died to a trap and became a ghost.");
 		joke = lastJoke();
 		check("skill issue: a healer who found a trap (" + joke + ")", fits(joke, false, "Alex", "TRAP", null, "CORE", "Healer", 1)
 				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(false, "TRAP", null, "CORE", "Healer")).contains("Our healer {name} died. Physician, heal thyself."));
-		ctx.waitTicks(25);
+		ctx.waitTicks(40);
 		tell(" ☠ Bob disconnected and became a ghost.");
 		joke = lastJoke();
 		check("skill issue: disconnects get their own jokes (" + joke + ")", fits(joke, false, "Bob", "DISCONNECTED", null, "CORE", null, 1));
-		ctx.waitTicks(25);
+		ctx.waitTicks(40);
 		tell(" ☠ You were killed by Storm and became a ghost.");
 		joke = lastJoke();
 		check("skill issue: you, killed by Storm, get an excuse (" + joke + ")", fits(joke, true, me, "KILLED", "Storm", "CORE", null, 1)
 				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(true, "KILLED", "Storm", "CORE", null)).contains("Storm got me. My game froze right when the lightning hit.")
 				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(true, "KILLED", "Storm", "CORE", null)).stream().noneMatch(t -> t.contains("{name}")));
-		ctx.waitTicks(25);
+		ctx.waitTicks(40);
 		ctx.runOnClient(mc -> Taz.config().dungeons.skillIssue.yourself = false);
 		String before = lastJoke();
 		tell(" ☠ You died and became a ghost.");
 		check("skill issue: your own excuses can be turned off", before.equals(lastJoke()));
+		// Two deaths straight after each other both get their joke; a wipe (a fourth in 5 seconds) is cut short.
+		ctx.waitTicks(120);
 		tell(" ☠ Steve was killed by Goldor and became a ghost.");
 		String first = lastJoke();
 		tell(" ☠ Alex was killed by Goldor and became a ghost.");
-		check("skill issue: one joke per wait (1s), so a wipe doesn't flood the chat (" + first + ")", !first.equals(before) && first.equals(lastJoke()));
+		String second = lastJoke();
+		check("skill issue: back-to-back deaths both get a joke (" + first + " / " + second + ")", first.contains("Steve") && second.contains("Alex"));
+		tell(" ☠ Bob was killed by Goldor and became a ghost.");
+		String third = lastJoke();
+		tell(" ☠ Carl was killed by Goldor and became a ghost.");
+		check("skill issue: a wipe stops at 3 jokes in 5 seconds (" + third + ")", third.contains("Bob") && third.equals(lastJoke()));
 		ctx.runOnClient(mc -> {
 			SkillIssue.sample();
 			SkillIssueConfig cfg = Taz.config().dungeons.skillIssue;
 			cfg.enabled = false;
 			cfg.yourself = true;
-			cfg.cooldownSec = 4;
 		});
+		partyOutbox(me);
+	}
+
+	/** Party messages: one at a time, after anything another mod just sent, confirmed by Hypixel showing them back. */
+	private void partyOutbox(String me) {
+		ctx.runOnClient(mc -> TazChat.clearParty());
+		ctx.waitTicks(20);
+		int sent = ctx.computeOnClient(mc -> TazChat.sent());
+		ctx.runOnClient(mc -> {
+			mc.getConnection().sendCommand("help"); // another mod saying something just now
+			TazChat.party("one");
+			TazChat.party("two");
+		});
+		check("party: waits a moment after something else was sent", ctx.computeOnClient(mc -> TazChat.sent()) == sent && ctx.computeOnClient(mc -> TazChat.waiting()) == 2);
+		ctx.waitTicks(20);
+		check("party: then the first goes out, the second waits for it to show", ctx.computeOnClient(mc -> TazChat.sent()) == sent + 1 && ctx.computeOnClient(mc -> TazChat.waiting()) == 2);
+		tell("Party > [MVP++] " + me + ": [TAZ] one");
+		ctx.waitTicks(20);
+		check("party: Hypixel showed the first back, so the second goes", ctx.computeOnClient(mc -> TazChat.sent()) == sent + 2 && ctx.computeOnClient(mc -> TazChat.waiting()) == 1);
+		ctx.waitTicks(60);
+		check("party: the second never showed back, so it went once more", ctx.computeOnClient(mc -> TazChat.sent()) == sent + 3);
+		ctx.waitTicks(60);
+		check("party: then Taz gives up on it", ctx.computeOnClient(mc -> TazChat.sent()) == sent + 3 && ctx.computeOnClient(mc -> TazChat.waiting()) == 0);
 	}
 
 	/** The joke is one of the ones that fit this death, with Taz's prefix and the death count. */

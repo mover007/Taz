@@ -5,7 +5,6 @@ import com.taz.Taz;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
-import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
@@ -45,11 +44,6 @@ public final class SkillIssueConfig {
 			+ "ate my click.\" Off: say nothing about your own deaths.")
 	@ConfigEditorBoolean
 	public boolean yourself = true;
-
-	@Expose
-	@ConfigOption(name = "Wait between jokes", desc = "Seconds between two jokes, so a wipe doesn't flood the chat.")
-	@ConfigEditorSlider(minValue = 1, maxValue = 30, minStep = 1)
-	public int cooldownSec = 4;
 
 	@ConfigOption(name = "Try it", desc = "Shows you a few jokes and an excuse Taz could make (nothing is sent).")
 	@ConfigEditorButton(buttonText = "Try")

@@ -29,6 +29,12 @@ public abstract class ClientPacketListenerMixin {
 		Taz.onSystemChat(packet.content(), packet.overlay());
 	}
 
+	/** Anything sent to chat, by any mod or you: Taz's party messages wait a moment after it. */
+	@Inject(method = {"sendChat", "sendCommand", "sendUnattendedCommand"}, at = @At("HEAD"), require = 0)
+	private void taz$onOutgoing(CallbackInfo ci) {
+		com.taz.util.TazChat.onOutgoing();
+	}
+
 	/** Block events (a chest's lid opening), on the main thread: a dungeon secret chest someone opened. */
 	@Inject(
 			method = "handleBlockEvent",

@@ -6,6 +6,7 @@ import com.taz.util.TazChat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -31,6 +32,9 @@ public final class SkillIssue {
 	private static final Pattern BOSS_LINE = Pattern.compile("^\\[BOSS] ([^:]+): (.*)$");
 	private static final Pattern RELIC = Pattern.compile("^\\S+ picked the Corrupted \\w+ Relic!$");
 	private static final Random RANDOM = new Random();
+	/** At most this many jokes in this long (ms): a wipe doesn't flood the chat. */
+	private static final int WIPE_JOKES = 3;
+	private static final long WIPE_MS = 5000;
 
 	/** Where the run is. */
 	enum Phase {CLEAR, BLOOD, TO_BOSS, MAXOR, STORM, TERMINALS, CORE, NECRON, DRAGONS, SADAN, LIVID, THORN, PROFESSOR, SCARF, BONZO, BOSS}
@@ -250,7 +254,8 @@ public final class SkillIssue {
 	private static String boss;
 	private static boolean bloodCleared, coreOpen;
 	private static ClientLevel level;
-	private static long lastJokeMs;
+	/** When the last few jokes were made, to spot a wipe. */
+	private static final ArrayDeque<Long> RECENT = new ArrayDeque<>();
 	private static String lastTemplate;
 	private static String lastJoke;
 
@@ -339,9 +344,11 @@ public final class SkillIssue {
 		int count = DEATHS.merge(name.toLowerCase(), 1, Integer::sum);
 		if (self && !cfg.yourself) return;
 		Pool pool = self ? EXCUSES : ROASTS;
+		// Every death gets its joke straight away; only a wipe (more than 3 deaths in 5 seconds) is cut short.
 		long now = System.currentTimeMillis();
-		if (now - lastJokeMs < cfg.cooldownSec * 1000L) return;
-		lastJokeMs = now;
+		while (!RECENT.isEmpty() && now - RECENT.peekFirst() > WIPE_MS) RECENT.pollFirst();
+		if (RECENT.size() >= WIPE_JOKES) return;
+		RECENT.addLast(now);
 		Matcher k = KILLED.matcher(how);
 		String killer = k.matches() ? k.group(1).trim() : null;
 		Cause cause = killer != null ? Cause.KILLED : switch (how) {

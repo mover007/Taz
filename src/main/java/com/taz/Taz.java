@@ -288,6 +288,7 @@ public final class Taz implements ClientModInitializer {
 		DungeonPredictorClient.onSystemChatPacket(content, overlay);
 		if (overlay) return;
 		String line = TextUtil.cleanChat(content.getString());
+		safely("Party chat", () -> TazChat.onChat(line));
 		safely("Honeyhive chat", () -> HoneyhiveTracker.onChat(line));
 		safely("Whisper counter chat", () -> WhisperTracker.onChat(line));
 		safely("Alerts", () -> Alerts.onChat(line));
@@ -368,6 +369,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Tree route", () -> RouteAssist.tick(mc));
 		safely("Starlyn contest", StarlynContest::tick);
 		safely("Galatea recorder", () -> GalateaRecorder.tick(mc));
+		safely("Party chat", TazChat::tick);
 		safely("Dungeon rooms", () -> DungeonRooms.tick(mc));
 		safely("Dungeon party", () -> DungeonParty.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
