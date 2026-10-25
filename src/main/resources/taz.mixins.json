@@ -1,0 +1,20 @@
+{
+	"required": true,
+	"package": "com.taz.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"AbstractContainerScreenMixin",
+		"ClientLevelMixin",
+		"ClientPacketListenerMixin",
+		"EntityMixin",
+		"GuiMixin",
+		"MinecraftMixin",
+		"SoundManagerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

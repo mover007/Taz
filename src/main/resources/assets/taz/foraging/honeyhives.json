@@ -1,0 +1,25 @@
+{
+	"_comment": "Torrhus Canyon honeyhives. clusters: the 8 spots tagged honeyhive in SkyHanni-REPO constants/island_graphs/TORRHUS_CANYON.json (2-3 hives each). hives: exact hive blocks seen in game under their Honeyhive hologram. Hives found in game are added to config/taz/foraging/honeyhives.json.",
+	"clusters": [
+		[-696, 93, 153],
+		[-575, 101, 208],
+		[-608, 98, 274],
+		[-582, 151, 255],
+		[-704, 92, 222],
+		[-724, 92, 208],
+		[-666, 96, 169],
+		[-731, 128, 185]
+	],
+	"hives": [
+		[-693, 93, 153],
+		[-693, 94, 147],
+		[-696, 93, 150],
+		[-665, 97, 167],
+		[-664, 96, 170],
+		[-577, 102, 205],
+		[-572, 101, 206],
+		[-724, 92, 204],
+		[-721, 92, 207],
+		[-724, 93, 211]
+	]
+}

@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "taz-gametest",
+	"version": "1.0.0",
+	"name": "Taz Game Test",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.taz.gametest.XpAssistClientGameTest",
+			"com.taz.gametest.ProgressDetectionGameTest",
+			"com.taz.gametest.TreeGameTest",
+			"com.taz.gametest.SettingsGuiGameTest",
+			"com.taz.gametest.TreeStressGameTest",
+			"com.taz.gametest.HoneyhiveGameTest",
+			"com.taz.gametest.WhisperGameTest",
+			"com.taz.gametest.GeneralGameTest",
+			"com.taz.gametest.GalateaGameTest"
+		]
+	},
+	"depends": {
+		"taz": "*"
+	}
+}
