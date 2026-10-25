@@ -16,7 +16,10 @@ import com.taz.foraging.PressureWarning;
 import com.taz.foraging.ProtectedTrees;
 import com.taz.foraging.RouteAssist;
 import com.taz.dungeons.secrets.DungeonRooms;
+import com.taz.dungeons.secrets.RoomSecretTimes;
 import com.taz.dungeons.secrets.SecretTrainer;
+import com.taz.dungeons.skillissue.SkillIssue;
+import com.taz.dungeons.util.DungeonParty;
 import com.taz.foraging.RubyVeilshrooms;
 import com.taz.foraging.StarlynContest;
 import com.taz.foraging.SweepDetails;
@@ -298,6 +301,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Tree gifts chat", () -> TreeGifts.onChat(content, line));
 		safely("Starlyn contest chat", () -> StarlynContest.onChat(line));
 		safely("Protected trees chat", () -> ProtectedTrees.onChat(line));
+		safely("Skill Issue chat", () -> SkillIssue.onChat(line));
 	}
 
 	/** Every action bar message (GuiMixin), for every feature. */
@@ -309,6 +313,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Galatea recorder", () -> GalateaRecorder.onActionBar(text));
 		safely("Pressure warning", () -> PressureWarning.onActionBar(text));
 		safely("Secret routes", () -> SecretTrainer.onActionBar(text));
+		safely("Room secret times", () -> RoomSecretTimes.onActionBar(text));
 	}
 
 	/** Runs one feature's handler; a broken feature logs its error instead of breaking the others. */
@@ -364,6 +369,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Starlyn contest", StarlynContest::tick);
 		safely("Galatea recorder", () -> GalateaRecorder.tick(mc));
 		safely("Dungeon rooms", () -> DungeonRooms.tick(mc));
+		safely("Dungeon party", () -> DungeonParty.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();
 	}

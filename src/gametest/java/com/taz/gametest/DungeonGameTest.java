@@ -3,6 +3,10 @@ package com.taz.gametest;
 import com.google.gson.JsonPrimitive;
 import com.taz.Taz;
 import com.taz.dungeons.secrets.DungeonRooms;
+import com.taz.dungeons.secrets.RoomSecretTimes;
+import com.taz.dungeons.secrets.RoomTimesConfig;
+import com.taz.dungeons.skillissue.SkillIssue;
+import com.taz.dungeons.skillissue.SkillIssueConfig;
 import com.taz.dungeons.secrets.SecretRoutes;
 import com.taz.dungeons.secrets.SecretTrainer;
 import com.taz.dungeons.secrets.SecretsConfig;
@@ -30,8 +34,9 @@ import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * Secret Routes: Odin's room table and rotation maths, then a fake 1x1 room built on the dungeon grid with a test
- * route imported from an Odin export, walked through in Guide mode. Part: secrets ("dungeons" runs it too). Runs with
+ * Dungeon features. secrets: Odin's room table and rotation maths, then a fake 1x1 room built on the dungeon grid with a
+ * test route imported from an Odin export, walked through in Guide mode. roomtimes: Room Secret Times in that room,
+ * without Secret Routes. skillissue: death jokes from the run's chat. "dungeons" runs them all. Runs with
  * -Dtaz.dungeons.anywhere=true, so the flat test world counts as a dungeon.
  */
 public class DungeonGameTest implements FabricClientGameTest {
@@ -55,9 +60,13 @@ public class DungeonGameTest implements FabricClientGameTest {
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
+	private static boolean runs(String part) {
+		return TestFilter.runs(part, "dungeons");
+	}
+
 	@Override
 	public void runTest(ClientGameTestContext context) {
-		if (!TestFilter.runs("secrets", "dungeons")) {
+		if (!runs("secrets") && !runs("roomtimes") && !runs("skillissue")) {
 			System.out.println("[TestFilter] skipped dungeons");
 			return;
 		}
@@ -68,10 +77,15 @@ public class DungeonGameTest implements FabricClientGameTest {
 			cmd("time set noon");
 			cmd("gamerule doDaylightCycle false");
 			cmd("gamerule doMobSpawning false");
-			tables();
-			rotations();
-			layouts();
-			room();
+			if (runs("secrets")) {
+				tables();
+				rotations();
+				layouts();
+			}
+			if (runs("secrets") || runs("roomtimes")) buildRoom();
+			if (runs("secrets")) route();
+			if (runs("roomtimes")) roomTimes();
+			if (runs("skillissue")) skillIssue();
 		}
 		System.out.println("[DungeonGameTest] PASSED");
 	}
@@ -140,7 +154,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 
 	// ---- a room in the world
 
-	private void room() {
+	private void buildRoom() {
 		cmd("gamemode creative @p"); // the room is built in mid-air
 		cmd("tp @p " + CX + " " + (FLOOR + 1) + " " + CZ);
 		ctx.waitTicks(20);
@@ -160,19 +174,24 @@ public class DungeonGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> {
 			DungeonRooms.addRoom(core, "Test Room", "1x1");
 			DungeonRooms.reset();
-			SecretsConfig cfg = Taz.config().dungeons.secrets;
-			cfg.enabled = true;
-			cfg.mode = SecretsConfig.Mode.GUIDE;
-			cfg.defaultRoutes = false;
-			cfg.reach = 2;
-			cfg.partyChat = true;
-			mc.keyboardHandler.setClipboard(odinExport());
-			SecretTrainer.importFromClipboard();
 		});
 		ctx.waitTicks(30);
 		DungeonRooms.Room room = ctx.computeOnClient(mc -> DungeonRooms.current());
 		check("room: found by its core, facing east from its clay (" + (room == null ? null : room.rotation + " " + room.clay) + ")",
 				room != null && room.data.name().equals("Test Room") && room.rotation == DungeonRooms.Rotation.EAST && room.clay.equals(CLAY));
+	}
+
+	private void route() {
+		ctx.runOnClient(mc -> {
+			SecretsConfig cfg = Taz.config().dungeons.secrets;
+			cfg.enabled = true;
+			cfg.mode = SecretsConfig.Mode.GUIDE;
+			cfg.defaultRoutes = false;
+			cfg.reach = 2;
+			mc.keyboardHandler.setClipboard(odinExport());
+			SecretTrainer.importFromClipboard();
+		});
+		ctx.waitTicks(10);
 		List<BlockPos> placed = ctx.computeOnClient(mc -> SecretTrainer.positions());
 		check("room: the Odin waypoints land on their blocks (" + placed + ")", placed.equals(List.of(START, STEP1, CHEST, AIM, STEP3, STEP4, PRINCE, TEXT, MINE, LEVER, LINE)));
 		List<String> lines = hudLines();
@@ -218,9 +237,6 @@ public class DungeonGameTest implements FabricClientGameTest {
 		Long best = ctx.computeOnClient(mc -> SecretTrainer.bestMs("Test Room"));
 		check("lever: flipping step 6's lever ticks it off, the route is done and timed (" + lines + ")", step() == SecretTrainer.DONE
 				&& best != null && best > 0 && lines.contains("Route done") && lines.stream().anyMatch(l -> l.startsWith("Test Room done in")));
-		String party = ctx.computeOnClient(mc -> SecretTrainer.lastParty());
-		check("party chat: the room and its time, starting with [TAZ] (" + party + ")", party != null
-				&& party.matches("\\[TAZ] Test Room secrets done in \\d+:\\d\\d\\.\\d") && TazChat.prefix().getString().equals("[TAZ] "));
 
 		// Restart: back to the red start. Arriving on step 1 straight away ticks the start off too.
 		ctx.runOnClient(mc -> Taz.config().dungeons.secrets.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5);
@@ -304,7 +320,6 @@ public class DungeonGameTest implements FabricClientGameTest {
 			SecretTrainer.removeImported();
 			SecretsConfig cfg = Taz.config().dungeons.secrets;
 			cfg.enabled = false;
-			cfg.partyChat = false;
 			cfg.mode = SecretsConfig.Mode.GUIDE;
 			cfg.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN;
 			SecretTrainer.resetBest();
@@ -316,6 +331,125 @@ public class DungeonGameTest implements FabricClientGameTest {
 		check("settings: the Dungeons category opens with Secret Routes", ctx.computeOnClient(mc -> mc.screen != null));
 		ctx.takeScreenshot("dungeon-secrets-settings");
 		ctx.runOnClient(mc -> mc.setScreen(null));
+	}
+
+	// ---- Room Secret Times: the room's own secret count, no route
+
+	private void roomTimes() {
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.secrets.enabled = false;
+			RoomTimesConfig cfg = Taz.config().dungeons.roomTimes;
+			cfg.enabled = true;
+			cfg.partyChat = true;
+			cfg.ownChat = true;
+		});
+		goTo(new BlockPos(CX, FLOOR + 1, CZ));
+		check("room times: in the test room, with Secret Routes off", ctx.computeOnClient(mc -> DungeonRooms.current() != null
+				&& DungeonRooms.current().data.name().equals("Test Room") && SecretTrainer.roomName() == null));
+		actionBar("1/3 Secrets"); // already found when you walk in (a teammate's): the clock waits
+		ctx.waitTicks(10);
+		actionBar("2/3 Secrets"); // the first secret found here starts it
+		ctx.waitTicks(20);
+		check("room times: nothing said before the last secret", ctx.computeOnClient(mc -> RoomSecretTimes.lastParty()) == null);
+		actionBar("3/3 Secrets");
+		String party = ctx.computeOnClient(mc -> RoomSecretTimes.lastParty());
+		String own = ctx.computeOnClient(mc -> RoomSecretTimes.lastOwn());
+		check("room times: party chat says the room and its time (" + party + ")", party != null && party.matches("\\[TAZ] Test Room secrets done in 0:01\\.\\d"));
+		check("room times: your chat has the count and your best (" + own + ")", own != null && own.matches("Test Room secrets done in 0:01\\.\\d \\(3/3, first time!\\)"));
+		check("[TAZ] starts every Taz line", TazChat.prefix().getString().equals("[TAZ] "));
+		actionBar("3/3 Secrets");
+		check("room times: said once per room", party.equals(ctx.computeOnClient(mc -> RoomSecretTimes.lastParty())));
+		ctx.runOnClient(mc -> {
+			RoomSecretTimes.resetBest();
+			Taz.config().dungeons.roomTimes.enabled = false;
+		});
+	}
+
+	// ---- Skill Issue: death jokes with context
+
+	private void skillIssue() {
+		ctx.runOnClient(mc -> {
+			SkillIssueConfig cfg = Taz.config().dungeons.skillIssue;
+			cfg.enabled = true;
+			cfg.where = SkillIssueConfig.Where.PARTY;
+			cfg.yourself = true;
+			cfg.cooldownSec = 1;
+		});
+		ctx.waitTicks(25);
+		String me = ctx.computeOnClient(mc -> mc.player.getName().getString());
+		tell("The BLOOD DOOR has been opened!");
+		check("skill issue: blood", phase().equals("BLOOD"));
+		tell("[BOSS] Bonzo: Gratz for making it this far, but I'm basically unbeatable.");
+		check("skill issue: a boss the Watcher brings back is still blood", phase().equals("BLOOD"));
+		tell("[BOSS] The Watcher: You have proven yourself. You may pass.");
+		check("skill issue: on the way to the boss", phase().equals("TO_BOSS"));
+		tell("[BOSS] Goldor: Who dares trespass into my domain?");
+		check("skill issue: Goldor means terminals", phase().equals("TERMINALS"));
+		tell(" ☠ Steve was killed by Goldor and became a ghost.");
+		String joke = lastJoke();
+		check("skill issue: a terminals joke about Steve (" + joke + ")", fits(joke, false, "Steve", "KILLED", "Goldor", "TERMINALS", null, 1));
+		ctx.waitTicks(25);
+		tell("The Core entrance is opening!");
+		tell(" ☠ Steve was killed by Goldor and became a ghost.");
+		joke = lastJoke();
+		check("skill issue: core, and Steve's second death (" + joke + ")", phase().equals("CORE") && fits(joke, false, "Steve", "KILLED", "Goldor", "CORE", null, 2));
+		ctx.waitTicks(25);
+		ctx.runOnClient(mc -> com.taz.dungeons.util.DungeonParty.setClass("Alex", "Healer"));
+		tell(" ☠ Alex died to a trap and became a ghost.");
+		joke = lastJoke();
+		check("skill issue: a healer who found a trap (" + joke + ")", fits(joke, false, "Alex", "TRAP", null, "CORE", "Healer", 1)
+				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(false, "TRAP", null, "CORE", "Healer")).contains("Our healer {name} died. Physician, heal thyself."));
+		ctx.waitTicks(25);
+		tell(" ☠ Bob disconnected and became a ghost.");
+		joke = lastJoke();
+		check("skill issue: disconnects get their own jokes (" + joke + ")", fits(joke, false, "Bob", "DISCONNECTED", null, "CORE", null, 1));
+		ctx.waitTicks(25);
+		tell(" ☠ You were killed by Storm and became a ghost.");
+		joke = lastJoke();
+		check("skill issue: you, killed by Storm, get an excuse (" + joke + ")", fits(joke, true, me, "KILLED", "Storm", "CORE", null, 1)
+				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(true, "KILLED", "Storm", "CORE", null)).contains("Storm got me. My game froze right when the lightning hit.")
+				&& ctx.computeOnClient(mc -> SkillIssue.jokesFor(true, "KILLED", "Storm", "CORE", null)).stream().noneMatch(t -> t.contains("{name}")));
+		ctx.waitTicks(25);
+		ctx.runOnClient(mc -> Taz.config().dungeons.skillIssue.yourself = false);
+		String before = lastJoke();
+		tell(" ☠ You died and became a ghost.");
+		check("skill issue: your own excuses can be turned off", before.equals(lastJoke()));
+		tell(" ☠ Steve was killed by Goldor and became a ghost.");
+		String first = lastJoke();
+		tell(" ☠ Alex was killed by Goldor and became a ghost.");
+		check("skill issue: one joke per wait (1s), so a wipe doesn't flood the chat (" + first + ")", !first.equals(before) && first.equals(lastJoke()));
+		ctx.runOnClient(mc -> {
+			SkillIssue.sample();
+			SkillIssueConfig cfg = Taz.config().dungeons.skillIssue;
+			cfg.enabled = false;
+			cfg.yourself = true;
+			cfg.cooldownSec = 4;
+		});
+	}
+
+	/** The joke is one of the ones that fit this death, with Taz's prefix and the death count. */
+	private boolean fits(String joke, boolean self, String name, String cause, String killer, String phase, String dungeonClass, int count) {
+		if (joke == null || !joke.startsWith("[TAZ] ")) return false;
+		String text = joke.substring(6);
+		String suffix = count == 2 ? " (death #2)" : count > 2 ? " (death #" + count + ", it's a hobby now)" : "";
+		if (!text.endsWith(suffix)) return false;
+		String body = text.substring(0, text.length() - suffix.length());
+		List<String> pool = ctx.computeOnClient(mc -> SkillIssue.jokesFor(self, cause, killer, phase, dungeonClass));
+		return pool.stream().anyMatch(t -> t.replace("{name}", name).replace("{killer}", killer == null ? "mob" : killer)
+				.replace("{boss}", "the boss").equals(body));
+	}
+
+	private String phase() {
+		return ctx.computeOnClient(mc -> SkillIssue.phase());
+	}
+
+	private String lastJoke() {
+		return ctx.computeOnClient(mc -> SkillIssue.lastJoke());
+	}
+
+	private void tell(String text) {
+		cmd("tellraw @a " + new JsonPrimitive(text));
+		ctx.waitTicks(3);
 	}
 
 	/** The test route as Odin writes it: positions relative to the clay corner, turned to face north. */

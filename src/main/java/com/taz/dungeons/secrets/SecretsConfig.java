@@ -54,12 +54,6 @@ public final class SecretsConfig {
 	@ConfigEditorBoolean
 	public boolean defaultRoutes = true;
 
-	@Expose
-	@ConfigOption(name = "Party chat when a room's done", desc = "When you finish a room's route, say in party chat which room and how long "
-			+ "it took, timed from its first secret: \"[TAZ] Mossy secrets done in 0:11.2\". Not when you're solo.")
-	@ConfigEditorBoolean
-	public boolean partyChat = false;
-
 	@ConfigOption(name = "Import from clipboard", desc = "Copy an Odin waypoint export (or its JSON, or a link to one) and press this.")
 	@ConfigEditorButton(buttonText = "Import")
 	public transient Runnable importClipboard = SecretTrainer::importFromClipboard;
