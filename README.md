@@ -1,3 +1,5 @@
+![Taz](branding/taz-github-social-1280x640.png)
+
 # Taz
 
 mTaz's Hypixel SkyBlock features in one client-side Fabric mod for **Minecraft 26.1.2**, with a SkyHanni-style settings GUI (`/taz`).
