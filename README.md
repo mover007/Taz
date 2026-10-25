@@ -10,7 +10,7 @@ mTaz's Hypixel SkyBlock features in one client-side Fabric mod for **Minecraft 2
 | **Inventory** | Lowest BIN and bazaar prices in tooltips, rarity colours behind items, and numbers on items (pet level, book level, minion tier ...). |
 | **Slayer** | Boss spawned alert, a box around your own boss, and kill times. |
 | **Fishing** | Bite alert, bobber timer, Double Hook alert. |
-| **Dungeons** | Run timer and end-time prediction for every Catacombs floor (tuned on M6/M7), live score, splits, PBs, chat and party messages. |
+| **Dungeons** | Run timer and end-time prediction for every Catacombs floor (tuned on M6/M7), live score, splits, PBs, chat and party messages. Secret Routes: Odin waypoint packs for every room, with a guide mode that shows the next step and times each room. |
 | **Galatea** | Points at the closest fully grown Fig, Mangrove or Helix tree (pick which types) with a line and a label, so when a tree falls you can go straight to the next. |
 | **Honeyhives** (Galatea category) | Highlights the Torrhus Canyon honeyhives you can loot right now, with refill timers and a pointer to the next one. Cosmetic hives are ignored. |
 | **Whisper Counter** (Galatea category) | Forest and Desert Whispers per hour in a small HUD, counted only while you're foraging (it pauses 3 seconds after you stop). |
@@ -34,6 +34,7 @@ On first start Taz copies everything from the old mods: run history, triggers an
 - **Inventory:** Item Prices, Item Overlays.
 - **Slayer → Slayer Helper** and **Fishing → Fishing Helper**.
 - **Dungeons → Run Predictor:** Enabled, Move HUD, Stats, Simple / Everything-on presets, Timer HUD, Score, Chat, Party Chat, Other, **Tools** (pick a floor, then Backtest, Demo run / next / stop, Export history, Reload files, Clear floor history) and **Advanced** (keep HUD after run, history cutoff). Each of these is a dropdown inside Run Predictor.
+- **Dungeons → Secret Routes:** Enabled, Mode (Normal / Guide), Taz's routes, Import from clipboard, Import from Odin, Export, List routes, Remove imported routes, reach distance, show the next step, show hints, path line, Skip and Restart room keys, Reset best times, Move HUD. See [Secret Routes](#secret-routes).
 - **Galatea → Next Tree Pointer:** Enabled, **Fig / Mangrove / Helix** (which trees to point at), search radius, a colour per type, and Tree status (counts, next tree, and how long updates take).
 - **Galatea → Honeyhives:** Enabled, next hive pointer, refill timers, through walls, colour, Hive status.
 - **Galatea → Whisper Counter:** Enabled, show Forest / Desert, pause after (seconds, default 3), Reset counter, Move HUD.
@@ -54,7 +55,17 @@ Each run is split into phases from chat (blood rush, blood, clear, portal, and t
 
 Portal estimate accuracy on the author's runs: **M6 ±2.1s** (91% within 5s), M7 ±26s at the portal, **±7s once the Core opens**. Press Backtest (Dungeons > Tools, floor M7) to replay your own runs and see your numbers.
 
-Files in `config/taz/dungeons/`: `history.json` (runs), `triggers.json` (chat triggers, editable), `boss-lines.log`, `debug-scoreboard.txt`, `history.csv` (after Export history).
+Files in `config/taz/dungeons/`: `history.json` (runs), `triggers.json` (chat triggers, editable), `boss-lines.log`, `debug-scoreboard.txt`, `history.csv` (after Export history), `secret-routes/` (imported route packs, as Odin files) and `secret-times.json` (each room's best time).
+
+## Secret Routes
+
+Secret waypoints for every Catacombs room, in [Odin](https://github.com/odtheking/Odin)'s dungeon waypoint format, so any Odin pack works. Taz finds the room you're in and how it's turned the way Odin does: each 31-block tile of the dungeon grid is recognised by a hash of the block column at its centre (Odin's room table), and a room's waypoints are stored relative to the blue terracotta corner of its roof, turned to face north. A waypoint lands on the same block in Taz as in Odin.
+
+- **Taz's routes:** Taz comes with a full set (3ppopka's Odin routes, 139 rooms). Turn them off to use only yours.
+- **Import from clipboard:** an Odin export (`H4sIA...`, Base64 of gzipped JSON), its plain JSON, or a link to either. **Import from Odin** copies the packs from your Odin install (`config/odin/dungeon-waypoints`). A room in a pack you import uses yours; the newest import wins.
+- **Export:** every route in use as an Odin export, to share or load into Odin.
+- **Normal** mode draws every waypoint in the room as Odin does (its colour, box size, title; see-through unless the waypoint has depth on).
+- **Guide** mode follows the route: waypoints titled with a number (`1`, `2 down`, `4 item`, `17 | done`) are its steps, in order. Only the next step shows, bright, with a line from your crosshair and its distance (`Step 4/7 item (secret) · 6m`), plus the one after it faintly (`then 5 down`). Waypoints without a number are hints (`if 4 locked`, `just tp`) and show faintly nearby. A step ticks off when you arrive on its spot (or on one of the next two, for a secret someone else got), click its chest, lever or skull, pick up its item (Decoy, Spirit Leap, Healing potion...), kill its bat, or the room's `3/7 Secrets` count goes up next to it. The Skip key ticks one off by hand. Each room is timed from when you walk in to its last step (`Mossy done in 0:11.2 (new best, -0.9)`), and your progress lasts the whole run. The Restart room key starts the room over.
 
 ## Galatea next-tree pointer
 
@@ -160,6 +171,7 @@ com.taz
 ├── inventory/               ItemPrices + PriceTooltips, ItemOverlays
 ├── slayer/, fishing/        SlayerHelper, FishingHelper
 ├── dungeons/                Dungeons: run tracker, predictor, score, HUD panels, DungeonTools (Tools buttons)
+│   └── secrets/             DungeonRooms (room + rotation, Odin's way), SecretRoutes (Odin packs), SecretTrainer (Secret Routes)
 ├── foraging/                Galatea: TreeTracker + TreeRenderer (tree pointer), HoneyhiveTracker + HoneyhiveRenderer (honeyhives), WhisperTracker + WhisperHud,
 │                            BlockFinder (every block of a kind in loaded chunks), RubyVeilshrooms, TreeProgress, SweepDetails, MoongladeResources,
 │                            HuntingMobs, FairySouls, IslandGuide, TreeGifts, StarlynContest, ProtectedTrees, GalateaRecorder, PressureWarning,
@@ -170,6 +182,10 @@ com.taz
 ```
 
 **Adding a feature:** put it in its own package, give it a config class with MoulConfig `@ConfigOption` fields (`@Expose` on everything that should be saved) whose first option is `enabled`, add it as an `@Accordion` field to its category class (`GeneralCategory`, `InventoryCategory`, `DungeonsCategory`, `SlayerCategory`, `FishingCategory`, `GalateaCategory`, `SkyblockXpCategory`, or a new category in `TazConfig`), and start it from `Taz.onInitializeClient`. Group sub-settings as nested `@Accordion` classes (MoulConfig won't mix those with `@ConfigAccordionId` in one class). Its `enabled` starts `false` (no feature is on by default). If saved settings move, bump `TazConfig.CURRENT_VERSION` and add the move to `Migration.upgradeConfigFile` (the old file is kept as `config.json.bak-v<N>`). No new commands: actions are `@ConfigEditorButton` Runnables, keys are `@ConfigEditorKeybind` ints read with `KeyWatcher`. Draw world highlights with `WorldRenderer`. **Every HUD must be movable:** make it a `MovableHud` (a `TextHud` for plain text lines, saved in a `HudPos` field of its config) and `TazHud.register` it, so it shows up in the HUD editor. HUD text has no background box (shadowed text only). Chat lines, action bar messages and ticks reach features through `Taz.onSystemChat`, `Taz.onActionBar` and `Taz.tick`, each wrapped in `safely(...)` so one broken feature never stops the others.
+
+## Credits
+
+Secret Routes uses Odin's dungeon room table (`assets/taz/dungeons/rooms.json`) and follows Odin's room scanning, so Odin waypoint packs line up. Odin is © odtheking, under the BSD 3-Clause License (included as `assets/taz/dungeons/odin-LICENSE.txt`). The secret routes Taz comes with are 3ppopka's (inspired by flameofwar), shared as an Odin waypoint pack.
 
 ## Source and history
 
@@ -183,10 +199,10 @@ JDK 25 · Minecraft 26.1.2 (Mojang names) · Fabric Loader 0.19.5 · Fabric API 
 gradlew build                 # build/libs/taz-1.0.0.jar
 gradlew runClient             # dev client
 gradlew runClientGameTest     # in-game tests, screenshots in build/run/clientGameTest/screenshots
-gradlew runClientGameTest -Ptests=honeyhive   # only one feature's tests (honeyhive, trees, xp, settings, whispers, general, galatea)
+gradlew runClientGameTest -Ptests=honeyhive   # only one feature's tests (honeyhive, trees, xp, settings, whispers, general, galatea, secrets)
 gradlew runClientGameTest -Ptests=slayer      # one part of the general test (autosave, alerts, chatfilter, commandkeys, events,
                                               # darkauction, skills, waypoints, huds, prices, overlays, slayer, fishing)
 gradlew runBacktest           # dev: replay run/config/taz/dungeons/history.json, writes backtest.txt
 ```
 
-The in-game tests open a singleplayer world and check: the XP list, plan and NPC finder screens and the NPC marker through a wall; progress detection from menus and action-bar XP; fake Galatea trees being chopped, hologram-marked, felled and regrown, picking tree types, a 35,000-log forest stress test of the tracker's speed; every settings GUI category, that /taz is the only command, a GUI keybind, and importing the old mods' settings; the whisper counter's rates, pause and spending, and dragging its HUD in the HUD editor; settings auto-save and restoring a damaged settings file; every alert, the Dark Auction reminder, the chat filter, command keys, the SkyBlock calendar and reminders, the skill tracker, chat waypoints, price tooltips, item overlays, the slayer boss and the fishing bite; Ruby Veilshrooms found by block changes and by scanning chunks (also underground), picked and respawned, tree progress and TIMBER!, sweep details, Sea Lumies and Lushlilac, hunting mob glows and muted Phantoms, Fairy Souls ticked off, and the island guide; a Tree Gift block (from the game log) counted and shrunk to one line with its hover, rare bonus alert, honeycomb and Lottery buff; Starlyn reward claims added up, score bracket and contest end; a protected tree skipped by the pointer and a regenerating one too; and the HUD-text recorder; a HOTF reset refund left out of the whisper counter; contests ending 30 seconds before the SkyBlock day and the sidebar timer and bracket; the pressure warning; and Tree Route Assist (your real Skyblocker export imported to Torrhus Canyon with 37 points, exported back the same, a guided lap timed with splits, a tree that isn't grown and a regenerating one skipped, leaving a tree, laps with and without the end stops, the restart key).
+The in-game tests open a singleplayer world and check: the XP list, plan and NPC finder screens and the NPC marker through a wall; progress detection from menus and action-bar XP; fake Galatea trees being chopped, hologram-marked, felled and regrown, picking tree types, a 35,000-log forest stress test of the tracker's speed; every settings GUI category, that /taz is the only command, a GUI keybind, and importing the old mods' settings; the whisper counter's rates, pause and spending, and dragging its HUD in the HUD editor; settings auto-save and restoring a damaged settings file; every alert, the Dark Auction reminder, the chat filter, command keys, the SkyBlock calendar and reminders, the skill tracker, chat waypoints, price tooltips, item overlays, the slayer boss and the fishing bite; Ruby Veilshrooms found by block changes and by scanning chunks (also underground), picked and respawned, tree progress and TIMBER!, sweep details, Sea Lumies and Lushlilac, hunting mob glows and muted Phantoms, Fairy Souls ticked off, and the island guide; a Tree Gift block (from the game log) counted and shrunk to one line with its hover, rare bonus alert, honeycomb and Lottery buff; Starlyn reward claims added up, score bracket and contest end; a protected tree skipped by the pointer and a regenerating one too; and the HUD-text recorder; a HOTF reset refund left out of the whisper counter; contests ending 30 seconds before the SkyBlock day and the sidebar timer and bracket; the pressure warning; and Tree Route Assist (your real Skyblocker export imported to Torrhus Canyon with 37 points, exported back the same, a guided lap timed with splits, a tree that isn't grown and a regenerating one skipped, leaving a tree, laps with and without the end stops, the restart key); and Secret Routes (Odin's room table and Taz's routes read, the four room rotations and every room shape's corner, a room built on the dungeon grid found by its core and turned the right way, an Odin export landing on the right blocks, a guided room walked through by standing on spots, opening a chest, the secret count and a picked-up Decoy, the restart key, export and Odin-folder import, Normal mode and the settings).

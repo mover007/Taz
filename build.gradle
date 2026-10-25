@@ -119,6 +119,8 @@ tasks.named('test') {
 // The foraging tests build fake Galatea trees and honeyhives in a singleplayer world, so let them run off Galatea.
 tasks.matching { it.name == 'runClientGameTest' }.configureEach {
 	jvmArgs '-Dtaz.foraging.anywhere=true'
+	// The dungeon tests build rooms in the flat test world.
+	jvmArgs '-Dtaz.dungeons.anywhere=true'
 	// Only the tests of the feature being worked on: gradlew runClientGameTest -Ptests=honeyhive (or trees, xp, settings).
 	def tests = project.findProperty('tests')
 	if (tests) jvmArgs "-Dtaz.tests=${tests}"

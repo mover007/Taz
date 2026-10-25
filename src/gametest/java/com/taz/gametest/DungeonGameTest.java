@@ -1,0 +1,327 @@
+package com.taz.gametest;
+
+import com.google.gson.JsonPrimitive;
+import com.taz.Taz;
+import com.taz.dungeons.secrets.DungeonRooms;
+import com.taz.dungeons.secrets.SecretRoutes;
+import com.taz.dungeons.secrets.SecretTrainer;
+import com.taz.dungeons.secrets.SecretsConfig;
+import com.taz.hud.MovableHud;
+import com.taz.hud.TazHud;
+import com.taz.hud.TextHud;
+import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.GZIPOutputStream;
+
+/**
+ * Secret Routes: Odin's room table and rotation maths, then a fake 1x1 room built on the dungeon grid with a test
+ * route imported from an Odin export, walked through in Guide mode. Part: secrets ("dungeons" runs it too). Runs with
+ * -Dtaz.dungeons.anywhere=true, so the flat test world counts as a dungeon.
+ */
+public class DungeonGameTest implements FabricClientGameTest {
+	/** Tile (2, 3) of the dungeon grid: centre -121, -89. Its roof is at y 80, floor at 60. */
+	private static final int CX = -121, CZ = -89, ROOF = 80, FLOOR = 60;
+	/** The blue terracotta on the roof's south-west corner: the room faces east. */
+	private static final BlockPos CLAY = new BlockPos(CX - 15, ROOF, CZ + 15);
+	private static final BlockPos STEP1 = new BlockPos(-125, FLOOR, -89);
+	private static final BlockPos CHEST = new BlockPos(-118, FLOOR + 1, -85);
+	private static final BlockPos HINT = new BlockPos(-118, FLOOR + 1, -95);
+	private static final BlockPos STEP3 = new BlockPos(-110, FLOOR, -80);
+	private ClientGameTestContext ctx;
+	private TestSingleplayerContext sp;
+
+	@Override
+	public void runTest(ClientGameTestContext context) {
+		if (!TestFilter.runs("secrets", "dungeons")) {
+			System.out.println("[TestFilter] skipped dungeons");
+			return;
+		}
+		ctx = context;
+		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
+			sp = world;
+			world.getClientLevel().waitForChunksRender();
+			cmd("time set noon");
+			cmd("gamerule doDaylightCycle false");
+			cmd("gamerule doMobSpawning false");
+			tables();
+			rotations();
+			layouts();
+			room();
+		}
+		System.out.println("[DungeonGameTest] PASSED");
+	}
+
+	// ---- Odin's data
+
+	private void tables() {
+		check("room table: Odin's 140 rooms", DungeonRooms.knownRooms() == 140);
+		SecretRoutes.Pack taz = SecretRoutes.defaults();
+		check("Taz's routes: 139+ rooms, 1175 waypoints (" + taz.rooms().size() + ", " + taz.waypoints() + ")", taz.rooms().size() >= 139 && taz.waypoints() == 1175);
+		List<SecretRoutes.Waypoint> mossy = taz.rooms().get("Mossy");
+		check("Mossy: 9 waypoints, steps 1 to 7", mossy.size() == 9 && mossy.stream().mapToInt(SecretRoutes.Waypoint::step).max().orElse(0) == 7);
+		SecretRoutes.Waypoint pipes = taz.rooms().get("Pipes").stream().filter(w -> "17 | done".equals(w.title())).findFirst().orElseThrow();
+		check("titles: \"17 | done\" is step 17, a chest", pipes.step() == 17 && pipes.note().equals("done") && pipes.small());
+		check("colours: #AA00AAFF is purple", taz.rooms().get("Temple").get(1).argb() == 0xFFAA00AA);
+	}
+
+	private void rotations() {
+		BlockPos clay = new BlockPos(-200, 80, -100);
+		BlockPos rel = new BlockPos(3, 70, 5);
+		Map<DungeonRooms.Rotation, BlockPos> expected = Map.of(
+				DungeonRooms.Rotation.SOUTH, new BlockPos(-197, 70, -95),
+				DungeonRooms.Rotation.NORTH, new BlockPos(-203, 70, -105),
+				DungeonRooms.Rotation.WEST, new BlockPos(-205, 70, -97),
+				DungeonRooms.Rotation.EAST, new BlockPos(-195, 70, -103));
+		AABB lever = new AABB(0.3, 0, 0.2, 0.7, 0.6, 0.5);
+		for (DungeonRooms.Rotation rot : DungeonRooms.Rotation.values()) {
+			DungeonRooms.Room r = DungeonRooms.placedAt(rot, clay);
+			BlockPos real = r.toReal(rel);
+			check("rotation " + rot + ": " + rel + " -> " + real, real.equals(expected.get(rot)) && r.toRelative(real).equals(rel));
+			AABB box = r.toReal(lever, real);
+			check("rotation " + rot + ": box keeps its size", Math.abs(box.getXsize() * box.getZsize() - 0.12) < 1e-9 && near(box.getYsize(), 0.6));
+		}
+		AABB north = DungeonRooms.placedAt(DungeonRooms.Rotation.NORTH, clay).toReal(lever, BlockPos.ZERO);
+		check("rotation NORTH: box turned half way", near(north.minX, 0.3) && near(north.maxX, 0.7) && near(north.minZ, 0.5) && near(north.maxZ, 0.8));
+	}
+
+	private void layouts() {
+		layout("1x2 along z faces west", DungeonRooms.Shape.TWO, List.of(t(2, 1), t(2, 2)), DungeonRooms.Rotation.WEST, -106, -168, null);
+		layout("1x3 along x faces south", DungeonRooms.Shape.THREE, List.of(t(1, 4), t(2, 4), t(3, 4)), DungeonRooms.Rotation.SOUTH, -168, -72, null);
+		layout("2x2 faces south", DungeonRooms.Shape.SQUARE, List.of(t(0, 0), t(1, 0), t(0, 1), t(1, 1)), DungeonRooms.Rotation.SOUTH, -200, -200, null);
+		layout("L without top-right faces south", DungeonRooms.Shape.L, List.of(t(0, 0), t(0, 1), t(1, 1)), DungeonRooms.Rotation.SOUTH, -200, -200, null);
+		layout("L without bottom-left faces north", DungeonRooms.Shape.L, List.of(t(0, 0), t(1, 0), t(1, 1)), DungeonRooms.Rotation.NORTH, -138, -138, null);
+		layout("L without bottom-right faces west", DungeonRooms.Shape.L, List.of(t(0, 0), t(1, 0), t(0, 1)), DungeonRooms.Rotation.WEST, -138, -200, null);
+		layout("L without top-left: the corner with clay (north)", DungeonRooms.Shape.L, List.of(t(1, 0), t(0, 1), t(1, 1)), DungeonRooms.Rotation.NORTH, -138, -138, new BlockPos(-138, 80, -138));
+		layout("L without top-left: the corner with clay (south)", DungeonRooms.Shape.L, List.of(t(1, 0), t(0, 1), t(1, 1)), DungeonRooms.Rotation.SOUTH, -200, -200, new BlockPos(-200, 80, -200));
+	}
+
+	private void layout(String what, DungeonRooms.Shape shape, List<int[]> tiles, DungeonRooms.Rotation rot, int x, int z, BlockPos clayAt) {
+		DungeonRooms.Layout l = DungeonRooms.layout(shape, tiles, 80, p -> p.equals(clayAt));
+		check("layout: " + what + " (" + l + ")", l.rotation() == rot && l.clay().getX() == x && l.clay().getZ() == z);
+	}
+
+	// ---- a room in the world
+
+	private void room() {
+		cmd("gamemode creative @p"); // the room is built in mid-air
+		cmd("tp @p " + CX + " " + (FLOOR + 1) + " " + CZ);
+		ctx.waitTicks(20);
+		sp.getClientLevel().waitForChunksRender();
+		cmd("fill " + (CX - 15) + " " + FLOOR + " " + (CZ - 15) + " " + (CX + 15) + " " + FLOOR + " " + (CZ + 15) + " stone");
+		cmd("fill " + CX + " " + (FLOOR + 1) + " " + CZ + " " + CX + " 140 " + CZ + " air");
+		cmd("setblock " + CX + " " + ROOF + " " + CZ + " stone");
+		cmd("setblock " + CX + " " + (ROOF - 1) + " " + CZ + " glowstone");
+		cmd("setblock " + CLAY.getX() + " " + CLAY.getY() + " " + CLAY.getZ() + " blue_terracotta");
+		cmd("setblock " + CHEST.getX() + " " + CHEST.getY() + " " + CHEST.getZ() + " chest");
+		cmd("tp @p " + (CX + 2) + " " + (FLOOR + 1) + " " + (CZ + 2));
+		ctx.waitTicks(10);
+		int core = ctx.computeOnClient(mc -> DungeonRooms.coreAt(mc.level, CX, CZ, new int[1]));
+		ctx.runOnClient(mc -> {
+			DungeonRooms.addRoom(core, "Test Room", "1x1");
+			DungeonRooms.reset();
+			SecretsConfig cfg = Taz.config().dungeons.secrets;
+			cfg.enabled = true;
+			cfg.mode = SecretsConfig.Mode.GUIDE;
+			cfg.defaultRoutes = false;
+			cfg.reach = 2;
+			mc.keyboardHandler.setClipboard(odinExport());
+			SecretTrainer.importFromClipboard();
+		});
+		ctx.waitTicks(30);
+		DungeonRooms.Room room = ctx.computeOnClient(mc -> DungeonRooms.current());
+		check("room: found by its core, facing east from its clay (" + (room == null ? null : room.rotation + " " + room.clay) + ")",
+				room != null && room.data.name().equals("Test Room") && room.rotation == DungeonRooms.Rotation.EAST && room.clay.equals(CLAY));
+		List<BlockPos> placed = ctx.computeOnClient(mc -> SecretTrainer.positions());
+		check("room: the Odin waypoints land on their blocks (" + placed + ")", placed.equals(List.of(STEP1, CHEST, HINT, STEP3)));
+		List<String> lines = hudLines();
+		check("guide: step 1 first (" + lines + ")", lines.stream().anyMatch(l -> l.startsWith("Step 1/3")) && lines.stream().anyMatch(l -> l.startsWith("then 2")));
+		ctx.takeScreenshot("dungeon-secrets-guide");
+
+		goTo(STEP1.above());
+		check("guide: standing on step 1 ticks it off", step() == 2);
+		cmd("tp @p " + (CHEST.getX() - 2) + " " + CHEST.getY() + " " + CHEST.getZ() + " facing " + CHEST.getX() + " " + CHEST.getY() + " " + CHEST.getZ());
+		ctx.waitTicks(4);
+		ctx.runOnClient(mc -> mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
+				new BlockHitResult(Vec3.atCenterOf(CHEST), Direction.WEST, CHEST, false)));
+		ctx.waitTicks(4);
+		ctx.runOnClient(mc -> mc.player.closeContainer());
+		check("guide: opening step 2's chest ticks it off", step() == 3);
+		goTo(STEP3.above());
+		lines = hudLines();
+		Long best = ctx.computeOnClient(mc -> SecretTrainer.bestMs("Test Room"));
+		check("guide: route done and timed (" + lines + ")", step() == -1 && best != null && best > 0
+				&& lines.contains("Route done") && lines.stream().anyMatch(l -> l.startsWith("Test Room done in")));
+
+		// Restart, then skip ahead: standing on step 3 also ticks off steps 1 and 2 (someone else got them).
+		ctx.runOnClient(mc -> Taz.config().dungeons.secrets.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5);
+		goTo(new BlockPos(CX, FLOOR + 1, CZ));
+		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5, 2);
+		ctx.waitTicks(3);
+		check("restart key: back to step 1", step() == 1);
+		goTo(STEP3.above());
+		check("guide: standing on a later step ticks off the ones before", step() == -1);
+
+		// The room's secret count going up next to the chest (not straight after the chest click, which already counted it).
+		ctx.waitTicks(40);
+		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5, 2);
+		ctx.waitTicks(3);
+		check("restart key on the last spot: doesn't count it again", step() == 1);
+		goTo(STEP1.above());
+		actionBar("1/3 Secrets");
+		cmd("tp @p " + (CHEST.getX() - 2) + " " + CHEST.getY() + " " + CHEST.getZ());
+		ctx.waitTicks(3);
+		actionBar("2/3 Secrets");
+		check("secret count: going up next to the chest ticks it off", step() == 3);
+
+		// A secret item picked up next to the chest.
+		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5, 2);
+		ctx.waitTicks(3);
+		goTo(STEP1.above());
+		sp.getServer().runOnServer(server -> {
+			net.minecraft.server.level.ServerLevel level = server.overworld();
+			net.minecraft.world.item.ItemStack decoy = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE);
+			decoy.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal("Decoy"));
+			net.minecraft.world.entity.item.ItemEntity item = new net.minecraft.world.entity.item.ItemEntity(level,
+					CHEST.getX() + 0.5, CHEST.getY() + 1, CHEST.getZ() - 0.5, decoy);
+			item.setNoPickUpDelay();
+			level.addFreshEntity(item);
+		});
+		ctx.waitTicks(5);
+		goTo(new BlockPos(CHEST.getX(), CHEST.getY() + 1, CHEST.getZ() - 1));
+		ctx.waitTicks(10);
+		check("item: picking up a Decoy by the chest ticks it off", step() == 3);
+
+		// Export, re-import, Odin's own folder, Normal mode.
+		String export = ctx.computeOnClient(mc -> {
+			SecretTrainer.exportToClipboard();
+			return mc.keyboardHandler.getClipboard();
+		});
+		Map<String, List<SecretRoutes.Waypoint>> back = ctx.computeOnClient(mc -> {
+			try {
+				return SecretRoutes.parse(export);
+			} catch (Exception e) {
+				throw new AssertionError(e);
+			}
+		});
+		check("export: reads back the same", back.get("Test Room").equals(ctx.computeOnClient(mc -> SecretRoutes.imported().get(0).rooms().get("Test Room"))));
+		Path odinDir = ctx.computeOnClient(mc -> mc.gameDirectory.toPath().resolve("config").resolve("odin").resolve("dungeon-waypoints"));
+		try {
+			Files.createDirectories(odinDir);
+			Files.writeString(odinDir.resolve("mine.json"), odinJson());
+		} catch (Exception e) {
+			throw new AssertionError(e);
+		}
+		ctx.runOnClient(mc -> SecretTrainer.importFromOdin());
+		check("import from Odin: its packs copied", ctx.computeOnClient(mc -> SecretRoutes.imported().stream().anyMatch(p -> p.name().equals("Odin mine") && p.waypoints() == 4)));
+		ctx.runOnClient(mc -> {
+			Taz.config().dungeons.secrets.mode = SecretsConfig.Mode.NORMAL;
+			Taz.config().dungeons.secrets.defaultRoutes = true;
+		});
+		cmd("tp @p " + (CX + 8) + " " + (FLOOR + 4) + " " + (CZ - 10) + " facing " + CX + " " + FLOOR + " " + CZ);
+		ctx.waitTicks(5);
+		ctx.takeScreenshot("dungeon-secrets-normal");
+		check("normal: every waypoint (" + hudLines() + ")", hudLines().contains("4 waypoints · 1/3 steps") || hudLines().stream().anyMatch(l -> l.startsWith("4 waypoints")));
+		check("Taz's routes: Mossy has its route", ctx.computeOnClient(mc -> SecretRoutes.forRoom("Mossy").size()) == 9);
+
+		ctx.runOnClient(mc -> {
+			SecretTrainer.removeImported();
+			SecretsConfig cfg = Taz.config().dungeons.secrets;
+			cfg.enabled = false;
+			cfg.mode = SecretsConfig.Mode.GUIDE;
+			cfg.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN;
+			SecretTrainer.resetBest();
+		});
+		check("remove imported: none left", ctx.computeOnClient(mc -> SecretRoutes.imported().isEmpty()));
+
+		ctx.runOnClient(mc -> Taz.openSettings("Dungeons"));
+		ctx.waitTicks(10);
+		check("settings: the Dungeons category opens with Secret Routes", ctx.computeOnClient(mc -> mc.screen != null));
+		ctx.takeScreenshot("dungeon-secrets-settings");
+		ctx.runOnClient(mc -> mc.setScreen(null));
+	}
+
+	/** The test route as Odin writes it: positions relative to the clay corner, turned to face north. */
+	private static String odinJson() {
+		return "{\"Test Room\":["
+				+ wp(15, FLOOR, 11, "#AA00AAFF", "1", 0, 1) + ","
+				+ wp(11, FLOOR + 1, 18, "#55FF55FF", "2 item", 0.0625, 0.9375) + ","
+				+ wp(21, FLOOR + 1, 18, "#FFF255FF", "if 2 locked", 0, 1) + ","
+				+ wp(6, FLOOR, 26, "#AA00AAFF", "3 | done", 0, 1) + "]}";
+	}
+
+	private static String wp(int x, int y, int z, String color, String title, double min, double max) {
+		return "{\"blockPos\":{\"x\":" + x + ",\"y\":" + y + ",\"z\":" + z + "},\"color\":\"" + color + "\",\"filled\":false,\"depth\":false,"
+				+ "\"aabb\":{\"minX\":" + min + ",\"minY\":0.0,\"minZ\":" + min + ",\"maxX\":" + max + ",\"maxY\":" + max + ",\"maxZ\":" + max + "},"
+				+ "\"title\":\"" + title + "\"}";
+	}
+
+	/** Odin's export string: Base64 of the gzipped JSON. */
+	private static String odinExport() {
+		try {
+			ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+			try (GZIPOutputStream out = new GZIPOutputStream(bytes)) {
+				out.write(odinJson().getBytes(StandardCharsets.UTF_8));
+			}
+			return Base64.getEncoder().encodeToString(bytes.toByteArray());
+		} catch (Exception e) {
+			throw new AssertionError(e);
+		}
+	}
+
+	// ---- helpers
+
+	private static int[] t(int x, int z) {
+		return new int[]{x, z};
+	}
+
+	private static boolean near(double a, double b) {
+		return Math.abs(a - b) < 1e-9;
+	}
+
+	private int step() {
+		return ctx.computeOnClient(mc -> SecretTrainer.step());
+	}
+
+	private void goTo(BlockPos p) {
+		cmd("tp @p " + p.getX() + " " + p.getY() + " " + p.getZ());
+		ctx.waitTicks(4);
+	}
+
+	private void actionBar(String text) {
+		cmd("title @p actionbar " + new JsonPrimitive(text));
+		ctx.waitTicks(3);
+	}
+
+	private List<String> hudLines() {
+		return ctx.computeOnClient(mc -> {
+			for (MovableHud h : TazHud.all()) {
+				if (h instanceof SecretTrainer t) return ((TextHud) t).shownLines(false).stream().map(net.minecraft.ChatFormatting::stripFormatting).toList();
+			}
+			throw new AssertionError("SecretTrainer not registered");
+		});
+	}
+
+	private void cmd(String c) {
+		sp.getServer().runCommand(c);
+	}
+
+	private static void check(String what, boolean ok) {
+		if (!ok) throw new AssertionError("dungeons: " + what);
+		System.out.println("[DungeonGameTest] ok: " + what);
+	}
+}

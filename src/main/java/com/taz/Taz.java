@@ -15,6 +15,8 @@ import com.taz.foraging.MoongladeResources;
 import com.taz.foraging.PressureWarning;
 import com.taz.foraging.ProtectedTrees;
 import com.taz.foraging.RouteAssist;
+import com.taz.dungeons.secrets.DungeonRooms;
+import com.taz.dungeons.secrets.SecretTrainer;
 import com.taz.foraging.RubyVeilshrooms;
 import com.taz.foraging.StarlynContest;
 import com.taz.foraging.SweepDetails;
@@ -48,6 +50,9 @@ import io.github.notenoughupdates.moulconfig.processor.ProcessedCategory;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.minecraft.world.InteractionResult;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
@@ -118,6 +123,7 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new TreeGifts());
 		TazHud.register(new RouteAssist());
 		TazHud.register(new StarlynContest());
+		TazHud.register(new SecretTrainer());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -140,6 +146,12 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(Waypoints::render);
 		LevelRenderEvents.END_MAIN.register(SlayerHelper::render);
 		LevelRenderEvents.END_MAIN.register(FishingHelper::render);
+		LevelRenderEvents.END_MAIN.register(SecretTrainer::render);
+		UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+			if (level.isClientSide()) safely("Secret routes click", () -> SecretTrainer.onInteract(hit.getBlockPos()));
+			return InteractionResult.PASS;
+		});
+		ClientEntityEvents.ENTITY_UNLOAD.register((entity, level) -> safely("Secret routes entity", () -> SecretTrainer.onEntityGone(entity)));
 		ClientReceiveMessageEvents.ALLOW_GAME.register(ChatFilter::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(SweepDetails::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(TreeGifts::allow);
@@ -287,6 +299,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Skill tracker", () -> SkillTracker.onActionBar(text, now));
 		safely("Galatea recorder", () -> GalateaRecorder.onActionBar(text));
 		safely("Pressure warning", () -> PressureWarning.onActionBar(text));
+		safely("Secret routes", () -> SecretTrainer.onActionBar(text));
 	}
 
 	/** Runs one feature's handler; a broken feature logs its error instead of breaking the others. */
@@ -341,6 +354,8 @@ public final class Taz implements ClientModInitializer {
 		safely("Tree route", () -> RouteAssist.tick(mc));
 		safely("Starlyn contest", StarlynContest::tick);
 		safely("Galatea recorder", () -> GalateaRecorder.tick(mc));
+		safely("Dungeon rooms", () -> DungeonRooms.tick(mc));
+		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();
 	}
 }
