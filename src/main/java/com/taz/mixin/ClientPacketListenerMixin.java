@@ -5,6 +5,7 @@ import com.taz.dungeons.util.LagMonitor;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEventPacket;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ClientboundTabListPacket;
 import net.minecraft.network.protocol.ping.ClientboundPongResponsePacket;
 import net.minecraft.world.entity.Entity;
@@ -74,6 +75,18 @@ public abstract class ClientPacketListenerMixin {
 			require = 0)
 	private void taz$onTabList(ClientboundTabListPacket packet, CallbackInfo ci) {
 		Taz.onTabFooter(packet.footer().getString());
+	}
+
+	/** A sound the server plays (its id and the exact pitch it sent: Ragnarock's cast, Spring Boots' notes). */
+	@Inject(
+			method = "handleSoundEvent",
+			at = @At(
+					value = "INVOKE",
+					target = "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;Lnet/minecraft/network/PacketProcessor;)V",
+					shift = At.Shift.AFTER),
+			require = 0)
+	private void taz$onSound(ClientboundSoundPacket packet, CallbackInfo ci) {
+		Taz.onSound(packet.getSound().value().location().getPath(), packet.getPitch());
 	}
 
 	/** The answer to Taz's ping request: your ping. */

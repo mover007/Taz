@@ -118,6 +118,13 @@ public final class DungeonLocation {
 		return p3Section;
 	}
 
+	/** The Phase 3 section (1-4) a position is in on Floor 7, 0 when it isn't in one. */
+	public static int p3SectionAt(double x, double y, double z) {
+		if (floorNumber() != 7 || y <= 100 || y > 155) return 0;
+		for (int i = 0; i < P3_SECTIONS.length; i++) if (P3_SECTIONS[i].contains(x, y, z)) return i + 1;
+		return 0;
+	}
+
 	/** Tests: pretend to be on this floor ("M7"), or null to read the sidebar again. */
 	public static void setTestFloor(String floor) {
 		testFloor = floor;

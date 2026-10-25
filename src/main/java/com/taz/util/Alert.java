@@ -51,8 +51,8 @@ public final class Alert {
 		Minecraft mc = Minecraft.getInstance();
 		mc.execute(() -> {
 			mc.gui.setTimes(3, 40, 10);
-			mc.gui.setSubtitle(Component.literal(subtitle == null ? "" : subtitle));
-			mc.gui.setTitle(Component.literal(title));
+			mc.gui.setSubtitle(com.taz.hud.TazTheme.styled(subtitle == null ? "" : subtitle));
+			mc.gui.setTitle(com.taz.hud.TazTheme.styled(title));
 			play(sound);
 		});
 	}

@@ -6,11 +6,12 @@ mTaz's Hypixel SkyBlock features in one client-side Fabric mod for **Minecraft 2
 
 | Category | What it does |
 |---|---|
-| **General** | Alerts (rare drops, bazaar orders, sold auctions, party invites, low health), a Dark Auction reminder, a chat filter, command keys, event timers, a skill XP tracker and waypoints from coordinates in chat. |
+| **General** | Alerts (rare drops, bazaar orders, sold auctions, party invites, low health), a Dark Auction reminder, a chat filter, command keys, event timers, a skill XP tracker, waypoints from coordinates in chat, a Performance HUD (FPS, TPS, ping), Pet Display, Ragnarock alerts, Spring Boots height and a Kick Timer. |
 | **Inventory** | Lowest BIN and bazaar prices in tooltips, rarity colours behind items, and numbers on items (pet level, book level, minion tier ...). |
 | **Slayer** | Boss spawned alert, a box around your own boss, and kill times. |
 | **Fishing** | Bite alert, bobber timer, Double Hook alert. |
-| **Dungeons** | Run timer and end-time prediction for every Catacombs floor (tuned on M6/M7), live score, splits, PBs, chat and party messages. Secret Routes: Odin waypoint packs for every room, with a guide mode that shows the next step and times each room. Room Secret Times in party chat, and Skill Issue: a friendly joke when someone dies. |
+| **Dungeons** | Run timer and end-time prediction for every Catacombs floor (tuned on M6/M7), live score, splits, PBs, chat and party messages. Secret Routes: Odin waypoint packs for every room, with a guide mode that shows the next step and times each room. Room Secret Times in party chat, Skill Issue: a joke when someone dies, Blessings, Mask Timers, Score Alerts (270/300, Mimic, Prince, Bat), Room Alerts and the Terracotta Timer. |
+| **Floor 7** | Tick Timers (Maxor's start, Storm's pads and purple pad, Goldor's death ticks) and a Leap Counter. |
 | **Galatea** | Points at the closest fully grown Fig, Mangrove or Helix tree (pick which types) with a line and a label, so when a tree falls you can go straight to the next. |
 | **Honeyhives** (Galatea category) | Highlights the Torrhus Canyon honeyhives you can loot right now, with refill timers and a pointer to the next one. Cosmetic hives are ignored. |
 | **Whisper Counter** (Galatea category) | Forest and Desert Whispers per hour in a small HUD, counted only while you're foraging (it pauses 3 seconds after you stop). |
@@ -214,6 +215,16 @@ com.taz
 
 **Skill Issue** roasts whoever dies in your dungeon, in party chat or only to you. **Toxic** tone (the default) asks how they managed it (`[TAZ] How did you die in terms, Steve? It's clicking colours.`, `[TAZ] Tank Steve died. You had ONE job.`); **Friendly** tone is gentler. No swearing either way, so Hypixel's chat filter lets them through. It reads Hypixel's death line (`☠ mTaz was killed by Storm and became a ghost.`) and uses what it can: where the run is (clear, blood, on the way to the boss, Maxor, Storm, terminals, core, Necron, the dragons, Sadan, Livid, Thorn, The Professor, Scarf, Bonzo), what killed them (Shadow Assassins, Fels, crypt mobs, a Mimic...), how (a trap, crushed, disconnected) and their class from the tab list. Their second death gets `(death #2)`. When it's you who dies, Taz makes an excuse for you instead, from the same context: toxic ones blame the team (`[TAZ] Died in terms because SOMEONE didn't do their terminal.`), friendly ones blame the game (`[TAZ] Died in terms. The GUI lagged and ate my click.`). Where the run is comes from its own chat, so it works without the Run Predictor. Every death gets its joke the moment it happens; only a wipe (a fourth death within 5 seconds) is cut short. **Try it** shows you a few.
 
+## From Odin and NoammAddons
+
+Some features are ported from [Odin](https://github.com/odtheking/Odin) (BSD 3-Clause) and [NoammAddons](https://github.com/Noamm9/NoammAddons) (CC0), rewritten for Taz and its look:
+
+- **General:** Performance HUD (FPS, TPS, ping, measured the way F3's network chart does), Pet Display (your pet, level and held item from the summon, Autopet and level-up messages and /pets; a title when Autopet swaps it), Ragnarock (cast and cancel alerts, the Strength you gained, from the axe's howl), Spring Boots (charge height from the boots' notes, a HUD and a box where you'll land), Kick Timer (how long since you were kicked from SkyBlock).
+- **Dungeons:** Blessings (from the tab list), Mask Timers (Spirit Mask, Bonzo Mask and Phoenix: invincibility and cooldown, an alert, `[TAZ] Bonzo Procced! (2/3)` in party chat, the cooldown drawn on the mask), Score Alerts (270 and 300 score titles from Hypixel's live score, Mimic, Prince and Bat kills in party chat), Room Alerts (`Secrets Done!`), Terracotta Timer (Floor 6 boss).
+- **Floor 7:** Tick Timers (server ticks, so they stay right through lag) and the Leap Counter (how many teammates leaped to you at each Phase 3 spot).
+
+Taz knows where you are in a run (floor, boss room, Floor 7 phase and Phase 3 section) from the sidebar and the boss rooms' boxes, and counts server ticks from the ping packet Hypixel sends every tick.
+
 ## Credits
 
 Secret Routes uses Odin's dungeon room table (`assets/taz/dungeons/rooms.json`) and follows Odin's room scanning, so Odin waypoint packs line up. Odin is © odtheking, under the BSD 3-Clause License (included as `assets/taz/dungeons/odin-LICENSE.txt`). The secret routes Taz comes with are 3ppopka's (inspired by flameofwar), shared as an Odin waypoint pack.
@@ -230,7 +241,7 @@ JDK 25 · Minecraft 26.1.2 (Mojang names) · Fabric Loader 0.19.5 · Fabric API 
 gradlew build                 # build/libs/taz-1.0.0.jar
 gradlew runClient             # dev client
 gradlew runClientGameTest     # in-game tests, screenshots in build/run/clientGameTest/screenshots
-gradlew runClientGameTest -Ptests=honeyhive   # only one feature's tests (honeyhive, trees, xp, settings, whispers, general, galatea, secrets, roomtimes, skillissue)
+gradlew runClientGameTest -Ptests=honeyhive   # only one feature's tests (honeyhive, trees, xp, settings, whispers, general, galatea, secrets, roomtimes, skillissue, ported)
 gradlew runClientGameTest -Ptests=slayer      # one part of the general test (autosave, alerts, chatfilter, commandkeys, events,
                                               # darkauction, skills, waypoints, huds, prices, overlays, slayer, fishing)
 gradlew runBacktest           # dev: replay run/config/taz/dungeons/history.json, writes backtest.txt

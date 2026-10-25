@@ -26,6 +26,7 @@ public class AbstractContainerScreenMixin {
 	@Inject(method = "extractSlot", at = @At("TAIL"))
 	private void taz$slotForeground(GuiGraphicsExtractor g, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
 		ItemOverlays.foreground(g, slot);
+		com.taz.dungeons.info.MaskTimers.slot(g, slot);
 	}
 
 	@Inject(method = "slotClicked", at = @At("HEAD"))

@@ -33,6 +33,10 @@ public final class TazConfig extends Config {
 	public DungeonsCategory dungeons = new DungeonsCategory();
 
 	@Expose
+	@Category(name = "Floor 7", desc = "The Floor 7 / Master Mode 7 boss fight: tick timers, leap counter.")
+	public Floor7Category floor7 = new Floor7Category();
+
+	@Expose
 	@Category(name = "Slayer", desc = "Slayer boss features.")
 	public SlayerCategory slayer = new SlayerCategory();
 

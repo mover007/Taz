@@ -6,7 +6,11 @@ import com.taz.general.ChatFilterConfig;
 import com.taz.general.CommandKeysConfig;
 import com.taz.general.DarkAuctionConfig;
 import com.taz.general.EventTimersConfig;
+import com.taz.general.KickTimerConfig;
 import com.taz.general.PerformanceHudConfig;
+import com.taz.general.PetDisplayConfig;
+import com.taz.general.RagnarockConfig;
+import com.taz.general.SpringBootsConfig;
 import com.taz.general.SkillTrackerConfig;
 import com.taz.general.WaypointsConfig;
 import io.github.notenoughupdates.moulconfig.annotations.Accordion;
@@ -53,4 +57,24 @@ public final class GeneralCategory {
 	@ConfigOption(name = "Performance HUD", desc = "Your FPS, the server's TPS and your ping.")
 	@Accordion
 	public PerformanceHudConfig performance = new PerformanceHudConfig();
+
+	@Expose
+	@ConfigOption(name = "Pet Display", desc = "Your active pet, its level and held item, and a title when Autopet swaps it.")
+	@Accordion
+	public PetDisplayConfig pets = new PetDisplayConfig();
+
+	@Expose
+	@ConfigOption(name = "Ragnarock", desc = "Alerts when you cast the Ragnarock Axe or it's cancelled, and the Strength it gave you.")
+	@Accordion
+	public RagnarockConfig ragnarock = new RagnarockConfig();
+
+	@Expose
+	@ConfigOption(name = "Spring Boots", desc = "How high your Spring Boots will throw you as you charge them.")
+	@Accordion
+	public SpringBootsConfig springBoots = new SpringBootsConfig();
+
+	@Expose
+	@ConfigOption(name = "Kick Timer", desc = "How long ago Hypixel kicked you from SkyBlock, so you know when you can rejoin.")
+	@Accordion
+	public KickTimerConfig kickTimer = new KickTimerConfig();
 }

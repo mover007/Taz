@@ -131,6 +131,13 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new SecretTrainer());
 		TazHud.register(new com.taz.general.PerformanceHud());
 		TazHud.register(new com.taz.dungeons.info.Blessings());
+		TazHud.register(new com.taz.dungeons.info.MaskTimers());
+		TazHud.register(new com.taz.dungeons.info.RoomAlerts());
+		TazHud.register(new com.taz.dungeons.f7.TickTimers());
+		TazHud.register(new com.taz.dungeons.f7.LeapCounter());
+		TazHud.register(new com.taz.general.PetDisplay());
+		TazHud.register(new com.taz.general.SpringBoots());
+		TazHud.register(new com.taz.general.KickTimer());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -154,6 +161,8 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(SlayerHelper::render);
 		LevelRenderEvents.END_MAIN.register(FishingHelper::render);
 		LevelRenderEvents.END_MAIN.register(SecretTrainer::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.info.TerracottaTimer::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.general.SpringBoots::render);
 		UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
 			if (level.isClientSide()) safely("Secret routes click", () -> SecretTrainer.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
 			return InteractionResult.PASS;
@@ -270,14 +279,19 @@ public final class Taz implements ClientModInitializer {
 		MoongladeResources.LUMIES.onBlockChanged(pos, newState);
 		MoongladeResources.LUSHLILAC.onBlockChanged(pos, newState);
 		safely("Secret routes block", () -> SecretTrainer.onBlockChanged(pos, oldState, newState));
+		safely("Terracotta timer", () -> com.taz.dungeons.info.TerracottaTimer.onBlockChanged(pos, oldState, newState));
 	}
 
 	/** Every server tick (Hypixel's ping packet, ClientCommonPacketListenerImplMixin): the clock for tick timers. */
 	public static void onServerTick() {
+		safely("Mask timers", com.taz.dungeons.info.MaskTimers::onServerTick);
+		safely("Tick timers", com.taz.dungeons.f7.TickTimers::onServerTick);
+		safely("Terracotta timer", com.taz.dungeons.info.TerracottaTimer::onServerTick);
 	}
 
 	/** An entity event (ClientPacketListenerMixin): 3 is a mob's death. */
 	public static void onEntityEvent(net.minecraft.world.entity.Entity entity, byte id) {
+		safely("Score alerts", () -> com.taz.dungeons.info.ScoreAlerts.onEntityEvent(entity, id));
 	}
 
 	/** The tab list's footer (ClientPacketListenerMixin): the dungeon's blessings. */
@@ -285,8 +299,10 @@ public final class Taz implements ClientModInitializer {
 		safely("Blessings", () -> com.taz.dungeons.info.Blessings.onTabFooter(footer));
 	}
 
-	/** Every sound the client plays (SoundManagerMixin). */
-	public static void onSound(net.minecraft.client.resources.sounds.SoundInstance sound) {
+	/** Every sound the server plays (ClientPacketListenerMixin): its id ("entity.wolf.death") and pitch. */
+	public static void onSound(String id, float pitch) {
+		safely("Ragnarock", () -> com.taz.general.Ragnarock.onSound(id, pitch));
+		safely("Spring boots", () -> com.taz.general.SpringBoots.onSound(id, pitch));
 	}
 
 	/** Block events (ClientPacketListenerMixin): a chest lid opening. */
@@ -322,6 +338,12 @@ public final class Taz implements ClientModInitializer {
 		safely("Starlyn contest chat", () -> StarlynContest.onChat(line));
 		safely("Protected trees chat", () -> ProtectedTrees.onChat(line));
 		safely("Skill Issue chat", () -> SkillIssue.onChat(line));
+		safely("Mask timers chat", () -> com.taz.dungeons.info.MaskTimers.onChat(line));
+		safely("Score alerts chat", () -> com.taz.dungeons.info.ScoreAlerts.onChat(line));
+		safely("Tick timers chat", () -> com.taz.dungeons.f7.TickTimers.onChat(line));
+		safely("Ragnarock chat", () -> com.taz.general.Ragnarock.onChat(line));
+		safely("Pet display chat", () -> com.taz.general.PetDisplay.onChat(content.getString(), line));
+		safely("Kick timer chat", () -> com.taz.general.KickTimer.onChat(line));
 	}
 
 	/** Every action bar message (GuiMixin), for every feature. */
@@ -334,6 +356,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Pressure warning", () -> PressureWarning.onActionBar(text));
 		safely("Secret routes", () -> SecretTrainer.onActionBar(text));
 		safely("Room secret times", () -> RoomSecretTimes.onActionBar(text));
+		safely("Room alerts", () -> com.taz.dungeons.info.RoomAlerts.onActionBar(text));
 	}
 
 	/** Runs one feature's handler; a broken feature logs its error instead of breaking the others. */
@@ -392,6 +415,12 @@ public final class Taz implements ClientModInitializer {
 		safely("Dungeon location", () -> com.taz.dungeons.util.DungeonLocation.tick(mc));
 		safely("Dungeon rooms", () -> DungeonRooms.tick(mc));
 		safely("Performance HUD", () -> com.taz.general.PerformanceHud.tick(mc));
+		safely("Mask timers", () -> com.taz.dungeons.info.MaskTimers.tick(mc));
+		safely("Score alerts", () -> com.taz.dungeons.info.ScoreAlerts.tick(mc));
+		safely("Tick timers", () -> com.taz.dungeons.f7.TickTimers.tick(mc));
+		safely("Leap counter", () -> com.taz.dungeons.f7.LeapCounter.tick(mc));
+		safely("Spring boots", () -> com.taz.general.SpringBoots.tick(mc));
+		safely("Pet display", () -> com.taz.general.PetDisplay.tick(mc));
 		safely("Dungeon party", () -> DungeonParty.tick(mc));
 		safely("Secret routes", () -> SecretTrainer.tick(mc));
 		if (++autosaveTicks % 20 == 0) saveIfChanged();
