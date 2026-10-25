@@ -1,5 +1,6 @@
 package com.taz.xpassist.screen;
 
+import com.taz.hud.TazTheme;
 import com.taz.xpassist.config.ModConfig;
 import com.taz.xpassist.data.DataManager;
 import com.taz.xpassist.data.NeuRepo;
@@ -292,7 +293,7 @@ public class XpListScreen extends Screen {
 		if (result != null && result.profileName() != null) {
 			title += " on " + result.profileName();
 		}
-		graphics.centeredText(font, fit(title, width - 12), width / 2, 6, 0xFFFFFFFF);
+		graphics.centeredText(font, TazTheme.styled(fit(title, width - 12)), width / 2, 6, TazTheme.TEXT);
 		String subtitle;
 		if (result == null) {
 			subtitle = "§7" + DataManager.status() + "...";
@@ -310,7 +311,7 @@ public class XpListScreen extends Screen {
 				subtitle = total;
 			}
 		}
-		graphics.centeredText(font, fit(subtitle, width - 12), width / 2, 18, 0xFFFFFFFF);
+		graphics.centeredText(font, TazTheme.styled(fit(subtitle, width - 12)), width / 2, 18, TazTheme.TEXT);
 
 		int top = listTop;
 		int bottom = listBottom();
@@ -336,7 +337,7 @@ public class XpListScreen extends Screen {
 				graphics.fill(12, y + 3, 17, y + 8, 0xFF000000 | row.task().category.color);
 				textX = 21;
 			}
-			graphics.text(font, fit(row.text(), width - textX - 14), textX, y + 2, 0xFFFFFFFF, true);
+			graphics.text(font, TazTheme.styled(fit(row.text(), width - textX - 14)), textX, y + 2, TazTheme.TEXT, true);
 		}
 		graphics.disableScissor();
 
@@ -358,7 +359,7 @@ public class XpListScreen extends Screen {
 			footer = "§7Left-click: track NPC / details  §8|  §7Right-click: hide"
 				+ (result != null && result.source() != null ? "  §8|  §7Progress: §f" + result.source() : "");
 		}
-		graphics.centeredText(font, fit(footer, width - 12), width / 2, height - 18, 0xFFFFFFFF);
+		graphics.centeredText(font, TazTheme.styled(fit(footer, width - 12)), width / 2, height - 18, TazTheme.TEXT);
 
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 

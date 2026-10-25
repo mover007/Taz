@@ -54,6 +54,6 @@ public final class TazConfig extends Config {
 
 	@Override
 	public StructuredText getTitle() {
-		return StructuredText.of("§b§lTaz §7v" + Taz.VERSION + " §8by mTaz");
+		return StructuredText.of("§4§l[§c§lTAZ§4§l] §7v" + Taz.VERSION + " §8by mTaz");
 	}
 }

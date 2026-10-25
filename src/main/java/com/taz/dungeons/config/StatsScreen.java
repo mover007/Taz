@@ -18,7 +18,8 @@ import java.util.List;
 
 /** Per-floor numbers from your history: PB, medians, every phase, and how accurate the portal estimate has been. */
 public final class StatsScreen extends Screen {
-	private static final int GOLD = 0xFFFFAA00, WHITE = 0xFFFFFFFF, GRAY = 0xFFAAAAAA, AQUA = 0xFF55FFFF, GREEN = 0xFF55FF55;
+	private static final int GOLD = com.taz.hud.TazTheme.RED, WHITE = com.taz.hud.TazTheme.TEXT, GRAY = com.taz.hud.TazTheme.GREY,
+			AQUA = com.taz.hud.TazTheme.LIGHT_RED, GREEN = com.taz.hud.TazTheme.WHITE;
 	private static Floor lastFloor;
 
 	private final Screen parent;

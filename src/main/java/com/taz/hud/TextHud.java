@@ -89,7 +89,7 @@ public abstract class TextHud implements MovableHud {
 		g.pose().scale(scale, scale);
 		int y = PADDING;
 		for (String line : lines) {
-			g.text(font, line, PADDING, y, 0xFFFFFFFF, true);
+			TazTheme.line(g, font, line, PADDING, y);
 			y += font.lineHeight + 1;
 		}
 		g.pose().popMatrix();

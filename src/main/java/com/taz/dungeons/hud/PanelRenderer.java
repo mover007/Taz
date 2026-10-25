@@ -1,5 +1,7 @@
 package com.taz.dungeons.hud;
 
+import net.minecraft.network.chat.Component;
+import com.taz.hud.TazTheme;
 import com.taz.dungeons.config.ModConfig;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -59,9 +61,10 @@ public final class PanelRenderer {
 		int y = 0;
 		int lineH = font.lineHeight + 1;
 		for (HudLine l : lines) {
-			g.text(font, l.left(), 0, y, withAlpha(l.leftColor(), alpha), true);
+			TazTheme.outlined(g, font, Component.literal(l.left()), 0, y, withAlpha(l.leftColor(), alpha), withAlpha(TazTheme.BLACK, alpha));
 			if (l.right() != null) {
-				g.text(font, l.right(), size[0] - font.width(l.right()), y, withAlpha(l.rightColor(), alpha), true);
+				TazTheme.outlined(g, font, Component.literal(l.right()), size[0] - font.width(l.right()), y, withAlpha(l.rightColor(), alpha),
+						withAlpha(TazTheme.BLACK, alpha));
 			}
 			y += lineH;
 		}

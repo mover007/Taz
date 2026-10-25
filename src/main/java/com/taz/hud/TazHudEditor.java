@@ -17,9 +17,9 @@ import java.util.List;
  * right-click to hide or show, R to reset the one under the mouse, arrow keys to nudge the last one moved.
  */
 public final class TazHudEditor extends Screen {
-	private static final int OUTLINE = 0xFFFFAA00;
-	private static final int OUTLINE_HIDDEN = 0xFF777777;
-	private static final int OUTLINE_HOVER = 0xFFFFFF55;
+	private static final int OUTLINE = TazTheme.RED;
+	private static final int OUTLINE_HIDDEN = TazTheme.DARK_GREY;
+	private static final int OUTLINE_HOVER = TazTheme.PALE_RED;
 	private static final int SNAP = 4;
 
 	private record Shown(MovableHud hud, int x, int y, int w, int h) {
@@ -73,7 +73,7 @@ public final class TazHudEditor extends Screen {
 			border(g, s, color);
 			String label = hud.name() + (hud.hidden() ? " (hidden)" : "") + (hover ? String.format("  %.0f%%", hud.scale() * 100) : "");
 			int labelY = s.y() >= 11 ? s.y() - 10 : s.y() + s.h() + 2;
-			g.text(font, label, s.x(), labelY, color, true);
+			TazTheme.outlined(g, font, Component.literal(label), s.x(), labelY, color);
 			// Text is drawn after boxes within a stratum, so give each HUD its own or overlapping ones bleed through.
 			g.nextStratum();
 		}
@@ -87,10 +87,11 @@ public final class TazHudEditor extends Screen {
 		int w = Math.max(font.width(help1), font.width(help2)) + 8;
 		// Out of the way while you drag or point at a HUD under it.
 		if (dragging != null || mouseY < 44 && at(mouseX, mouseY) != null) return;
-		g.fill(width / 2 - w / 2, 5, width / 2 + w / 2, 41, 0xA0000000);
-		g.centeredText(font, "Taz HUD Editor", width / 2, 8, 0xFFFFAA00);
-		g.centeredText(font, help1, width / 2, 19, 0xFFAAAAAA);
-		g.centeredText(font, help2, width / 2, 30, 0xFFAAAAAA);
+		g.fill(width / 2 - w / 2, 5, width / 2 + w / 2, 41, 0xC0000000);
+		g.fill(width / 2 - w / 2, 41, width / 2 + w / 2, 42, TazTheme.RED);
+		g.centeredText(font, Component.literal("TAZ HUD EDITOR").withStyle(s -> s.withBold(true)), width / 2, 8, TazTheme.RED);
+		g.centeredText(font, help1, width / 2, 19, TazTheme.GREY);
+		g.centeredText(font, help2, width / 2, 30, TazTheme.GREY);
 	}
 
 	private static void border(GuiGraphicsExtractor g, Shown s, int color) {

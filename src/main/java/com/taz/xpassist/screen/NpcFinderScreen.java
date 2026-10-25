@@ -1,5 +1,6 @@
 package com.taz.xpassist.screen;
 
+import com.taz.hud.TazTheme;
 import com.taz.xpassist.data.DataManager;
 import com.taz.xpassist.data.HypixelItems;
 import com.taz.xpassist.data.NeuRepo;
@@ -153,7 +154,7 @@ public class NpcFinderScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 		rebuild();
 		stopButton.active = NpcTracker.target() != null;
-		graphics.centeredText(font, "§6§lNPC Finder", width / 2, 10, 0xFFFFFFFF);
+		graphics.centeredText(font, TazTheme.styled("§6§lNPC Finder"), width / 2, 10, TazTheme.TEXT);
 		int top = LIST_TOP;
 		int bottom = listBottom();
 		scroll = Mth.clamp(scroll, 0, maxScroll());
@@ -169,12 +170,12 @@ public class NpcFinderScreen extends Screen {
 			if (row.npc() != null && mouseY >= y && mouseY < y + ROW_HEIGHT && mouseY >= top && mouseY < bottom) {
 				graphics.fill(6, y, width - 6, y + ROW_HEIGHT, 0x30FFFFFF);
 			}
-			graphics.text(font, row.text(), 12, y + 2, 0xFFFFFFFF, true);
+			graphics.text(font, TazTheme.styled(row.text()), 12, y + 2, TazTheme.TEXT, true);
 		}
 		graphics.disableScissor();
 		String footer = DataManager.neu() == null ? "§7" + DataManager.status() + "..."
 			: "§7" + rows.size() + " results  §8|  §7Click an NPC to highlight it through walls";
-		graphics.centeredText(font, footer, width / 2, height - 15, 0xFFFFFFFF);
+		graphics.centeredText(font, TazTheme.styled(footer), width / 2, height - 15, TazTheme.TEXT);
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 	}
 

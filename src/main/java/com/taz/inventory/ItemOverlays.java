@@ -118,7 +118,7 @@ public final class ItemOverlays {
 		g.pose().pushMatrix();
 		g.pose().translate(slot.x, slot.y);
 		g.pose().scale(0.75f, 0.75f);
-		g.text(Minecraft.getInstance().font, n, 0, 0, 0xFFFFFF55, true);
+		g.text(Minecraft.getInstance().font, n, 0, 0, com.taz.hud.TazTheme.PALE_RED, true);
 		g.pose().popMatrix();
 	}
 }

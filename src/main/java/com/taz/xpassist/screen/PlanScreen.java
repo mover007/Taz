@@ -1,5 +1,6 @@
 package com.taz.xpassist.screen;
 
+import com.taz.hud.TazTheme;
 import com.taz.xpassist.config.ModConfig;
 import com.taz.xpassist.data.DataManager;
 import com.taz.xpassist.data.NeuRepo;
@@ -143,13 +144,13 @@ public class PlanScreen extends Screen {
 		} else {
 			title = "§6§lLevel Plan: §b+" + plan.toLevel() + " levels";
 		}
-		graphics.centeredText(font, title, width / 2, 8, 0xFFFFFFFF);
+		graphics.centeredText(font, TazTheme.styled(title), width / 2, 8, TazTheme.TEXT);
 		if (plan != null) {
 			String subtitle = "§7" + plan.stops().size() + " stops  §8|  §7Cost §6" + TextUtil.coins(plan.cost(), 2) + "  §8|  §a+" + TextUtil.xp(plan.xp()) + " XP";
 			if (result != null && result.coins() >= 0) {
 				subtitle += "  §8|  §7You have §6" + TextUtil.coins(result.coins(), 2);
 			}
-			graphics.centeredText(font, subtitle, width / 2, 44 - 12 + 16, 0xFFFFFFFF);
+			graphics.centeredText(font, TazTheme.styled(subtitle), width / 2, 44 - 12 + 16, TazTheme.TEXT);
 		}
 
 		int top = LIST_TOP + 10;
@@ -173,10 +174,10 @@ public class PlanScreen extends Screen {
 			if (font.width(text) > width - 26) {
 				text = font.plainSubstrByWidth(text, width - 26 - font.width("...")) + "...";
 			}
-			graphics.text(font, text, 12, y + 2, 0xFFFFFFFF, true);
+			graphics.text(font, TazTheme.styled(text), 12, y + 2, TazTheme.TEXT, true);
 		}
 		graphics.disableScissor();
-		graphics.centeredText(font, "§7Click a stop to track the NPC and get its shopping list  §8|  §7Scroll for more", width / 2, height - 15, 0xFFFFFFFF);
+		graphics.centeredText(font, TazTheme.styled("§7Click a stop to track the NPC and get its shopping list  §8|  §7Scroll for more"), width / 2, height - 15, TazTheme.TEXT);
 		super.extractRenderState(graphics, mouseX, mouseY, a);
 
 		if (hovered != null && hovered.task() != null) {

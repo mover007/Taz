@@ -1,5 +1,6 @@
 package com.taz.xpassist.hud;
 
+import com.taz.hud.TazTheme;
 import com.taz.xpassist.config.ModConfig;
 import com.taz.xpassist.data.DataManager;
 import com.taz.xpassist.data.Rules;
@@ -228,7 +229,7 @@ public final class XpHud implements MovableHud {
 		graphics.pose().scale(scale, scale);
 		int lineY = 0;
 		for (String line : lines) {
-			graphics.text(font, line, 0, lineY, 0xFFFFFFFF, true);
+			TazTheme.line(graphics, font, line, 0, lineY);
 			lineY += font.lineHeight + 1;
 		}
 		graphics.pose().popMatrix();

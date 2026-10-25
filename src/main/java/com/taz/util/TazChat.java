@@ -38,8 +38,9 @@ public final class TazChat {
 	private TazChat() {
 	}
 
+	/** "[TAZ] " in Taz's red and black. */
 	public static MutableComponent prefix() {
-		return Component.literal(PREFIX).withStyle(ChatFormatting.AQUA);
+		return com.taz.hud.TazTheme.chatPrefix();
 	}
 
 	public static void send(Component message) {
@@ -48,7 +49,7 @@ public final class TazChat {
 	}
 
 	public static void info(String message) {
-		send(Component.literal(message).withStyle(ChatFormatting.GRAY));
+		send(Component.literal(message).withStyle(s -> s.withColor(0xD8C8C8)));
 	}
 
 	/** Says something in party chat ("[TAZ] ..."), straight away when nothing else was just sent; returns what it says. */
