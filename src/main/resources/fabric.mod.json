@@ -3,8 +3,11 @@
 	"id": "taz",
 	"version": "${version}",
 	"name": "Taz",
-	"description": "mTaz's SkyBlock features in one mod: dungeon run timer and end-time prediction, Galatea grown-tree highlight, and the cheapest SkyBlock XP list with an NPC tracker. Settings: /taz.",
+	"description": "mTaz's Hypixel SkyBlock features in one mod: Galatea and Torrhus Canyon foraging (tree routes, tree pointer, whispers, honeyhives, Ruby Veilshrooms), dungeon run predictor, cheapest SkyBlock XP list, alerts, timers and more. Settings: /taz.",
 	"authors": ["mTaz"],
+	"contact": {
+		"sources": "https://github.com/mover007/Taz"
+	},
 	"license": "MIT",
 	"icon": "assets/taz/icon.png",
 	"environment": "client",
