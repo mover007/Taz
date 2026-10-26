@@ -26,7 +26,8 @@ import java.util.regex.Pattern;
 /**
  * Chat Commands: party (and private, co-op, guild) members can type "!" commands that Taz answers or runs for you: !warp,
  * !allinvite, !pt, !kick, !f7 and friends (when you lead the party), !coords, !cf, !8ball, !dice, !ping, !tps, !fps,
- * !location, !holding, !dt (a reminder to stop after this run), !invite in a private message. Answers start with [TAZ].
+ * !location, !holding, !taz (the Taz Discord), !dt (a reminder to stop after this run), !invite in a private message. Answers
+ * start with [TAZ].
  * From Odin.
  */
 public final class ChatCommands {
@@ -39,6 +40,10 @@ public final class ChatCommands {
 			"Better not tell you now", "Cannot predict now", "Concentrate and ask again", "Don't count on it", "My reply is no", "My sources say no",
 			"Outlook not so good", "Very doubtful"};
 	private static final Map<String, String> INSTANCES = new LinkedHashMap<>();
+	/** The official Taz Discord, for !taz. */
+	public static final String DISCORD = "https://discord.gg/D4rUnmbpJr";
+	/** Test hook: the last answer Taz gave. */
+	public static String lastReply;
 
 	private enum Channel {
 		PARTY, GUILD, PRIVATE, COOP
@@ -137,6 +142,9 @@ public final class ChatCommands {
 		boolean party = channel == Channel.PARTY, lead = party && Party.maybeLeader();
 		switch (cmd) {
 			case "help", "h" -> reply(help(channel), name, channel);
+			case "taz" -> {
+				if (cfg.taz) reply("Join the official Taz Discord: " + DISCORD, name, channel);
+			}
 			case "coords", "co" -> {
 				if (cfg.coords) reply("x: " + mc.player.getBlockX() + ", y: " + mc.player.getBlockY() + ", z: " + mc.player.getBlockZ(), name, channel);
 			}
@@ -237,6 +245,7 @@ public final class ChatCommands {
 	private static String help(Channel channel) {
 		ChatCommandsConfig c = ChatCommandsConfig.get();
 		List<String> on = new ArrayList<>();
+		if (c.taz) on.add("taz");
 		if (c.coords) on.add("coords");
 		if (c.boop) on.add("boop");
 		if (c.coinflip) on.add("cf");
@@ -261,6 +270,7 @@ public final class ChatCommands {
 	}
 
 	private static void reply(String text, String name, Channel channel) {
+		lastReply = text;
 		switch (channel) {
 			case PARTY -> TazChat.party(text);
 			case GUILD -> command("gc " + TazChat.PREFIX + text);

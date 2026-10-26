@@ -87,6 +87,10 @@ public class QolGameTest implements FabricClientGameTest {
 		ctx.waitTicks(12);
 		check("chat commands: !cf answered in party chat", ctx.computeOnClient(mc -> TazChat.sent()) > before);
 		ctx.runOnClient(mc -> TazChat.clearParty());
+		tell("Party > [MVP+] Friend: !taz");
+		ctx.waitTicks(12);
+		check("chat commands: !taz sends the Discord invite (" + com.taz.general.ChatCommands.lastReply + ")",
+				"Join the official Taz Discord: https://discord.gg/D4rUnmbpJr".equals(com.taz.general.ChatCommands.lastReply));
 		tell("Party > [VIP] Friend: !dt need food");
 		ctx.waitTicks(12);
 		check("chat commands: !dt sets a downtime reminder", ctx.computeOnClient(mc -> com.taz.general.ChatCommands.downtime()));

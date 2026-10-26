@@ -102,6 +102,11 @@ public final class ChatCommandsConfig {
 	public boolean autoConfirm = false;
 
 	@Expose
+	@ConfigOption(name = "!taz", desc = "A link to the official Taz Discord.")
+	@ConfigEditorBoolean
+	public boolean taz = true;
+
+	@Expose
 	@ConfigOption(name = "!coords", desc = "Your coordinates.")
 	@ConfigEditorBoolean
 	public boolean coords = true;
