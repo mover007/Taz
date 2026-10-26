@@ -28,22 +28,22 @@ On first start Taz copies everything from the old mods: run history, triggers an
 
 ## Settings
 
-`/taz` is the only command, and it opens the settings GUI (so do Mod Menu and an optional key). **Everything is in there**: every setting, keybind and action of every feature. Categories on the left are areas of the game; **each feature is one collapsed dropdown** in its category, with **Enabled** as its first option, so the menu stays short as features are added. **Every feature starts off**: turn on the ones you want. It works like SkyHanni's: categories on the left, a search bar, and a description for every option. It is [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig), the same library SkyHanni uses, bundled inside the jar.
+`/taz` is the only command, and it opens the settings GUI (so do Mod Menu and an optional key). **Everything is in there**: every setting, keybind and action of every feature. Categories on the left are areas of the game; **each feature is one collapsed dropdown** in its category, with **Enabled** as its first option, so the menu stays short as features are added. **Every feature starts off**: turn on the ones you want. It works like SkyHanni's: categories on the left, a search bar, and a description for every option. It reopens where you left it: the same category, scrolled to the same spot. It is [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig), the same library SkyHanni uses, bundled inside the jar.
 
-- **About:** key to open the menu, **Move HUDs** button and key (Right Shift) for the HUD editor, **Log Galatea HUD text** (on Galatea, each new kind of sidebar, action bar and title line goes into `logs/latest.log` as `[Taz] Galatea ...`, so Taz can learn things like contest points and the Torrhus Springs pressure meter; nothing leaves your computer), reload the settings file.
+- **About:** a key to open the menu, and **Move HUDs** for the HUD editor.
 - **General:** Alerts, Dark Auction Reminder, Chat Filter, Command Keys, Event Timers, Skill Tracker, Chat Waypoints.
 - **Inventory:** Item Prices, Item Overlays.
 - **Slayer → Slayer Helper** and **Fishing → Fishing Helper**.
-- **Dungeons → Run Predictor:** Enabled, Move HUD, Stats, Simple / Everything-on presets, Timer HUD, Score, Chat, Party Chat, Other, **Tools** (pick a floor, then Backtest, Demo run / next / stop, Export history, Reload files, Clear floor history) and **Advanced** (keep HUD after run, history cutoff). Each of these is a dropdown inside Run Predictor.
+- **Dungeons → Run Predictor:** Enabled, Move HUD, Stats, Simple / Everything-on presets, Timer HUD, Score, Chat, Party Chat, **After a run** (how long the HUD stays) and **History** (delete one floor's recorded runs). Each of these is a dropdown inside Run Predictor.
 - **Dungeons → Secret Routes:** Enabled, Mode (Normal / Guide), Taz's routes, Import from clipboard, Import from Odin, Export, List routes, Remove imported routes, reach distance, show the next step, show hints, path line, Skip and Restart room keys, Reset best times, Move HUD. See [Secret Routes](#secret-routes).
 - **Dungeons → Room Secret Times:** Enabled, Party chat, Your chat, Reset best times. **Dungeons → Skill Issue:** Enabled, Tone (toxic / friendly), Where (party chat / only me), excuses for your deaths, Try it. See [Room Secret Times and Skill Issue](#room-secret-times-and-skill-issue).
 - **Galatea → Next Tree Pointer:** Enabled, **Fig / Mangrove / Helix** (which trees to point at), search radius, a colour per type, and Tree status (counts, next tree, and how long updates take).
 - **Galatea → Honeyhives:** Enabled, next hive pointer, refill timers, through walls, colour, Hive status.
 - **Galatea → Whisper Counter:** Enabled, show Forest / Desert, pause after (seconds, default 3), Reset counter, Move HUD.
 - **Galatea → Tree Progress, Sweep Details, Ruby Veilshroom Finder, Sea Lumies & Lushlilac, Hunting Mobs, Fairy Souls, Island Guide:** see [More Galatea](#more-galatea).
-- **SkyBlock XP → XP Assist:** Enabled (turns off the list, HUD, NPC tracker, progress reading and downloads), open the list / plan / NPC finder, next upgrades in chat, stop tracking, **Keybinds** (XP list = K, level plan, NPC finder, toggle HUD, stop tracking), Profile (API key, EliteBot), HUD, XP List (pricing), NPC Tracker, **Progress** (refresh, how to sync, unhide, save next menu, forget seen progress) and **Data Sources**.
+- **SkyBlock XP → XP Assist:** Enabled (turns off the list, HUD, NPC tracker, progress reading and downloads), open the list / plan / NPC finder, next upgrades in chat, stop tracking, **Keybinds** (XP list = K, level plan, NPC finder, toggle HUD, stop tracking), Profile (API key, EliteBot), HUD, XP List (pricing), NPC Tracker, **Progress** (refresh, how to sync, unhide, forget seen progress).
 
-Changing the API key, profile or a data source re-downloads your XP data by itself; changing pricing options recalculates the list. Buttons that delete data (Clear floor history, Forget seen progress) need a second click within 5 seconds.
+Changing the API key or profile re-downloads your XP data by itself; changing pricing options recalculates the list. Buttons that delete data (Delete floor history, Forget seen progress) need a second click within 5 seconds.
 
 Everything is saved in `config/taz/config.json`, **by itself**: a change is written within a second, even with the settings GUI still open, and again when you leave a server or quit, so you never set anything up twice. Taz also keeps `config.json.last-good` (the last file that loaded fine); if `config.json` is ever damaged (the game killed mid-write, a bad hand edit), Taz puts the good copy back instead of starting from defaults, keeps the damaged one as `config.json.broken-<time>`, and tells you in chat.
 
@@ -57,11 +57,11 @@ Some chat messages have clickable buttons ([Track], [Stop], [Bazaar], [AH], [Rec
 
 ## Dungeons
 
-Each run is split into phases from chat (blood rush, blood, clear, portal, and the F6/M6 and F7/M7 boss phases). From the portal on, the end time is the **median of the time left from the same point in your past runs**, weighted towards recent runs, the same teammates, the same number of deaths, and (F7/M7) a similar portal time. Everything is learned in server ticks, so lag stretches the estimate instead of breaking it. Past runs are rebuilt from Minecraft's chat logs on every start, so it knows your runs from before it was installed.
+Each run is split into phases from chat (blood rush, blood, clear, portal, and the F6/M6 and F7/M7 boss phases). From the portal on, the end time is the **median of the time left from the same point in your past runs**, weighted towards recent runs, the same teammates, the same number of deaths, and (F7/M7) a similar portal time. Everything is learned in server ticks, and the estimate is stretched by how much the server has lagged over the run so far (not by a moment's hiccup, like the warp into the boss). Past runs are rebuilt from Minecraft's chat logs on every start, so it knows your runs from before it was installed.
 
-Portal estimate accuracy on the author's runs: **M6 ±2.1s** (91% within 5s), M7 ±26s at the portal, **±7s once the Core opens**. Press Backtest (Dungeons > Tools, floor M7) to replay your own runs and see your numbers.
+Portal estimate accuracy on the author's runs: **M6 ±2.1s** (91% within 5s), M7 ±23s at the portal (boss deaths and dragons are most of that), **±7s once the Core opens**. The Stats button shows your own numbers.
 
-Files in `config/taz/dungeons/`: `history.json` (runs), `triggers.json` (chat triggers, editable), `boss-lines.log`, `debug-scoreboard.txt`, `history.csv` (after Export history), `secret-routes/` (imported route packs, as Odin files) and `secret-times.json` (each room's best time).
+Files in `config/taz/dungeons/`: `history.json` (runs), `triggers.json` (chat triggers), `secret-routes/` (imported route packs, as Odin files) and `secret-times.json` (each room's best time).
 
 ## Secret Routes
 
@@ -170,7 +170,7 @@ Foraging 0:21
 
 ## Moving HUDs
 
-HUDs and in-world labels (waypoints, tree pointer, honeyhives) are plain shadowed text with no background box. Every Taz HUD (dungeon panels, SkyBlock XP, Whisper Counter, Event Timers, Skill Tracker) moves in one editor: **Right Shift**, About → Move HUDs, or any feature's Move HUD button. Drag to move (it snaps to the screen edges and centre), scroll to resize, right-click to hide or show, R to reset the one under the mouse, arrow keys to nudge the last one you touched. **Reset all** puts every HUD back. Positions are saved as you go.
+HUDs and in-world labels (waypoints, tree pointer, honeyhives) are plain shadowed text with no background box. Every Taz HUD (dungeon panels, SkyBlock XP, Whisper Counter, Event Timers, Skill Tracker) moves in one editor: **About → Move HUDs** in `/taz`, or any feature's Move HUD button. Drag to move (it snaps to the screen edges and centre), scroll to resize, right-click to hide or show, R to reset the one under the mouse, arrow keys to nudge the last one you touched. **Reset all** puts every HUD back. Positions are saved as you go.
 
 ## SkyBlock XP
 

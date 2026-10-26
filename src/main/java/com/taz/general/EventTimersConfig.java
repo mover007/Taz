@@ -50,7 +50,7 @@ public final class EventTimersConfig {
 	@ConfigEditorSlider(minValue = 0, maxValue = 10, minStep = 1)
 	public int remindMinutes = 1;
 
-	@ConfigOption(name = "Move HUD", desc = "Opens the HUD editor (every Taz HUD): drag to move, scroll to resize.")
+	@ConfigOption(name = "Move HUD", desc = "Drag it to move, scroll to resize.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable moveHud = TazHud::openEditor;
 

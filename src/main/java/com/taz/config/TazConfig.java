@@ -17,15 +17,15 @@ public final class TazConfig extends Config {
 	public static final int CURRENT_VERSION = 4;
 
 	@Expose
-	@Category(name = "About", desc = "What Taz does, the key to open this menu, and the HUD editors.")
+	@Category(name = "About", desc = "What Taz does, and moving its HUDs.")
 	public AboutConfig about = new AboutConfig();
 
 	@Expose
-	@Category(name = "General", desc = "Features for all of SkyBlock: alerts, Dark Auction reminder, chat filter, command keys, event timers, skill tracker, chat waypoints.")
+	@Category(name = "General", desc = "Features for all of SkyBlock.")
 	public GeneralCategory general = new GeneralCategory();
 
 	@Expose
-	@Category(name = "Inventory", desc = "Item prices in tooltips, rarity colours and numbers on items.")
+	@Category(name = "Inventory", desc = "Item prices and overlays.")
 	public InventoryCategory inventory = new InventoryCategory();
 
 	@Expose
@@ -33,7 +33,7 @@ public final class TazConfig extends Config {
 	public DungeonsCategory dungeons = new DungeonsCategory();
 
 	@Expose
-	@Category(name = "Floor 7", desc = "The Floor 7 / Master Mode 7 boss fight: tick timers, leap counter.")
+	@Category(name = "Floor 7", desc = "The Floor 7 and M7 boss.")
 	public Floor7Category floor7 = new Floor7Category();
 
 	@Expose
@@ -45,16 +45,23 @@ public final class TazConfig extends Config {
 	public FishingCategory fishing = new FishingCategory();
 
 	@Expose
-	@Category(name = "Galatea", desc = "Moonglade Marsh and Torrhus Canyon: trees, sweep, whispers, honeyhives, Ruby Veilshrooms, Sea Lumies, hunting mobs, Fairy Souls, island guide.")
+	@Category(name = "Galatea", desc = "Moonglade Marsh and Torrhus Canyon.")
 	public GalateaCategory galatea = new GalateaCategory();
 
 	@Expose
-	@Category(name = "SkyBlock XP", desc = "SkyBlock level and XP features.")
+	@Category(name = "SkyBlock XP", desc = "Your SkyBlock level.")
 	public SkyblockXpCategory skyblockXp = new SkyblockXpCategory();
 
 	/** Layout version of config.json, for Migration.upgradeConfigFile. */
 	@Expose
 	public int configVersion = CURRENT_VERSION;
+
+	/** Long descriptions make their option taller instead of shrinking the text. */
+	@Override
+	public io.github.notenoughupdates.moulconfig.DescriptionRendereringBehaviour getDescriptionBehaviour(
+			io.github.notenoughupdates.moulconfig.processor.ProcessedOption option) {
+		return io.github.notenoughupdates.moulconfig.DescriptionRendereringBehaviour.EXPAND_PANEL;
+	}
 
 	@Override
 	public StructuredText getTitle() {

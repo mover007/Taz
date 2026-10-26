@@ -44,7 +44,7 @@ public final class Predictor {
 	/** How many runs' worth of weight the built-in defaults get. Low: one real run already outweighs them. */
 	private static final double PRIOR_WEIGHT = 0.5;
 	private static final double DEFAULT_CLEAR_TARGET = 95;
-	private static final double MAX_LAG_FACTOR = 2.5;
+	private static final double MAX_LAG_FACTOR = 1.5;
 	/** Before the boss, pace and party change between sessions, so lean hard on the latest runs. */
 	private static final int CLEAR_WINDOW = 20;
 	private static final double CLEAR_DECAY = 0.85;
@@ -197,8 +197,12 @@ public final class Predictor {
 				? clearPhase(floor, t, h, hb, nowGame)
 				: fromMilestone(floor, t, hb, j, nowGame, tjGame);
 
-		// Remaining game time -> real time at the current TPS.
-		double lag = clamp(LagMonitor.NORMAL_TPS / tps, 1.0, MAX_LAG_FACTOR); // 1.0 when lag adjust is off
+		// Remaining game time -> real time at the run's own average slowdown so far (real time / server time). A short
+		// TPS window can't be trusted: warping into the boss stops the time packets for a moment, which read as
+		// heavy lag and once turned a 4:48 run's portal estimate into 10:05.
+		double lag = ModConfig.on(Feature.LAG_ADJUST) && !replayMode && nowGame > 10_000
+				? clamp((double) nowReal / nowGame, 1.0, MAX_LAG_FACTOR)
+				: 1.0;
 		long end = nowReal + (long) (Math.max(0, e.end() - nowGame) * lag);
 		long low = nowReal + (long) (Math.max(0, e.low() - nowGame) * lag);
 		long high = nowReal + (long) (Math.max(0, e.high() - nowGame) * lag);

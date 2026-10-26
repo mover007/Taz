@@ -24,12 +24,12 @@ import java.util.stream.Stream;
 /**
  * Quality-of-life features from Odin and NoammAddons. Parts: chatcommands, chattweaks, shortcuts, slotbinds, loadouts,
  * autorequeue, renderopt, tweaks, helditem, blockoverlay, soundvolumes, leapmenu, partyfinder, auctioninput, runextras, dungeonmap,
- * mapinfo, darkmode, storage ("qol" runs them all).
+ * mapinfo, darkmode, storage, predictor ("qol" runs them all).
  */
 public class QolGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"chatcommands", "chattweaks", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
 			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras", "dungeonmap", "mapinfo", "darkmode",
-			"storage"};
+			"storage", "predictor"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -68,6 +68,7 @@ public class QolGameTest implements FabricClientGameTest {
 			if (runs("mapinfo")) mapInfo();
 			if (runs("darkmode")) darkMode();
 			if (runs("storage")) storage();
+			if (runs("predictor")) predictor();
 		}
 		System.out.println("[QolGameTest] PASSED");
 	}
@@ -448,6 +449,25 @@ public class QolGameTest implements FabricClientGameTest {
 			mc.player.closeContainer();
 			Taz.config().general.storageOverlay.enabled = false;
 		});
+	}
+
+	private void predictor() {
+		check("predictor: a run whose tick clock started on another server uses its real times", ctx.computeOnClient(mc -> {
+			com.taz.dungeons.run.RunRecord bad = new com.taz.dungeons.run.RunRecord();
+			bad.floor = "M7";
+			bad.totalMs = 374_000;
+			bad.totalGameMs = 450_892;
+			bad.splits.put("BOSS_ENTER", 127_748L);
+			bad.gameSplits.put("BOSS_ENTER", 211_874L);
+			com.taz.dungeons.run.RunRecord good = new com.taz.dungeons.run.RunRecord();
+			good.floor = "M7";
+			good.totalMs = 240_000;
+			good.totalGameMs = 235_891;
+			good.splits.put("BOSS_ENTER", 82_051L);
+			good.gameSplits.put("BOSS_ENTER", 79_778L);
+			return bad.gameSplit(com.taz.dungeons.dungeon.Milestone.BOSS_ENTER) == 127_748L && bad.gameTotal() == 374_000L
+					&& good.gameSplit(com.taz.dungeons.dungeon.Milestone.BOSS_ENTER) == 79_778L && good.gameTotal() == 235_891L;
+		}));
 	}
 
 	private List<String> hudLines(Class<?> type) {

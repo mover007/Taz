@@ -50,7 +50,7 @@ public class ModConfig {
 	@ConfigEditorBoolean
 	public boolean enabled = false;
 
-	@ConfigOption(name = "Cheapest XP list", desc = "Every SkyBlock XP upgrade you haven't done, sorted by coins per XP.")
+	@ConfigOption(name = "Cheapest XP list", desc = "Every XP upgrade left, cheapest per XP first.")
 	@ConfigEditorButton(buttonText = "Open")
 	public transient Runnable openList = XpActions::openList;
 
@@ -58,11 +58,11 @@ public class ModConfig {
 	@ConfigEditorButton(buttonText = "Open")
 	public transient Runnable openPlan = () -> SkyblockXpAssist.openScreen(() -> new PlanScreen(null));
 
-	@ConfigOption(name = "NPC finder", desc = "Search any NPC, or an item to find who sells it, and track it through walls.")
+	@ConfigOption(name = "NPC finder", desc = "Find an NPC, or who sells an item, and track it.")
 	@ConfigEditorButton(buttonText = "Open")
 	public transient Runnable openNpcFinder = () -> SkyblockXpAssist.openScreen(() -> new NpcFinderScreen(null));
 
-	@ConfigOption(name = "Next upgrades in chat", desc = "Print the next cheapest upgrades in chat, with [Track] and buy buttons.")
+	@ConfigOption(name = "Next upgrades in chat", desc = "The next cheapest upgrades in chat, with buttons.")
 	@ConfigEditorButton(buttonText = "Print")
 	public transient Runnable printNext = () -> XpActions.next(this.hud.hudRows);
 
@@ -95,13 +95,12 @@ public class ModConfig {
 	@Accordion
 	public Tracker tracker = new Tracker();
 
-	@ConfigOption(name = "Progress", desc = "Refresh, sync help, hidden upgrades and debug tools.")
+	@ConfigOption(name = "Progress", desc = "Refresh, sync help and hidden upgrades.")
 	@Accordion
 	public transient Progress progress = new Progress();
 
+	/** Where prices, items and NPCs are downloaded from, and how often (not in the menu). */
 	@Expose
-	@ConfigOption(name = "Data Sources", desc = "Where prices, items and NPCs are downloaded from, and how often.")
-	@Accordion
 	public DataSources dataSources = new DataSources();
 
 	// Set by the XP list (right-click to hide, category toggles); not shown in the settings GUI.
@@ -111,11 +110,11 @@ public class ModConfig {
 	public Set<String> hiddenTasks = new LinkedHashSet<>();
 
 	public static final class Progress {
-		@ConfigOption(name = "Refresh data", desc = "Re-download prices, your profile and the item repo now. Happens by itself when you change the API key or profile.")
+		@ConfigOption(name = "Refresh data", desc = "Download prices and your profile again now.")
 		@ConfigEditorButton(buttonText = "Refresh")
 		public transient Runnable refresh = XpActions::refresh;
 
-		@ConfigOption(name = "How to sync", desc = "Print which in-game menus to open once to catch up on progress from before you installed Taz.")
+		@ConfigOption(name = "How to sync", desc = "Which menus to open once to catch up your progress.")
 		@ConfigEditorButton(buttonText = "Show")
 		public transient Runnable sync = XpActions::sync;
 
@@ -123,11 +122,7 @@ public class ModConfig {
 		@ConfigEditorButton(buttonText = "Unhide")
 		public transient Runnable unhide = XpActions::unhideAll;
 
-		@ConfigOption(name = "Save next menu", desc = "Write the next menu you open to config/taz/xpassist/dumps (useful if Hypixel changes a menu and syncing breaks).")
-		@ConfigEditorButton(buttonText = "Arm")
-		public transient Runnable dump = XpActions::dumpNextMenu;
-
-		@ConfigOption(name = "Forget seen progress", desc = "§cClear the progress Taz saw in game for this profile.§7 Click twice to confirm.")
+		@ConfigOption(name = "Forget seen progress", desc = "§cClears what Taz saw in game.§7 Click twice.")
 		@ConfigEditorButton(buttonText = "Clear")
 		public transient Runnable forget = XpActions::forgetProgress;
 	}
@@ -223,8 +218,6 @@ public class ModConfig {
 		public boolean useEliteBot = true;
 
 		@Expose
-		@ConfigOption(name = "EliteBot API", desc = "Base URL of the EliteBot API.")
-		@ConfigEditorText
 		public String eliteApiBase = "https://api.elitebot.dev";
 	}
 

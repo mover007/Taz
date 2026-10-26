@@ -90,7 +90,7 @@ public final class DungeonMapConfig {
 	@ConfigEditorBoolean
 	public boolean hideInBoss = false;
 
-	@ConfigOption(name = "Move map", desc = "Opens the HUD editor (every Taz HUD): drag to move, scroll to resize.")
+	@ConfigOption(name = "Move map", desc = "Drag it to move, scroll to resize.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable editHud = TazHud::openEditor;
 

@@ -67,7 +67,7 @@ public final class SkillIssueConfig {
 	@ConfigEditorBoolean
 	public boolean yourself = true;
 
-	@ConfigOption(name = "Try it", desc = "Shows you a few jokes and an excuse Taz could make (nothing is sent).")
+	@ConfigOption(name = "Try it", desc = "Shows a few jokes Taz could send (nothing is sent).")
 	@ConfigEditorButton(buttonText = "Try")
 	public transient Runnable sample = SkillIssue::sample;
 

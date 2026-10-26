@@ -91,11 +91,15 @@ public final class Taz implements ClientModInitializer {
 
 	private static ManagedConfig<TazConfig> config;
 	private static final KeyWatcher SETTINGS_KEY = new KeyWatcher();
-	private static final KeyWatcher HUD_KEY = new KeyWatcher();
 	private static Supplier<Screen> pendingScreen;
 	/** True once every feature has started (the first save happens before that). */
 	private static boolean started;
 	private static boolean openSettingsNextTick;
+	/** The settings GUI, kept for the session so /taz reopens on the same page, scrolled to the same spot. */
+	private static MoulConfigEditor<TazConfig> editor;
+	private static net.minecraft.client.multiplayer.ClientLevel lastLevel;
+	/** Developer tools (debug files, logs, backtests): only with -Dtaz.dev=true. */
+	public static final boolean DEV = Boolean.getBoolean("taz.dev");
 	private static String settingsCategory;
 	/** The settings as last written to config.json, to see whether anything changed since. */
 	private static String lastSavedJson;
@@ -274,6 +278,7 @@ public final class Taz implements ClientModInitializer {
 	public static void reloadConfig() {
 		config.reloadFromFile();
 		config.rebuildConfigProcessor();
+		editor = null;
 		config().saveRunnables.add(Taz::onSaved);
 		openSettings("About"); // reopen on the new settings, or edits would go to the old copy
 	}
@@ -284,9 +289,16 @@ public final class Taz implements ClientModInitializer {
 		openSettingsNextTick = true;
 	}
 
-	/** The settings GUI as a screen, opened at a category by its name (or the first one when null). */
+	/** The settings page open (or last open), by name. */
+	public static String settingsPage() {
+		if (editor == null || editor.getSelectedCategory() == null) return null;
+		ProcessedCategory c = editor.getAllCategories().get(editor.getSelectedCategory());
+		return c == null ? null : c.getDisplayName().getText();
+	}
+
+	/** The settings GUI as a screen, opened at a category by its name (or where you left it when null). */
 	public static Screen settingsScreen(Screen parent, String category) {
-		MoulConfigEditor<TazConfig> editor = config.getEditor();
+		if (editor == null) editor = config.getEditor();
 		if (category != null) {
 			for (ProcessedCategory c : editor.getAllCategories().values()) {
 				if (c.getDisplayName().getText().equalsIgnoreCase(category)) {
@@ -452,7 +464,10 @@ public final class Taz implements ClientModInitializer {
 
 	private static void tick(Minecraft mc) {
 		if (SETTINGS_KEY.pressed(mc, config().about.settingsKey)) openSettings(null);
-		if (HUD_KEY.pressed(mc, config().about.hudEditorKey)) openScreenNextTick(TazHudEditor::new);
+		if (mc.level != lastLevel) {
+			lastLevel = mc.level;
+			com.taz.dungeons.util.LagMonitor.reset();
+		}
 		if (pendingScreen != null) {
 			Supplier<Screen> screen = pendingScreen;
 			pendingScreen = null;

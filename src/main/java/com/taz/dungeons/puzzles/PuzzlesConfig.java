@@ -128,7 +128,7 @@ public final class PuzzlesConfig {
 	@ConfigEditorBoolean
 	public boolean draftPrompt = true;
 
-	@ConfigOption(name = "Quiz timer position", desc = "Opens the HUD editor (every Taz HUD): drag to move, scroll to resize.")
+	@ConfigOption(name = "Quiz timer position", desc = "Drag it to move, scroll to resize.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable editHud = TazHud::openEditor;
 

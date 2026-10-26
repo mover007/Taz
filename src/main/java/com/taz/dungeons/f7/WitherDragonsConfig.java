@@ -52,7 +52,7 @@ public final class WitherDragonsConfig {
 	@ConfigEditorBoolean
 	public boolean aliveTime = true;
 
-	@ConfigOption(name = "Timer HUD position", desc = "Opens the HUD editor (every Taz HUD): drag to move, scroll to resize.")
+	@ConfigOption(name = "Timer HUD position", desc = "Drag it to move, scroll to resize.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable editHud = TazHud::openEditor;
 

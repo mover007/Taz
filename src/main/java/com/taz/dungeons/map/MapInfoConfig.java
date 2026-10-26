@@ -37,7 +37,7 @@ public final class MapInfoConfig {
 	@ConfigEditorBoolean
 	public boolean hideInBoss = true;
 
-	@ConfigOption(name = "Move HUDs", desc = "Opens the HUD editor (every Taz HUD): drag to move, scroll to resize.")
+	@ConfigOption(name = "Move HUDs", desc = "Drag them to move, scroll to resize.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable editHud = TazHud::openEditor;
 

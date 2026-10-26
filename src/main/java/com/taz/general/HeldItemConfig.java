@@ -99,7 +99,7 @@ public final class HeldItemConfig {
 	@ConfigEditorBoolean
 	public boolean terminatorOnly = false;
 
-	@ConfigOption(name = "Copy from NoammAddons", desc = "Copies these values from your NoammAddons Animations settings.")
+	@ConfigOption(name = "Copy from NoammAddons", desc = "Copies your NoammAddons Animations values.")
 	@ConfigEditorButton(buttonText = "Copy")
 	public transient Runnable importNoamm = HeldItem::importFromNoamm;
 

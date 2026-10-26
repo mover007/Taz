@@ -52,10 +52,26 @@ public class SettingsGuiGameTest implements FabricClientGameTest {
 				check("/sbxp removed", root.getChild("sbxp") == null);
 			});
 
-			// Keybinds set in the GUI work in game: Right Shift opens the HUD editor (every Taz HUD).
+			// The HUD editor opens from /taz (About > Move HUDs), not from a key.
 			ctx.getInput().holdKeyFor(GLFW.GLFW_KEY_RIGHT_SHIFT, 2);
 			ctx.waitTicks(3);
-			check("HUD editor key opens the editor", ctx.computeOnClient(mc -> mc.screen instanceof TazHudEditor));
+			check("Right Shift does nothing", ctx.computeOnClient(mc -> mc.screen == null));
+			ctx.runOnClient(mc -> com.taz.hud.TazHud.openEditor());
+			ctx.waitTicks(3);
+			check("Move HUDs opens the editor", ctx.computeOnClient(mc -> mc.screen instanceof TazHudEditor));
+			ctx.runOnClient(mc -> mc.setScreen(null));
+			ctx.waitTicks(2);
+
+			// /taz reopens where you left it.
+			ctx.runOnClient(mc -> mc.setScreen(Taz.settingsScreen(null, "Floor 7")));
+			ctx.waitTicks(3);
+			ctx.runOnClient(mc -> mc.setScreen(null));
+			ctx.waitTicks(2);
+			ctx.runOnClient(mc -> mc.setScreen(Taz.settingsScreen(null, null)));
+			ctx.waitTicks(3);
+			check("/taz reopens on the same page (" + ctx.computeOnClient(mc -> Taz.settingsPage()) + ")",
+					"Floor 7".equals(ctx.computeOnClient(mc -> Taz.settingsPage())));
+			ctx.takeScreenshot("taz-settings-reopened");
 			ctx.runOnClient(mc -> mc.setScreen(null));
 			ctx.waitTicks(2);
 		}
@@ -128,7 +144,6 @@ public class SettingsGuiGameTest implements FabricClientGameTest {
 					&& "main".equals(cfg.skyblockXp.xpAssist.dataSources.neuRepoBranch));
 			check("upgrade: hidden upgrades kept", cfg.skyblockXp.xpAssist.hiddenTasks.contains("museum:CHICKEN_AXE"));
 			check("upgrade: XP Assist on by default", cfg.skyblockXp.xpAssist.enabled);
-			check("upgrade: HUD editor key moved to About", cfg.about.hudEditorKey == 345);
 			check("upgrade: version bumped", cfg.configVersion == TazConfig.CURRENT_VERSION);
 			check("upgrade: old file backed up", Files.exists(dir.resolve("config.json.bak-v1")));
 		} catch (java.io.IOException e) {

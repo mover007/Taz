@@ -54,7 +54,7 @@ public final class SecretsConfig {
 	@ConfigEditorBoolean
 	public boolean defaultRoutes = true;
 
-	@ConfigOption(name = "Import from clipboard", desc = "Copy an Odin waypoint export (or its JSON, or a link to one) and press this.")
+	@ConfigOption(name = "Import from clipboard", desc = "Copy an Odin waypoint export, then press this.")
 	@ConfigEditorButton(buttonText = "Import")
 	public transient Runnable importClipboard = SecretTrainer::importFromClipboard;
 
@@ -63,7 +63,7 @@ public final class SecretsConfig {
 	@ConfigEditorButton(buttonText = "Import")
 	public transient Runnable importOdin = SecretTrainer::importFromOdin;
 
-	@ConfigOption(name = "Export to clipboard", desc = "Copy every route in use as an Odin waypoint export, to share or load into Odin.")
+	@ConfigOption(name = "Export to clipboard", desc = "Copies your routes as an Odin waypoint export.")
 	@ConfigEditorButton(buttonText = "Export")
 	public transient Runnable export = SecretTrainer::exportToClipboard;
 
@@ -71,7 +71,7 @@ public final class SecretsConfig {
 	@ConfigEditorButton(buttonText = "List")
 	public transient Runnable list = SecretTrainer::listPacks;
 
-	@ConfigOption(name = "Remove imported routes", desc = "Forget every pack you imported (click twice). Taz's own routes stay.")
+	@ConfigOption(name = "Remove imported routes", desc = "Forgets the packs you imported (click twice).")
 	@ConfigEditorButton(buttonText = "Remove")
 	public transient Runnable remove = () -> {
 		if (TazChat.confirm("removesecrets", "forget every secret route pack you imported")) SecretTrainer.removeImported();
@@ -113,7 +113,7 @@ public final class SecretsConfig {
 		if (TazChat.confirm("secretbest", "forget every room's best time")) SecretTrainer.resetBest();
 	};
 
-	@ConfigOption(name = "Move HUD", desc = "Opens the HUD editor (every Taz HUD): drag to move, scroll to resize.")
+	@ConfigOption(name = "Move HUD", desc = "Drag it to move, scroll to resize.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable moveHud = TazHud::openEditor;
 

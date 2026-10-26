@@ -59,7 +59,7 @@ public final class RouteConfig {
 	@ConfigEditorButton(buttonText = "Import")
 	public transient Runnable importRoute = RouteAssist::importFromClipboard;
 
-	@ConfigOption(name = "Export to clipboard", desc = "Copy this island's route in Skyblocker's format, to share or load into Skyblocker.")
+	@ConfigOption(name = "Export to clipboard", desc = "Copies this island's route for Skyblocker.")
 	@ConfigEditorButton(buttonText = "Export")
 	public transient Runnable exportRoute = RouteAssist::exportToClipboard;
 
@@ -108,7 +108,7 @@ public final class RouteConfig {
 		if (TazChat.confirm("routebest", "forget this route's best times")) RouteAssist.resetBest();
 	};
 
-	@ConfigOption(name = "Move HUD", desc = "Opens the HUD editor (every Taz HUD): drag to move, scroll to resize.")
+	@ConfigOption(name = "Move HUD", desc = "Drag it to move, scroll to resize.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable moveHud = TazHud::openEditor;
 

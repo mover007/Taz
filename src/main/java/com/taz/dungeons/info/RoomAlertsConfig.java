@@ -28,7 +28,7 @@ public final class RoomAlertsConfig {
 	@ConfigEditorSlider(minValue = 0.5f, maxValue = 3, minStep = 0.1f)
 	public float seconds = 2;
 
-	@ConfigOption(name = "Move HUD", desc = "Opens the HUD editor (every Taz HUD): drag to move, scroll to resize.")
+	@ConfigOption(name = "Move HUD", desc = "Drag it to move, scroll to resize.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable moveHud = TazHud::openEditor;
 

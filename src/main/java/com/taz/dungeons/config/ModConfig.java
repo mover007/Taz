@@ -13,7 +13,6 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
-import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorText;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 
 import java.nio.file.Path;
@@ -58,26 +57,26 @@ public final class ModConfig {
 	}
 
 	@Expose
-	@ConfigOption(name = "Enabled", desc = "Turn every dungeon feature off without uninstalling anything.")
+	@ConfigOption(name = "Enabled", desc = "A run timer, your estimated end time, live score and splits for every Catacombs run.")
 	@ConfigEditorBoolean
 	public boolean enabled = false;
 
-	@ConfigOption(name = "Move HUD", desc = "Opens the HUD editor (every Taz HUD): drag panels, scroll to resize, right-click to hide.")
+	@ConfigOption(name = "Move HUD", desc = "Drag panels to move, scroll to resize, right-click to hide.")
 	@ConfigEditorButton(buttonText = "Edit")
 	public transient Runnable moveHud = DungeonPredictorClient::openEditor;
 
-	@ConfigOption(name = "Stats", desc = "PB, median, typical range and estimate accuracy per floor, plus each phase's times.")
+	@ConfigOption(name = "Stats", desc = "Your PB, usual times and estimate accuracy per floor.")
 	@ConfigEditorButton(buttonText = "Open")
 	public transient Runnable stats = DungeonPredictorClient::openStats;
 
-	@ConfigOption(name = "Simple preset", desc = "Elapsed time, then the end time when you enter the portal. Nothing else.")
+	@ConfigOption(name = "Simple preset", desc = "Just the run time, and the end time at the portal.")
 	@ConfigEditorButton(buttonText = "Apply")
 	public transient Runnable simplePreset = () -> {
 		applySimplePreset();
 		Taz.save();
 	};
 
-	@ConfigOption(name = "Everything on", desc = "Every HUD line, panel and chat message (party messages, Paul and debug stay off).")
+	@ConfigOption(name = "Everything on", desc = "Every HUD line, panel and chat message.")
 	@ConfigEditorButton(buttonText = "Apply")
 	public transient Runnable everythingPreset = () -> {
 		applyEverythingPreset();
@@ -104,55 +103,30 @@ public final class ModConfig {
 	@Accordion
 	public Party party = new Party();
 
+	/** Lag adjustment, learning from chat logs and the developer files: not in the menu. */
 	@Expose
-	@ConfigOption(name = "Other", desc = "Lag adjustment, learning from chat logs and debug files.")
-	@Accordion
 	public Other other = new Other();
 
 	@Expose
-	@ConfigOption(name = "Tools", desc = "Backtest, demo run, export and clear history, for one floor.")
-	@Accordion
-	public Tools tools = new Tools();
-
-	@Expose
-	@ConfigOption(name = "Advanced", desc = "How long the HUD stays after a run, and which runs count for predictions.")
+	@ConfigOption(name = "After a run", desc = "How long the HUD stays up when a run ends.")
 	@Accordion
 	public Advanced advanced = new Advanced();
+
+	@Expose
+	@ConfigOption(name = "History", desc = "Delete a floor's recorded runs.")
+	@Accordion
+	public Tools tools = new Tools();
 
 	@Expose
 	public Map<String, PanelConfig> panels = new LinkedHashMap<>();
 
 	public static final class Tools {
 		@Expose
-		@ConfigOption(name = "Floor", desc = "The floor the buttons below work on.")
+		@ConfigOption(name = "Floor", desc = "The floor to delete runs from.")
 		@ConfigEditorDropdown
 		public Floor floor = Floor.M7;
 
-		@ConfigOption(name = "Backtest", desc = "Replay your past runs on the floor and print in chat how close the estimates were.")
-		@ConfigEditorButton(buttonText = "Run")
-		public transient Runnable backtest = () -> DungeonTools.backtest(this.floor);
-
-		@ConfigOption(name = "Demo run", desc = "Start a fake run on the floor to preview the HUD. Never saved.")
-		@ConfigEditorButton(buttonText = "Start")
-		public transient Runnable demoStart = () -> DungeonTools.startDemo(this.floor);
-
-		@ConfigOption(name = "Demo: next phase", desc = "Move the demo run on to its next phase.")
-		@ConfigEditorButton(buttonText = "Next")
-		public transient Runnable demoNext = DungeonTools::demoNext;
-
-		@ConfigOption(name = "Demo: stop", desc = "End the demo run (also resets a stuck run timer).")
-		@ConfigEditorButton(buttonText = "Stop")
-		public transient Runnable demoStop = DungeonTools::stopDemo;
-
-		@ConfigOption(name = "Export history", desc = "Write every recorded run to config/taz/dungeons/history.csv for spreadsheets.")
-		@ConfigEditorButton(buttonText = "Export")
-		public transient Runnable export = DungeonTools::exportCsv;
-
-		@ConfigOption(name = "Reload files", desc = "Re-read triggers.json and history.json after editing them by hand.")
-		@ConfigEditorButton(buttonText = "Reload")
-		public transient Runnable reloadFiles = DungeonTools::reloadFiles;
-
-		@ConfigOption(name = "Clear floor history", desc = "§cDelete every recorded run on the floor.§7 Click twice to confirm.")
+		@ConfigOption(name = "Delete floor history", desc = "§cDeletes every run on that floor.§7 Click twice.")
 		@ConfigEditorButton(buttonText = "Delete")
 		public transient Runnable clearHistory = () -> DungeonTools.clearHistory(this.floor);
 	}
@@ -163,9 +137,8 @@ public final class ModConfig {
 		@ConfigEditorSlider(minValue = 5, maxValue = 120, minStep = 5)
 		public int resultSeconds = 30;
 
+		/** Runs before this date (yyyy-MM-dd) are ignored for predictions. */
 		@Expose
-		@ConfigOption(name = "History cutoff", desc = "Runs before this date (yyyy-MM-dd) are ignored for predictions, e.g. after a patch changes timings.")
-		@ConfigEditorText
 		public String historyCutoff = DEFAULT_HISTORY_CUTOFF;
 	}
 
@@ -332,13 +305,10 @@ public final class ModConfig {
 		@ConfigOption(name = "New PB!", desc = "Say \"New PB!\" when you beat your best.")
 		@ConfigEditorBoolean
 		public boolean pb = true;
+		/** Developer messages (only with -Dtaz.dev=true). */
 		@Expose
-		@ConfigOption(name = "Missed-phase warning", desc = "Say if a boss phase wasn't detected.")
-		@ConfigEditorBoolean
 		public boolean missed = false;
 		@Expose
-		@ConfigOption(name = "Debug: every phase", desc = "Print each phase as it's detected.")
-		@ConfigEditorBoolean
 		public boolean debug = false;
 	}
 
@@ -359,20 +329,13 @@ public final class ModConfig {
 
 	public static final class Other {
 		@Expose
-		@ConfigOption(name = "Adjust for server lag", desc = "Measure TPS and stretch estimates when the server lags.")
-		@ConfigEditorBoolean
 		public boolean lagAdjust = true;
 		@Expose
-		@ConfigOption(name = "Learn from chat logs", desc = "On startup, rebuild past runs from Minecraft's chat logs.")
-		@ConfigEditorBoolean
 		public boolean logImport = true;
+		/** Developer files (only with -Dtaz.dev=true). */
 		@Expose
-		@ConfigOption(name = "Save boss lines", desc = "Write new boss dialogue to config/taz/dungeons/boss-lines.log.")
-		@ConfigEditorBoolean
 		public boolean bossLineLog = true;
 		@Expose
-		@ConfigOption(name = "Diagnostics file", desc = "Write raw sidebar/tab text to config/taz/dungeons/debug-scoreboard.txt.")
-		@ConfigEditorBoolean
 		public boolean diagnostics = true;
 	}
 
@@ -430,12 +393,12 @@ public final class ModConfig {
 			case CHAT_SUMMARY_SCORE -> c.chat.summaryScore;
 			case CHAT_GOLD_SPLITS -> c.chat.goldSplits;
 			case CHAT_PB -> c.chat.pb;
-			case CHAT_MISSED -> c.chat.missed;
-			case CHAT_DEBUG -> c.chat.debug;
+			case CHAT_MISSED -> Taz.DEV && c.chat.missed;
+			case CHAT_DEBUG -> Taz.DEV && c.chat.debug;
 			case LAG_ADJUST -> c.other.lagAdjust;
 			case LOG_IMPORT -> c.other.logImport;
-			case BOSS_LINE_LOG -> c.other.bossLineLog;
-			case DIAGNOSTICS -> c.other.diagnostics;
+			case BOSS_LINE_LOG -> Taz.DEV && c.other.bossLineLog;
+			case DIAGNOSTICS -> Taz.DEV && c.other.diagnostics;
 		};
 	}
 

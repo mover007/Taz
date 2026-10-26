@@ -472,7 +472,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 	// ---- recorder
 
 	private void recorder() {
-		ctx.runOnClient(mc -> Taz.config().about.recordGalatea = true);
+		ctx.runOnClient(mc -> com.taz.foraging.GalateaRecorder.testOn = true);
 		cmd("title @p actionbar " + new JsonPrimitive("1,000/5,000❤     Pressure: 45%     100/100✎ Mana"));
 		cmd("title @p title " + new JsonPrimitive("TOO DEEP!"));
 		cmd("scoreboard objectives add taztest dummy \"SKYBLOCK\"");

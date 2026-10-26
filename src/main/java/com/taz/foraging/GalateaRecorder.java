@@ -22,6 +22,9 @@ import java.util.regex.Pattern;
  * count once. About > "Log Galatea HUD text".
  */
 public final class GalateaRecorder {
+	/** Tests: record without the developer flag. */
+	public static boolean testOn;
+
 	private static final Pattern NUMBERS = Pattern.compile("\\d[\\d,.]*");
 	private static final Pattern GAPS = Pattern.compile(" {3,}");
 	private static final int MAX = 600;
@@ -32,7 +35,7 @@ public final class GalateaRecorder {
 	}
 
 	private static boolean on() {
-		return Taz.config().about.recordGalatea && Galatea.onIslands();
+		return (Taz.DEV || testOn) && Galatea.onIslands();
 	}
 
 	/** Every client tick: the sidebar, every 2 seconds. */
