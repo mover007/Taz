@@ -122,7 +122,7 @@ public final class Critters {
 			new QuestItem("Soothing Incense", "light one of the 4 candles at the Ritual under the Haunted biome (all 4 bring the "
 					+ "Doomspiral)", "Ritual", List.of("Doomspiral")),
 			new QuestItem("Shining Coin", "throw it into the water in the Haunted mansion's basement for a Gimmiegold",
-					"Luigis Mansion 64", List.of("Gimmiegold")),
+					"Basement water", List.of("Gimmiegold")),
 			new QuestItem("Icebreaker", "break an ice wall in the Icy biome to get to a Troodon", null, List.of("Troodon")),
 			new QuestItem("Purple Gem", "put it on its pedestal at the Gem Podiums in the Cavern (all 3 gems bring 3 Gemzies)", "Gem Podiums", GEMZIE),
 			new QuestItem("Lime Gem", "put it on its pedestal at the Gem Podiums in the Cavern (all 3 gems bring 3 Gemzies)", "Gem Podiums", GEMZIE),

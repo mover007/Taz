@@ -997,6 +997,17 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.waitTicks(2);
 		check("safari finds: a drop whose strings go is gone that tick", ctx.computeOnClient(mc -> SafariFinds.drops().isEmpty()));
 
+		Vec3 walkway = ctx.computeOnClient(mc -> SafariSpots.task("Gimmiegold").spots().get(0));
+		check("safari way: a Shining Coin goes to the mansion basement (" + walkway + ")", walkway.y() < 66);
+		cmd("fill 3 59 -56 7 61 -54 glass hollow"); // a pool, so the water stays put
+		for (int wx = 4; wx <= 6; wx++) setblock(new BlockPos(wx, 60, -55), "water");
+		ctx.waitTicks(50);
+		ctx.runOnClient(mc -> SafariSpots.task("Gimmiegold"));
+		ctx.waitTicks(2);
+		Vec3 water = ctx.computeOnClient(mc -> SafariSpots.task("Gimmiegold").spots().get(0));
+		check("safari way: ...and once it's loaded, the middle of its water (" + water + ")", water.equals(new Vec3(5.5, 60.5, -54.5)));
+		cmd("fill 3 59 -56 7 61 -54 air");
+
 		cmd("kill @e[type=item_display]");
 		ctx.runOnClient(mc -> {
 			SafariHelper.testWhere = null;

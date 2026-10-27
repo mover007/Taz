@@ -2,8 +2,11 @@ package com.taz.foraging.safari;
 
 import com.taz.foraging.BlockFinder;
 import com.taz.foraging.safari.Critters.Biome;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BedPart;
@@ -56,6 +59,14 @@ public final class SafariSpots {
 	/** Lily pads and wheat in the loaded chunks: broken in the Cavern, they're Scrappy food. */
 	public static final BlockFinder LILY_PADS = new BlockFinder(s -> s.is(Blocks.LILY_PAD));
 	public static final BlockFinder WHEAT = new BlockFinder(s -> s.is(Blocks.WHEAT));
+	/** The mansion's basement, under its ground floor: a Shining Coin thrown in its water brings a Gimmiegold. */
+	private static final BlockPos BASEMENT_FROM = new BlockPos(-15, 55, -70), BASEMENT_TO = new BlockPos(26, 66, -44);
+	/** The middle of the basement walkway on SkyHanni's map, until the water itself is found. */
+	private static final Vec3 BASEMENT_WALKWAY = new Vec3(-1.5, 62, -50.5);
+	private static Vec3 basementWater;
+	private static ClientLevel basementLevel;
+	private static long basementLooked;
+
 	/** Test hook: lily pads and wheat count wherever they are. */
 	public static boolean testFoodAnywhere;
 
@@ -88,7 +99,7 @@ public final class SafariSpots {
 			case "Bluebird", "Parakeet", "Macaw" -> new Task("feed the Birdfeeder your bait", named("Birdfeeder"), "bait");
 			case "Doomspiral" -> new Task("light a candle with your Soothing Incense", named("Ritual"), "incense");
 			case "Gemzie" -> new Task("put your gem on its pedestal", named("Gem Podiums"), "gem");
-			case "Gimmiegold" -> new Task("throw your Shining Coin in the basement water", named("Luigis Mansion 64"), "coin");
+			case "Gimmiegold" -> new Task("throw your Shining Coin in the basement water", basementWater(), "coin");
 			default -> null;
 		};
 	}
@@ -145,6 +156,48 @@ public final class SafariSpots {
 			}
 		}
 		return searchPoints.get(biome);
+	}
+
+	/**
+	 * Where to throw a Shining Coin: the middle of the water in the mansion's basement, looked for (every 2 seconds
+	 * until found) once the basement is loaded; the basement walkway before that.
+	 */
+	public static List<Vec3> basementWater() {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null) return List.of(BASEMENT_WALKWAY);
+		if (mc.level != basementLevel) {
+			basementLevel = mc.level;
+			basementWater = null;
+			basementLooked = 0;
+		}
+		long now = System.currentTimeMillis();
+		if (basementWater == null && now - basementLooked > 2000) {
+			basementLooked = now;
+			basementWater = findWater(mc.level);
+		}
+		return List.of(basementWater != null ? basementWater : BASEMENT_WALKWAY);
+	}
+
+	private static Vec3 findWater(ClientLevel level) {
+		if (!level.isLoaded(BASEMENT_FROM) || !level.isLoaded(BASEMENT_TO)
+				|| !level.isLoaded(new BlockPos(BASEMENT_FROM.getX(), 60, BASEMENT_TO.getZ())) || !level.isLoaded(new BlockPos(BASEMENT_TO.getX(), 60, BASEMENT_FROM.getZ()))) {
+			return null;
+		}
+		List<BlockPos> water = new ArrayList<>();
+		for (BlockPos p : BlockPos.betweenClosed(BASEMENT_FROM, BASEMENT_TO)) {
+			if (level.getFluidState(p).is(FluidTags.WATER)) water.add(p.immutable());
+		}
+		if (water.isEmpty()) return null;
+		double x = 0, y = 0, z = 0;
+		for (BlockPos p : water) {
+			x += p.getX();
+			y += p.getY();
+			z += p.getZ();
+		}
+		Vec3 middle = new Vec3(x / water.size() + 0.5, y / water.size() + 0.5, z / water.size() + 0.5);
+		BlockPos best = water.get(0);
+		for (BlockPos p : water) if (Vec3.atCenterOf(p).distanceToSqr(middle) < Vec3.atCenterOf(best).distanceToSqr(middle)) best = p;
+		return Vec3.atCenterOf(best);
 	}
 
 	/** The map's floor-drop spots in a biome (where drops can be; each run has some of them). */
