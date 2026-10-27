@@ -44,7 +44,8 @@ import java.util.regex.Pattern;
 /**
  * The Critter Safari helper. Hypixel labels each critter with a name-tag entity whose name is exactly the critter's
  * ("Foxtrot", "SPARKLING Foxtrot") just above its body (a mob, an armour stand wearing it, or a display entity), so
- * Taz reads the labels, finds each body and makes the ones you still need glow, with its own name tag. Catches come
+ * Taz reads the labels (critterMod's way: colours and Hypixel's icon glyphs stripped, the body the nearest mob within 3
+ * blocks), then boxes the ones you still need and makes them glow, with its own name tag. Catches come
  * from chat: "CAPTURE! You caught a Foxtrot and gained 2x Foxtrot Shard!" (yours) and "LOOT SHARE! You received a
  * Foxtrot Shard from Steve catching a Foxtrot!" (a party member's). A run is one Safari instance, so it starts over in
  * every new world. Chat patterns and how critters are built from critterMod (MrCloudy2, MIT).
@@ -60,6 +61,8 @@ public final class SafariHelper {
 	/** The Safari closes about an hour after it opens, whatever's left. */
 	public static final long RUN_MS = 60 * 60_000L;
 	private static final int LOW_CAPSULES = 5;
+	/** How far from its name tag a critter's body can be (critterMod pairs them within 3 blocks). */
+	private static final double BODY_RANGE = 3.0;
 
 	private static final Pattern LOOT_SHARE = Pattern.compile("^LOOT SHARE! .* from (\\w{1,16}) (?:catching|finding) .+!$");
 	private static final Pattern HOTSPOT = Pattern.compile("^HOTSPOT! Your Hunting Hotspot is the (\\w+) Biome!$");
@@ -75,6 +78,8 @@ public final class SafariHelper {
 	/** Entity id -> glow colour, rebuilt with each look round. */
 	private static final Map<Integer, Integer> GLOW = new HashMap<>();
 	private static final Set<Integer> SPARKLING_SEEN = new HashSet<>();
+	/** Critter-like name tags Taz couldn't read, written to the log once each. */
+	private static final Set<String> MISSED = new HashSet<>();
 
 	private static ClientLevel runLevel;
 	private static long runStart;
@@ -209,6 +214,7 @@ public final class SafariHelper {
 		CAUGHT_RUN.clear();
 		BIOMES_TOLD.clear();
 		SPARKLING_SEEN.clear();
+		MISSED.clear();
 		hotspot = null;
 		welcomed = toldTen = toldTwo = toldLow = toldOut = false;
 		capsules = -1;
@@ -259,7 +265,14 @@ public final class SafariHelper {
 				c = Critters.named(name.replaceAll("(?i)sparkling", "").replaceAll("[^A-Za-z ]", "").trim());
 				sparkling = c != null;
 			}
-			if (c == null) continue;
+			if (c == null) {
+				// Says in the game log how a critter-like name tag Taz couldn't read really looks, so it can be fixed.
+				if (Critters.findIn(name) != null && MISSED.add(name)) {
+					Taz.LOGGER.info("Safari: name tag not matched: \"{}\" ({})", escaped(label.getCustomName() == null ? name
+							: label.getCustomName().getString()), label.getType().toShortString());
+				}
+				continue;
+			}
 			// A capture puts a stand with the critter's name next to one called CAPTURING: that one's already caught.
 			if (capturing.stream().anyMatch(p -> p.distanceToSqr(label.position()) < 2.5 * 2.5)) continue;
 			found.add(new Sighting(c, label, body(mc, label), sparkling));
@@ -277,48 +290,94 @@ public final class SafariHelper {
 
 	/** A name tag's text, or null. Hypixel's NPC players (version 2 ids) count; real players don't. */
 	private static String labelName(Minecraft mc, Entity e) {
-		if (e.hasCustomName()) return TextUtil.cleanChat(e.getCustomName().getString()).trim();
-		if (e instanceof Player p && p != mc.player && p.getUUID().version() == 2) return p.getName().getString();
+		if (e.hasCustomName()) return cleanName(e.getCustomName().getString());
+		if (e instanceof Player p && p != mc.player && p.getUUID().version() == 2) return cleanName(p.getName().getString());
 		return null;
 	}
 
-	/** The critter under a name tag: a mob first, then an armour stand wearing it, then a display entity. */
+	/**
+	 * A name tag's text with nothing but the name: no colours, none of the icon glyphs Hypixel's resource pack draws
+	 * (private-use characters, as critterMod strips them) and no symbols round it.
+	 */
+	public static String cleanName(String raw) {
+		String text = TextUtil.cleanChat(raw).replaceAll("[\\p{Cf}\\p{Co}]", "");
+		return text.replaceAll("^[^A-Za-z]+|[^A-Za-z]+$", "");
+	}
+
+	/** "Foxtrot" for the log. */
+	private static String escaped(String text) {
+		StringBuilder sb = new StringBuilder();
+		for (char ch : text.toCharArray()) {
+			if (ch >= 32 && ch < 127) sb.append(ch);
+			else sb.append(String.format("\\u%04X", (int) ch));
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * The critter under a name tag. As in critterMod: the nearest mob within 3 blocks of the tag. Where there's none, a
+	 * prop that is the critter (one of Hypixel's NPC players, an armour stand wearing it, or a display entity) right
+	 * under the tag: props stand close together, so one a block to the side is another critter's.
+	 */
 	private static Entity body(Minecraft mc, Entity label) {
 		if (label instanceof LivingEntity && !(label instanceof ArmorStand)) return label;
 		Vec3 p = label.position();
-		AABB box = new AABB(p.x - 1.5, p.y - 3.5, p.z - 1.5, p.x + 1.5, p.y + 0.5, p.z + 1.5);
-		Entity best = null;
-		int bestRank = Integer.MAX_VALUE;
-		double bestDist = Double.MAX_VALUE;
-		for (Entity e : mc.level.getEntities(label, box)) {
-			int rank = rank(mc, e);
-			if (rank < 0) continue;
-			double d = e.position().distanceToSqr(p);
-			if (rank < bestRank || rank == bestRank && d < bestDist) {
-				best = e;
-				bestRank = rank;
-				bestDist = d;
+		Entity mob = null, prop = null;
+		double mobDist = BODY_RANGE * BODY_RANGE, propScore = Double.MAX_VALUE;
+		for (Entity e : mc.level.getEntities(label, new AABB(p, p).inflate(BODY_RANGE))) {
+			Vec3 q = e.position();
+			if (isMob(mc, e)) {
+				double d = q.distanceToSqr(p);
+				if (d < mobDist) {
+					mob = e;
+					mobDist = d;
+				}
+			} else if (isProp(mc, e)) {
+				double side = (q.x - p.x) * (q.x - p.x) + (q.z - p.z) * (q.z - p.z), up = q.y - p.y;
+				if (side > 1.0 || up > 0.5 || up < -BODY_RANGE) continue;
+				double score = side + up * up * 0.1;
+				if (score < propScore) {
+					prop = e;
+					propScore = score;
+				}
 			}
 		}
-		return best;
+		return mob != null ? mob : prop;
 	}
 
-	/** How likely an entity is a critter's body (lower is better), or -1 for one that can't be. */
-	private static int rank(Minecraft mc, Entity e) {
-		if (e == mc.player) return -1;
-		if (e instanceof Player p) return p.getUUID().version() == 2 ? 0 : -1;
+	/** A real mob (critterMod's "mob-like": not one of the armour stands, displays and players Hypixel builds props from). */
+	private static boolean isMob(Minecraft mc, Entity e) {
+		return e instanceof LivingEntity && !(e instanceof ArmorStand) && !(e instanceof Player);
+	}
+
+	/** A prop that can be a critter's body. */
+	private static boolean isProp(Minecraft mc, Entity e) {
+		if (e == mc.player) return false;
+		if (e instanceof Player p) return p.getUUID().version() == 2;
 		if (e instanceof ArmorStand stand) {
-			if (stand.hasCustomName()) return -1;
-			return stand.getItemBySlot(EquipmentSlot.HEAD).isEmpty() && stand.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty() ? -1 : 1;
+			return !stand.hasCustomName() && !(stand.getItemBySlot(EquipmentSlot.HEAD).isEmpty() && stand.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty());
 		}
-		if (e instanceof LivingEntity) return 0;
 		if (e instanceof Display.ItemDisplay display) {
 			ItemStack stack = display.getSlot(0).get();
 			// A thrown capsule is an item display too.
-			return stack.isEmpty() || stack.getHoverName().getString().contains("Capsule") ? -1 : 2;
+			return !stack.isEmpty() && !stack.getHoverName().getString().contains("Capsule");
 		}
-		if (e instanceof Display.BlockDisplay) return 2;
-		return -1;
+		return e instanceof Display.BlockDisplay;
+	}
+
+	/** The box drawn round a critter: its body's, or a block-sized one for Hypixel's props, which have no size. */
+	public static AABB box(Sighting s) {
+		Entity body = s.body();
+		if (body != null) {
+			AABB b = body.getBoundingBox();
+			if (b.getXsize() > 0.1 && b.getYsize() > 0.1) return b.inflate(0.05);
+			Vec3 p = body.position();
+			// A display entity draws its item round its position; anything else stands on it.
+			double bottom = body instanceof Display ? p.y - 0.45 : p.y;
+			return new AABB(p.x - 0.45, bottom, p.z - 0.45, p.x + 0.45, bottom + 0.9, p.z + 0.45);
+		}
+		Vec3 p = s.label().position();
+		return new AABB(p.x - 0.4, p.y - 1.1, p.z - 0.4, p.x + 0.4, p.y - 0.1, p.z + 0.4);
 	}
 
 	/** Whether a critter is one to highlight. */
@@ -527,14 +586,20 @@ public final class SafariHelper {
 				if (cfg.showWay) beam(batch, IslandGuide.Place.SAFARI_MANAGER.pos, "Safari Manager: give it your ticket");
 				return;
 			}
-			if (cfg.nameTags) {
-				for (Sighting s : sightings) {
-					if (!needed(s, cfg) || s.label().isRemoved()) continue;
+			for (Sighting s : sightings) {
+				if (!needed(s, cfg) || s.label().isRemoved()) continue;
+				int color = s.sparkling() ? 0xFF000000 | GOLD : TazTheme.RED;
+				if (cfg.boxes) {
+					AABB box = box(s);
+					batch.filled(box, (color & 0xFFFFFF) | 0x30000000, true);
+					batch.outline(box, color, 2.0f, true);
+				}
+				if (cfg.nameTags) {
 					Vec3 at = s.label().position().add(0, 0.6, 0);
 					int dist = (int) Math.round(Math.sqrt(at.distanceToSqr(batch.camera)));
 					boolean fresh = !cfg.caught.contains(s.critter().name());
 					String text = (s.sparkling() ? "Sparkling " : "") + s.critter().name() + (fresh ? " ✦ new" : "") + "  " + dist + "m";
-					batch.label(at, text, s.sparkling() ? 0xFF000000 | GOLD : TazTheme.RED, true);
+					batch.label(at, text, color, true);
 				}
 			}
 			if (cfg.showWay) {

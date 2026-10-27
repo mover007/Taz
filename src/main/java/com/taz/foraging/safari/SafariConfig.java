@@ -47,7 +47,12 @@ public final class SafariConfig {
 	public Highlight highlight = Highlight.RUN;
 
 	@Expose
-	@ConfigOption(name = "Glow", desc = "The critters you need glow through walls (red, gold if Sparkling).")
+	@ConfigOption(name = "Boxes", desc = "A red box round each critter you need, through walls (gold if Sparkling).")
+	@ConfigEditorBoolean
+	public boolean boxes = true;
+
+	@Expose
+	@ConfigOption(name = "Glow", desc = "The critters you need also glow with an outline through walls.")
 	@ConfigEditorBoolean
 	public boolean glow = true;
 

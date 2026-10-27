@@ -736,7 +736,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		cmd("summon fox " + x + " " + y + " " + (z - 6) + mob);
 		label(x, y + 1.0, z - 6, "Foxtrot");
 		cmd("summon frog " + x + " " + y + " " + (z - 3) + mob);
-		label(x, y + 0.8, z - 3, "Treefrog");
+		label(x, y + 0.8, z - 3, "§9Treefrog \uE001"); // a colour and an icon glyph, as Hypixel's tags have
 		cmd("summon parrot " + x + " " + y + " " + z + mob);
 		label(x, y + 1.0, z, "SPARKLING Bluebird");
 		cmd("summon armor_stand " + x + " " + y + " " + (z + 3)
@@ -757,6 +757,10 @@ public class GalateaGameTest implements FabricClientGameTest {
 				.sorted().toList().toString());
 		check("safari: critters found with their bodies (" + seen + ")",
 				seen.equals("[Bluebird*:parrot, Cavernfish:armor_stand, Foxtrot:fox, Hideonfloor:item_display, Treefrog:frog]"));
+		String boxes = ctx.computeOnClient(mc -> SafariHelper.sightings().stream().sorted(java.util.Comparator.comparing(s -> s.critter().name()))
+				.map(s -> s.critter().name() + ":" + String.format(java.util.Locale.ROOT, "%.2f", SafariHelper.box(s).getYsize())).toList().toString());
+		check("safari: boxes round the bodies, block-sized for a display (" + boxes + ")", boxes.contains("Hideonfloor:0.90")
+				&& boxes.contains("Foxtrot:0.80") && boxes.contains("Treefrog:0.60"));
 		String glows = glows();
 		String red = Integer.toHexString(SafariHelper.RED), gold = Integer.toHexString(SafariHelper.GOLD);
 		check("safari: the critters you need glow (" + glows + ")", glows.contains("fox=" + red) && glows.contains("frog=" + red)
