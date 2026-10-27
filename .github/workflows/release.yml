@@ -37,14 +37,21 @@ jobs:
           chmod +x gradlew
           ./gradlew build
 
+      # The tag's own text is the changelog when it has one; otherwise the commits since the last tag.
       - name: Write the release notes
         run: |
+          git fetch --force --tags origin
           VERSION="${TAG#v}"
+          NOTES=$(git tag -l --format='%(contents:body)' "$TAG")
           PREVIOUS=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
           {
             echo "## Changes"
             echo
-            git log --no-merges --pretty='- %s' ${PREVIOUS:+$PREVIOUS..}"$TAG" | grep -Ev '^- (Version|Release|Merge|Note version)' || true
+            if [ -n "$NOTES" ]; then
+              echo "$NOTES"
+            else
+              git log --no-merges --pretty='- %s' ${PREVIOUS:+$PREVIOUS..}"$TAG" | grep -Ev '^- (Version|Release|Merge|Note version)' || true
+            fi
             echo
             echo "## Install"
             echo
