@@ -921,8 +921,11 @@ public class GalateaGameTest implements FabricClientGameTest {
 		String next = ctx.computeOnClient(mc -> String.valueOf(SafariWay.zone()));
 		check("safari way: a biome done but the Macaw moves on, to your hotspot (" + next + ")", next.equals("ICY"));
 
+		// Hypixel draws the strings off their entity's position with the display's transformation: half a block up here.
+		String lifted = ",transformation:{translation:[0f,0.5f,0f],left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],scale:[1f,1f,1f]}";
 		for (int i = 0; i < 3; i++) {
-			cmd(String.format(java.util.Locale.ROOT, "summon item_display %.2f %.2f %.2f {item:{id:\"minecraft:string\",count:1}}", x + 0.3 * i + 0.2, y + 0.1, z + 0.5));
+			cmd(String.format(java.util.Locale.ROOT, "summon item_display %.2f %.2f %.2f {item:{id:\"minecraft:string\",count:1}%s,Tags:[\"drop\"]}",
+					x + 0.3 * i + 0.2, y + 0.1, z + 0.5, lifted));
 		}
 		for (int i = 0; i < 2; i++) { // two strings are scenery, not a drop
 			cmd(String.format(java.util.Locale.ROOT, "summon item_display %.2f %.2f %.2f {item:{id:\"minecraft:string\",count:1}}", x + 0.3 * i + 0.2, y + 0.1, z + 6.5));
@@ -939,8 +942,21 @@ public class GalateaGameTest implements FabricClientGameTest {
 		Vec3 end = ctx.computeOnClient(mc -> SafariWay.walk() == null ? Vec3.ZERO : SafariWay.walk().points().get(SafariWay.walk().points().size() - 1));
 		double length = ctx.computeOnClient(mc -> SafariWay.walk() == null ? -1 : SafariWay.walk().length());
 		check("safari way: a floor drop close by is grabbed on the way, straight there (" + goal + " at " + end + ", " + length + "m)",
-				goal.equals("Floor drop") && end.distanceTo(new Vec3(x + 0.5, y, z + 0.5)) < 1 && length > 0 && length < 12);
+				goal.equals("Floor drop") && end.distanceTo(new Vec3(x + 0.5, y + 0.6, z + 0.5)) < 0.05 && length > 0 && length < 12);
 		ctx.takeScreenshot("galatea-safari-way");
+
+		cmd("tp @p " + (x + 0.5) + " " + (y + 1) + " " + (z - 2.5) + " facing " + (x + 0.5) + " " + y + " " + (z + 0.5));
+		ctx.runOnClient(mc -> mc.gui.getChat().clearMessages(false));
+		ctx.waitTicks(5);
+		ctx.takeScreenshot("galatea-safari-drop");
+		Vec3 drop = new Vec3(x + 0.5, y + 0.6, z + 0.5);
+		ctx.runOnClient(mc -> SafariFinds.onInteract(drop));
+		check("safari finds: a drop you hit is gone straight away", ctx.computeOnClient(mc -> SafariFinds.drops().isEmpty()));
+		ctx.waitTicks(70);
+		check("safari finds: ...and back if its strings are still there 3s later", ctx.computeOnClient(mc -> SafariFinds.drops().size()) == 1);
+		cmd("kill @e[type=item_display,tag=drop,limit=1]");
+		ctx.waitTicks(2);
+		check("safari finds: a drop whose strings go is gone that tick", ctx.computeOnClient(mc -> SafariFinds.drops().isEmpty()));
 
 		cmd("kill @e[type=item_display]");
 		ctx.runOnClient(mc -> {

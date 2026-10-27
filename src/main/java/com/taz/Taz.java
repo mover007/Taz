@@ -197,13 +197,20 @@ public final class Taz implements ClientModInitializer {
 		net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
 			if (level.isClientSide()) safely("Terminal highlight click", () -> com.taz.dungeons.f7.TerminalHighlight.onClick(entity));
 			if (level.isClientSide() && hand == net.minecraft.world.InteractionHand.MAIN_HAND) safely("Arrow align click", () -> com.taz.dungeons.f7.ArrowAlign.onClick(entity));
+			if (level.isClientSide()) safely("Safari floor drop", () -> com.taz.foraging.safari.SafariFinds.onInteract(entity.position()));
 			return net.minecraft.world.InteractionResult.PASS;
 		});
 		net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {
 			if (level.isClientSide()) safely("Terminal highlight click", () -> com.taz.dungeons.f7.TerminalHighlight.onClick(entity));
+			if (level.isClientSide()) safely("Safari floor drop", () -> com.taz.foraging.safari.SafariFinds.onInteract(entity.position()));
+			return net.minecraft.world.InteractionResult.PASS;
+		});
+		net.fabricmc.fabric.api.event.player.AttackBlockCallback.EVENT.register((player, level, hand, pos, direction) -> {
+			if (level.isClientSide()) safely("Safari floor drop", () -> com.taz.foraging.safari.SafariFinds.onInteract(net.minecraft.world.phys.Vec3.atCenterOf(pos)));
 			return net.minecraft.world.InteractionResult.PASS;
 		});
 		UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+			if (level.isClientSide()) safely("Safari floor drop", () -> com.taz.foraging.safari.SafariFinds.onInteract(hit.getLocation()));
 			if (level.isClientSide()) safely("Secret routes click", () -> SecretTrainer.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
 			if (level.isClientSide()) safely("Secret clicked", () -> com.taz.dungeons.highlight.SecretClicked.onInteract(hit.getBlockPos(), level.getBlockState(hit.getBlockPos())));
 			if (level.isClientSide()) safely("Puzzle click", () -> com.taz.dungeons.puzzles.Puzzles.onUseBlock(hit.getBlockPos()));
