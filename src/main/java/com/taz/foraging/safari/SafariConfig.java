@@ -102,6 +102,19 @@ public final class SafariConfig {
 	@ConfigEditorBoolean
 	public boolean lastSeen = true;
 
+	@ConfigOption(name = "Capsule throws", desc = "Where a Critter Capsule you throw will go.")
+	@ConfigEditorAccordion(id = 6)
+	public boolean section6 = false;
+
+	@Expose
+	@ConfigAccordionId(id = 6)
+	@ConfigOption(name = "Throw preview", desc = "While you hold a Critter Capsule, the arc a throw would fly and where it lands; green "
+			+ "when it would hit a critter you need. Taz measures your throws to learn Hypixel's arc, so it gets exact after the "
+			+ "first one. It only shows the way; aiming and throwing stay yours. Landing previews are a grey area in Hypixel's "
+			+ "rules, so it's off unless you turn it on.")
+	@ConfigEditorBoolean
+	public boolean throwPreview = false;
+
 	@ConfigOption(name = "Route", desc = "The path through the run, biome by biome.")
 	@ConfigEditorAccordion(id = 1)
 	public boolean section1 = false;
@@ -235,6 +248,12 @@ public final class SafariConfig {
 	/** The most critters caught in one run (you and your party), for the run report. */
 	@Expose
 	public int bestCaught = 0;
+
+	/** A capsule's flight as measured from your throws (blocks a tick, drag a tick, gravity a tick); 0 throws: not yet. */
+	@Expose
+	public double throwSpeed, throwDrag, throwGravity;
+	@Expose
+	public int throwsMeasured;
 
 	public static SafariConfig get() {
 		return Taz.config().safari;

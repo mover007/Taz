@@ -29,6 +29,7 @@ import com.taz.foraging.safari.SafariGuide;
 import com.taz.foraging.safari.SafariHelper;
 import com.taz.foraging.safari.SafariMap;
 import com.taz.foraging.safari.SafariSpots;
+import com.taz.foraging.safari.SafariThrow;
 import com.taz.foraging.safari.SafariWay;
 import com.taz.hud.MovableHud;
 import com.taz.hud.TazHud;
@@ -814,6 +815,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 		check("safari: never-caught-by-me mode (" + glows + ")", glows.contains("fox=no") && glows.contains("frog=" + red));
 		ctx.runOnClient(mc -> Taz.config().safari.highlight = SafariConfig.Highlight.RUN);
 
+		safariThrow(x, y, z);
+
 		tell("HOTSPOT! Your Hunting Hotspot is the Icy Biome!");
 		clearAlert();
 		tell("Two Macaws were attracted to the Birdfeeder!");
@@ -903,6 +906,90 @@ public class GalateaGameTest implements FabricClientGameTest {
 			Taz.config().safari.enabled = false;
 		});
 		cmd("tp @p " + start.getX() + " " + y + " " + z);
+		ctx.waitTicks(5);
+	}
+
+	/** The capsule throw preview: the arc ends on the critter in the way or at a wall, and real throws teach it the arc. */
+	private void safariThrow(int x, int y, int z) {
+		ctx.runOnClient(mc -> {
+			SafariConfig cfg = Taz.config().safari;
+			cfg.throwPreview = true;
+			cfg.throwsMeasured = 0;
+		});
+		cmd("item replace entity @p weapon.mainhand with player_head[custom_data={id:\"CRITTER_CAPSULE\"},custom_name=\"Critter Capsule\"] 4");
+		// The Cavernfish (an armour stand) 6 blocks ahead, aimed at its middle from your eyes (tp's facing is from the feet).
+		cmd("tp @p " + (x - 6) + " " + y + " " + (z + 3) + " facing " + x + " " + (y - 0.6) + " " + (z + 3));
+		ctx.waitTicks(10);
+		String arc = ctx.computeOnClient(mc -> {
+			SafariThrow.Arc a = SafariThrow.arc();
+			return a == null ? "none" : (a.hits() == null ? "nothing" : a.hits().critter().name()) + " after " + (a.points().size() - 1) + " ticks";
+		});
+		check("safari throw: holding a capsule, the arc ends on the critter in the way (" + arc + ")", arc.startsWith("Cavernfish after "));
+		cmd("tp @p " + (x - 9) + " " + y + " " + (z + 6) + " facing " + (x - 40) + " " + (y + 4) + " " + (z + 6));
+		clearAlert();
+		ctx.runOnClient(mc -> {
+			mc.gui.getChat().clearMessages(false);
+			mc.gui.clearTitles();
+		});
+		ctx.runOnClient(mc -> mc.options.hideGui = true);
+		ctx.waitTicks(5);
+		ctx.takeScreenshot("galatea-safari-throw");
+		ctx.runOnClient(mc -> mc.options.hideGui = false);
+		cmd("tp @p " + (x - 6) + " " + y + " " + (z + 3) + " facing " + x + " " + (y - 0.6) + " " + (z + 3));
+		ctx.waitTicks(3);
+		cmd("fill " + (x - 3) + " " + y + " " + (z + 2) + " " + (x - 3) + " " + (y + 3) + " " + (z + 4) + " stone");
+		ctx.waitTicks(5);
+		arc = ctx.computeOnClient(mc -> {
+			SafariThrow.Arc a = SafariThrow.arc();
+			return a == null ? "none" : (a.hits() == null ? "nothing" : a.hits().critter().name()) + " at x " + Math.round(a.points().get(a.points().size() - 1).x);
+		});
+		check("safari throw: ...and at a wall in the way (" + arc + ")", arc.equals("nothing at x " + (x - 3)));
+		cmd("fill " + (x - 3) + " " + y + " " + (z + 2) + " " + (x - 3) + " " + (y + 3) + " " + (z + 4) + " air");
+
+		// The fit: 1 block a tick, no drag, 0.05 gravity; the server moved it only every other tick at the start, and it
+		// hit something at the end (stopped dead), which isn't flight.
+		List<Vec3> flight = new java.util.ArrayList<>();
+		Vec3 p = Vec3.ZERO, v = new Vec3(1, 0, 0);
+		for (int t = 0; t < 12; t++) {
+			flight.add(t == 1 ? Vec3.ZERO : p);
+			p = p.add(v);
+			v = v.subtract(0, 0.05, 0);
+		}
+		for (int t = 0; t < 3; t++) flight.add(flight.get(flight.size() - 1).add(0.05, 0, 0));
+		double[] f = SafariThrow.fit(flight);
+		String fit = f == null ? "none" : String.format(java.util.Locale.ROOT, "%.3f %.3f %.3f", f[0], f[1], f[2]);
+		check("safari throw: speed, drag and gravity from a flight (" + fit + ")", fit.equals("1.000 1.000 0.050"));
+
+		// A real throw: right after you throw, a capsule appears at your eyes and flies (0.8 a tick, 0.04 gravity).
+		Vec3 eye = ctx.computeOnClient(mc -> mc.player.getEyePosition());
+		ctx.runOnClient(mc -> SafariThrow.onUse(mc.player));
+		Vec3 at = eye.add(0, 0, -0.5);
+		cmd(String.format(java.util.Locale.ROOT, "summon item_display %.3f %.3f %.3f {item:{id:\"minecraft:player_head\",count:1},Tags:[\"cap\"]}", at.x, at.y, at.z));
+		Vec3 speed = new Vec3(0, 0.2, -0.8);
+		for (int t = 0; t < 10; t++) {
+			ctx.waitTicks(1);
+			at = at.add(speed);
+			speed = speed.subtract(0, 0.04, 0);
+			cmd(String.format(java.util.Locale.ROOT, "tp @e[tag=cap,limit=1] %.3f %.3f %.3f", at.x, at.y, at.z));
+		}
+		ctx.waitTicks(2);
+		cmd("kill @e[tag=cap]");
+		ctx.waitTicks(3);
+		String learnt = ctx.computeOnClient(mc -> {
+			SafariConfig cfg = Taz.config().safari;
+			return cfg.throwsMeasured + String.format(java.util.Locale.ROOT, " %.2f %.3f %.3f", cfg.throwSpeed, cfg.throwDrag, cfg.throwGravity);
+		});
+		String[] parts = learnt.split(" ");
+		check("safari throw: a throw is followed and its arc learnt (" + learnt + ")", parts[0].equals("1")
+				&& Math.abs(Double.parseDouble(parts[1]) - Math.hypot(0.8, 0.2)) < 0.1 && Double.parseDouble(parts[2]) > 0.97
+				&& Math.abs(Double.parseDouble(parts[3]) - 0.04) < 0.01);
+		cmd("item replace entity @p weapon.mainhand with air");
+		ctx.runOnClient(mc -> {
+			SafariConfig cfg = Taz.config().safari;
+			cfg.throwPreview = false;
+			cfg.throwsMeasured = 0;
+		});
+		cmd("tp @p " + (x - 8) + " " + (y + 1) + " " + z + " facing " + x + " " + y + " " + z);
 		ctx.waitTicks(5);
 	}
 

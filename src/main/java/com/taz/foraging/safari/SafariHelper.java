@@ -231,6 +231,8 @@ public final class SafariHelper {
 		SafariSpots.LILY_PADS.tick(mc, where == Where.INSIDE && cfg.showWay);
 		SafariSpots.WHEAT.tick(mc, where == Where.INSIDE && cfg.showWay);
 		CritterdexSync.tick(mc);
+		if (where == Where.INSIDE) SafariThrow.tick(mc, cfg);
+		else SafariThrow.clear();
 		if (++ticks % 5 != 0) return;
 		Where was = where;
 		where = locate(mc);
@@ -936,6 +938,7 @@ public final class SafariHelper {
 				if (cfg.showWay) beam(batch, IslandGuide.Place.SAFARI_MANAGER.pos, "Safari Manager: give it your ticket");
 				return;
 			}
+			SafariThrow.render(batch, cfg);
 			for (Sighting s : sightings) {
 				if (!needed(s, cfg) || s.label().isRemoved()) continue;
 				int color = s.sparkling() ? 0xFF000000 | GOLD : TazTheme.RED;
