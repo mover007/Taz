@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.taz.Taz;
+import com.taz.foraging.safari.Critters.Biome;
 import net.minecraft.world.phys.Vec3;
 
 import java.io.InputStream;
@@ -38,6 +39,7 @@ public final class SafariMap {
 	private static final double START_RANGE = 16;
 
 	private static List<Node> nodes;
+	private static Biome[] zones;
 
 	private SafariMap() {
 	}
@@ -81,6 +83,55 @@ public final class SafariMap {
 
 	public static List<Node> matching(Predicate<Node> which) {
 		return nodes().stream().filter(which).toList();
+	}
+
+	/** The biome a map point is in, or null for the paths between them (spawn). */
+	public static Biome zoneOf(Node n) {
+		return zones()[n.index()];
+	}
+
+	/** The biome a position is in, by the map point nearest it. */
+	public static Biome zoneAt(Vec3 pos) {
+		Node n = nearest(pos);
+		return n == null ? null : zoneOf(n);
+	}
+
+	private static synchronized Biome[] zones() {
+		if (zones == null) zones = assignZones(nodes());
+		return zones;
+	}
+
+	/**
+	 * Which biome each point is in, as SkyHanni works it out: the area marker ("Forest Biome", "no_area") nearest it
+	 * along the paths. The biomes fold round each other, so the nearest marker as the crow flies is wrong in places.
+	 */
+	private static Biome[] assignZones(List<Node> all) {
+		Biome[] out = new Biome[all.size()];
+		double[] dist = new double[all.size()];
+		Arrays.fill(dist, Double.MAX_VALUE);
+		PriorityQueue<double[]> queue = new PriorityQueue<>((a, b) -> Double.compare(a[0], b[0]));
+		for (Node n : all) {
+			if (!n.tagged("area")) continue;
+			dist[n.index()] = 0;
+			out[n.index()] = n.name() != null && n.name().endsWith(" Biome") ? Biome.named(n.name().substring(0, n.name().length() - 6)) : null;
+			queue.add(new double[]{0, n.index()});
+		}
+		while (!queue.isEmpty()) {
+			double[] top = queue.poll();
+			int i = (int) top[1];
+			if (top[0] > dist[i]) continue;
+			Node n = all.get(i);
+			for (int k = 0; k < n.next().length; k++) {
+				int j = n.next()[k];
+				double d = dist[i] + n.cost()[k];
+				if (d < dist[j]) {
+					dist[j] = d;
+					out[j] = out[i];
+					queue.add(new double[]{d, j});
+				}
+			}
+		}
+		return out;
 	}
 
 	public static Node nearest(Vec3 pos) {

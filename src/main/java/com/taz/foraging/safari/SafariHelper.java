@@ -175,6 +175,7 @@ public final class SafariHelper {
 			GLOW.clear();
 			return;
 		}
+		SafariSpots.BEDS.tick(mc, where == Where.INSIDE && cfg.showWay);
 		if (++ticks % 5 != 0) return;
 		where = locate(mc);
 		if (where == Where.ENTRANCE) {
@@ -220,6 +221,7 @@ public final class SafariHelper {
 		MISSED.clear();
 		SafariFinds.reset();
 		SafariWay.reset();
+		SafariSpots.BEDS.reset();
 		hotspot = null;
 		welcomed = toldTen = toldTwo = toldLow = toldOut = false;
 		capsules = -1;
@@ -496,6 +498,7 @@ public final class SafariHelper {
 		} else if (line.startsWith("A rumbling sound can be heard")) {
 			if (cfg.alerts) Alert.show("§c§lGEMZIES!", "§f3 Gemzies are flying in the Cavern gem room", cfg.sound);
 		} else if (line.startsWith("You hear the sound of massive footsteps")) {
+			SafariWay.onWumpaWaking();
 			if (cfg.alerts) Alert.show("§c§lWUMPA!", "§fIt wakes up in about 30 seconds", cfg.sound);
 			if (cfg.tips) TazChat.info("The Wumpa is waking up in the Polaris cave. Lure it into the obsidian pillar to stun it, then throw "
 					+ "capsules at it.");

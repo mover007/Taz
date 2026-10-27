@@ -78,7 +78,11 @@ public final class SafariFinds {
 
 	public static void render(WorldRenderer.Batch batch, SafariConfig cfg) {
 		if (cfg.floorDrops) {
-			for (Vec3 p : drops()) mark(batch, new AABB(p.x - 0.5, p.y, p.z - 0.5, p.x + 0.5, p.y + 0.4, p.z + 0.5), "Floor drop", DROP_COLOR);
+			double range = cfg.floorDropRange;
+			for (Vec3 p : drops()) {
+				if (p.distanceToSqr(batch.camera) > range * range) continue;
+				mark(batch, new AABB(p.x - 0.5, p.y, p.z - 0.5, p.x + 0.5, p.y + 0.4, p.z + 0.5), "Floor drop", DROP_COLOR);
+			}
 		}
 		if (showMounds(cfg)) {
 			for (Vec3 p : mounds) mark(batch, new AABB(p.x - 0.45, p.y - 0.45, p.z - 0.45, p.x + 0.45, p.y + 0.45, p.z + 0.45), "Rockmite mound", MOUND_COLOR);

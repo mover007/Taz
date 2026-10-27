@@ -2,37 +2,55 @@ package com.taz.foraging.safari;
 
 import com.taz.foraging.safari.Critters.Biome;
 import com.taz.foraging.safari.Critters.Critter;
-import com.taz.foraging.safari.Critters.QuestItem;
+import com.taz.foraging.safari.SafariSpots.Task;
 import com.taz.hud.TazTheme;
 import com.taz.render.WorldRenderer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
- * "Show the way": a path along the Safari map ({@link SafariMap}) to what to do next, like SkyHanni's navigation. In
- * this order: the place a quest item you carry is used at (the Ritual for Soothing Incense, the Gem Podiums for a gem,
- * the Birdfeeder for bait) while what it brings is still to catch; the spots of critters you still need in your biome
- * (Hideonwalls, Areitas, Hideyho's hiding places), skipping the ones you've been to; the next biome once yours is
- * done; and otherwise the nearest floor drop, where quest items come from.
+ * "Show the way": a route through the whole run, one biome at a time, walked along the Safari map ({@link SafariMap})
+ * like SkyHanni's navigation. In the biome being worked it goes, nearest first within each step:
+ * <ol>
+ * <li>to a critter you still need that's in view (its name tag is loaded);
+ * <li>to anything you can do now ({@link SafariSpots}): a bee nest, a Hideonwall perch, a wall to break, a bed, a
+ * mound, a critter's spot, or the Ritual, Gem Podiums or Birdfeeder when you carry what they need;
+ * <li>round the biome to find the critters that roam it, and to floor drops when a critter needs a quest item you
+ * don't have.
+ * </ol>
+ * When the biome has nothing left (the Macaw doesn't count: it may not come at all), the route moves on to the next.
  */
 public final class SafariWay {
-	/** Somewhere to go: its name, why, where (the nearest of these), and whether they're spots to check one by one. */
-	public record Goal(String name, String why, List<Vec3> targets, boolean spots) {
+	/** Somewhere to go: what for, where, and how near counts as having been there (0: it goes when it's done). */
+	public record Goal(String name, String why, Vec3 pos, double reach) {
 	}
 
-	private static final double ARRIVED = 4;
-	private static final Map<String, String> PLACE_NAMES = Map.of("Luigis Mansion 64", "Haunted mansion");
+	private static final double ARRIVED = 4, SEARCHED = 10, DROP_CHECKED = 6;
+	/** Floor drops this close are worth grabbing on the way, needed or not. */
+	private static final double DROP_NEARBY = 16;
+	/** A critter of another biome this close is worth catching on the way. */
+	private static final double OTHER_BIOME_NEARBY = 24;
 
+	private static Biome zone;
+	/** The "Your biome" setting the route was worked out with: changing it starts the choice over. */
+	private static SafariConfig.Zone zoneSetting;
 	private static Goal goal;
 	private static SafariMap.Walk walk;
-	/** Spots you've checked this run. */
+	private static List<Goal> marks = List.of();
+	/** Spots you've been to this run. */
 	private static final Set<Vec3> VISITED = new HashSet<>();
+	private static boolean wumpaWaking;
 	private static int ticks;
 
 	private SafariWay() {
@@ -45,66 +63,153 @@ public final class SafariWay {
 			return;
 		}
 		if (++ticks % 2 != 0) return;
-		Vec3 me = mc.player.position();
-		if (goal != null && goal.spots()) {
-			for (Vec3 t : goal.targets()) if (t.distanceToSqr(me) < ARRIVED * ARRIVED) VISITED.add(t);
-		}
+		zone = pickZone(mc, cfg);
 		goal = null;
 		walk = null;
-		for (List<Goal> tier : goals(cfg)) {
-			List<Vec3> targets = new ArrayList<>();
-			List<Goal> owners = new ArrayList<>();
-			for (Goal g : tier) {
-				for (Vec3 t : g.targets()) {
-					if (g.spots() && VISITED.contains(t)) continue;
-					targets.add(t);
-					owners.add(g);
-				}
-			}
-			SafariMap.Walk w = SafariMap.path(me, targets);
+		marks = List.of();
+		if (zone == null) return;
+		List<List<Goal>> plan = plan(mc, zone);
+		marks = plan.get(1);
+		for (List<Goal> step : plan) {
+			SafariMap.Walk w = SafariMap.path(mc.player.position(), step.stream().map(Goal::pos).toList());
 			if (w == null) continue;
-			goal = owners.get(w.target());
+			goal = step.get(w.target());
 			walk = w;
 			return;
 		}
 	}
 
-	private static List<List<Goal>> goals(SafariConfig cfg) {
-		List<Goal> items = new ArrayList<>(), spots = new ArrayList<>(), next = new ArrayList<>(), drops = new ArrayList<>();
-		for (String name : SafariHelper.questItems().keySet()) {
-			QuestItem q = Critters.quest(name);
-			if (q.place() == null || q.brings().stream().noneMatch(c -> SafariHelper.toDo(Critters.named(c)))) continue;
-			items.add(new Goal(PLACE_NAMES.getOrDefault(q.place(), q.place()), "use your " + q.name(), named(q.place()), false));
+	/** The biome to work: the one you picked, the one already being worked, where you are, your hotspot, the most left. */
+	private static Biome pickZone(Minecraft mc, SafariConfig cfg) {
+		if (cfg.zone != zoneSetting) {
+			zoneSetting = cfg.zone;
+			zone = null;
 		}
+		Biome picked = cfg.zone.biome();
+		if (picked != null && hasWork(mc, picked)) return picked;
+		if (zone != null && hasWork(mc, zone)) return zone;
 		Biome here = SafariHelper.biome();
-		for (Critter c : Critters.ALL) {
-			if (here != null && c.biome() != here || !SafariHelper.toDo(c)) continue;
-			if (Critters.ON_MAP.contains(c.name())) spots.add(new Goal(c.name(), c.hint(), named(c.name()), true));
-			if (c.name().equals("Hideyho")) {
-				spots.add(new Goal("Hideyho", "his hiding spots", SafariMap.matching(n -> n.tagged("hideyho")).stream()
-						.map(SafariMap.Node::pos).toList(), true));
-			}
+		if (here != null && hasWork(mc, here)) return here;
+		Biome hot = SafariHelper.hotspot();
+		if (hot != null && hasWork(mc, hot)) return hot;
+		Biome best = null;
+		for (Biome b : Biome.values()) {
+			if (hasWork(mc, b) && (best == null || left(b) > left(best))) best = b;
 		}
-		if (here != null && SafariHelper.left(here) == 0) {
-			Biome b = SafariHelper.nextBiome();
-			if (b != null) next.add(new Goal(b.label + " Biome", "yours is done", named(b.label + " Biome"), false));
-		}
-		if (cfg.floorDrops) drops.add(new Goal("Floor drop", "quest items and Safari Essence", SafariFinds.drops(), false));
-		return List.of(items, spots, next, drops);
+		return best;
 	}
 
-	private static List<Vec3> named(String name) {
-		return SafariMap.matching(n -> n.is(name)).stream().map(SafariMap.Node::pos).toList();
+	private static boolean hasWork(Minecraft mc, Biome b) {
+		return plan(mc, b).stream().anyMatch(step -> !step.isEmpty());
+	}
+
+	/** Critters still to catch in a biome, not counting the Macaw. */
+	private static int left(Biome b) {
+		return (int) Critters.in(b).stream().filter(c -> !c.name().equals("Macaw") && SafariHelper.toDo(c)).count();
+	}
+
+	/** The three steps of the route through a biome, each a list of places (the nearest one is gone to). */
+	static List<List<Goal>> plan(Minecraft mc, Biome z) {
+		Vec3 me = mc.player.position();
+		List<Goal> now = new ArrayList<>(), tasks = new ArrayList<>(), search = new ArrayList<>();
+		for (SafariHelper.Sighting s : SafariHelper.sightings()) {
+			if (!SafariHelper.toDo(s.critter()) && !s.sparkling()) continue;
+			Entity body = s.body() != null ? s.body() : s.label();
+			if (s.critter().biome() != z && body.position().distanceTo(me) > OTHER_BIOME_NEARBY) continue;
+			now.add(new Goal(s.critter().name(), "catch it", body.position(), 0));
+		}
+		Set<String> roaming = new LinkedHashSet<>(), missing = new LinkedHashSet<>();
+		for (Critter c : Critters.in(z)) {
+			if (!SafariHelper.toDo(c)) continue;
+			boolean optional = c.name().equals("Macaw");
+			if (SafariSpots.ROAMING.contains(c.name())) roaming.add(c.name());
+			Task t = SafariSpots.task(c.name());
+			if (t == null || c.name().equals("Wumpa") && !wumpaReady()) continue;
+			if (t.needs() != null && !has(t.needs())) {
+				if (c.name().equals("Scrappy")) tasks.add(new Goal("Scrappy food", "punch the fish, break the lily pads", SafariSpots.scrappyFood(), ARRIVED));
+				else if (!optional) missing.add(String.join(" or ", SafariSpots.NEEDS.get(t.needs())).replace("Purple Gem or Lime Gem or Orange Gem", "a gem")
+						.replace("Yogi Berry or Wriggleworm or Bag of Seeds", "bird bait"));
+				continue;
+			}
+			double reach = t.needs() != null && !c.name().equals("Troodon") ? 0 : ARRIVED;
+			for (Vec3 p : t.spots()) {
+				if (stillThere(mc.level, c.name(), p)) tasks.add(new Goal(c.name(), t.what(), p, reach));
+			}
+		}
+		for (Vec3 p : SafariFinds.drops()) {
+			if (p.distanceTo(me) <= DROP_NEARBY) tasks.add(new Goal("Floor drop", "grab it", p, 0));
+		}
+		if (!roaming.isEmpty()) {
+			String names = String.join(", ", roaming.stream().limit(3).toList()) + (roaming.size() > 3 ? "..." : "");
+			List<Goal> points = SafariSpots.searchPoints(z).stream().map(p -> new Goal("Search the " + z.label, names, p, SEARCHED)).toList();
+			// Walked it all and still some to find: round again.
+			if (points.stream().allMatch(g -> VISITED.contains(g.pos()))) points.forEach(g -> VISITED.remove(g.pos()));
+			search.addAll(points);
+		}
+		if (!missing.isEmpty()) {
+			String why = "for " + String.join(", ", missing);
+			for (Vec3 p : SafariFinds.drops()) {
+				if (SafariMap.zoneAt(p) == z) search.add(new Goal("Floor drop", why, p, 0));
+			}
+			for (Vec3 p : SafariSpots.dropSpots(z)) search.add(new Goal("Floor drop spot", why, p, DROP_CHECKED));
+		}
+		return List.of(fresh(now, me), fresh(tasks, me), fresh(search, me));
+	}
+
+	/** Leaves out places you've been to, noting the ones you're at now. */
+	private static List<Goal> fresh(List<Goal> goals, Vec3 me) {
+		List<Goal> out = new ArrayList<>();
+		for (Goal g : goals) {
+			if (g.reach() > 0 && (VISITED.contains(g.pos()) || g.pos().distanceToSqr(me) < g.reach() * g.reach())) {
+				VISITED.add(g.pos());
+				continue;
+			}
+			out.add(g);
+		}
+		return out;
+	}
+
+	/** Whether a spot still has something: a bee nest (not the hive decoy), a wall not yet broken. */
+	private static boolean stillThere(ClientLevel level, String critter, Vec3 p) {
+		BlockPos pos = BlockPos.containing(p);
+		if (!level.isLoaded(pos)) return true;
+		return switch (critter) {
+			case "Snoozle", "Troodon" -> !level.getBlockState(pos).isAir();
+			case "Honeybug" -> BlockPos.betweenClosedStream(pos.offset(-2, -2, -2), pos.offset(2, 2, 2))
+					.anyMatch(b -> level.getBlockState(b).is(Blocks.BEE_NEST));
+			default -> true;
+		};
+	}
+
+	private static boolean has(String need) {
+		return SafariSpots.NEEDS.get(need).stream().anyMatch(SafariHelper.questItems()::containsKey);
+	}
+
+	/** The Wumpa wakes once every other Icy critter is caught ("You hear the sound of massive footsteps"). */
+	private static boolean wumpaReady() {
+		return wumpaWaking || Critters.in(Biome.ICY).stream().filter(c -> !c.name().equals("Wumpa")).noneMatch(SafariHelper::toDo);
+	}
+
+	public static void onWumpaWaking() {
+		wumpaWaking = true;
 	}
 
 	public static void clear() {
 		goal = null;
 		walk = null;
+		marks = List.of();
 	}
 
 	public static void reset() {
 		clear();
+		zone = null;
 		VISITED.clear();
+		wumpaWaking = false;
+	}
+
+	/** The biome the route is working, or null. */
+	public static Biome zone() {
+		return zone;
 	}
 
 	/** Where the way goes, or null. */
@@ -116,21 +221,26 @@ public final class SafariWay {
 		return walk;
 	}
 
-	/** "Go to Ritual (use your Soothing Incense) 45m" for the HUD, or null. */
+	/** "Next: Honeybug - punch the bee nest 23m" for the HUD, with the biome when it isn't the one you're in; or null. */
 	public static String hudLine() {
 		if (goal == null || walk == null) return null;
-		return "§7Go to §f" + goal.name() + " §7(" + goal.why() + ") §f" + Math.round(walk.length()) + "m";
+		String elsewhere = zone != null && zone != SafariHelper.biome() ? "§7(" + zone.label + ") " : "";
+		return "§7Next: " + elsewhere + "§f" + goal.name() + " §7- " + goal.why() + " §f" + Math.round(walk.length()) + "m";
 	}
 
-	/** The path from your crosshair along the map, and a beam on where it ends. */
+	/** The path from your crosshair along the map, a beam where it ends, and a small box on the other things to do. */
 	public static void render(WorldRenderer.Batch batch) {
 		SafariMap.Walk w = walk;
 		Goal g = goal;
+		for (Goal m : marks) {
+			if (m == g) continue;
+			Vec3 p = m.pos();
+			batch.outline(new AABB(p.x - 0.4, p.y, p.z - 0.4, p.x + 0.4, p.y + 0.8, p.z + 0.4), (TazTheme.RED & 0xFFFFFF) | 0x90000000, 1.5f, true);
+		}
 		if (w == null || g == null) return;
 		List<Vec3> points = w.points();
 		Vec3 end = points.get(points.size() - 1);
-		double left = Math.sqrt(end.distanceToSqr(batch.camera));
-		if (left < ARRIVED) return;
+		if (Math.sqrt(end.distanceToSqr(batch.camera)) < ARRIVED) return;
 		int line = (TazTheme.RED & 0xFFFFFF) | 0xD0000000;
 		Vec3 last = WorldRenderer.crosshair(batch.camera);
 		for (Vec3 p : points) {

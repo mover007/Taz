@@ -109,7 +109,7 @@ public final class SafariGuide extends TextHud {
 		return List.of(
 				"§c§lCritter Safari §f12§7/37 §8| §7~§f41m §7left",
 				"§7Capsules §f38  §7Hotspot §fIcy",
-				"§7Go to §fBirdfeeder §7(use your Bag of Seeds) §f45m",
+				"§7Next: §fHoneybug §7- punch the bee nest §f23m",
 				"§c§lForest §7(you're here) §f2 left",
 				" §fMacaw §7- feed the Birdfeeder a Bag of Seeds",
 				" §fHideonfloor §7- blends into the floor; runs when hit",

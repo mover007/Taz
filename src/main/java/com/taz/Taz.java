@@ -153,11 +153,13 @@ public final class Taz implements ClientModInitializer {
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
 			RubyVeilshrooms.FINDER.onChunkLoad(chunk);
+			com.taz.foraging.safari.SafariSpots.BEDS.onChunkLoad(chunk);
 			MoongladeResources.LUMIES.onChunkLoad(chunk);
 			MoongladeResources.LUSHLILAC.onChunkLoad(chunk);
 		});
 		ClientChunkEvents.CHUNK_UNLOAD.register((level, chunk) -> {
 			RubyVeilshrooms.FINDER.onChunkUnload(chunk);
+			com.taz.foraging.safari.SafariSpots.BEDS.onChunkUnload(chunk);
 			MoongladeResources.LUMIES.onChunkUnload(chunk);
 			MoongladeResources.LUSHLILAC.onChunkUnload(chunk);
 		});
@@ -327,6 +329,7 @@ public final class Taz implements ClientModInitializer {
 		TreeTracker.onBlockChanged(pos, oldState, newState);
 		WhisperTracker.onBlockChanged(pos, oldState, newState);
 		RubyVeilshrooms.FINDER.onBlockChanged(pos, newState);
+		com.taz.foraging.safari.SafariSpots.BEDS.onBlockChanged(pos, newState);
 		MoongladeResources.LUMIES.onBlockChanged(pos, newState);
 		MoongladeResources.LUSHLILAC.onBlockChanged(pos, newState);
 		safely("Secret routes block", () -> SecretTrainer.onBlockChanged(pos, oldState, newState));
