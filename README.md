@@ -1,7 +1,7 @@
 <p align="center"><img src="branding/taz-github-social-1280x640.png" alt="Taz" width="720"></p>
 
 <p align="center">
-  <a href="https://github.com/mover007/Taz/releases/latest"><img src="https://img.shields.io/github/v/release/mover007/Taz?label=download&color=ff2112" alt="Download"></a>
+  <a href="https://github.com/mover007/Taz/releases/latest"><img src="https://img.shields.io/badge/download-releases-ff2112" alt="Download"></a>
   <img src="https://img.shields.io/badge/minecraft-26.1.2-ff2112" alt="Minecraft 26.1.2">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-LGPL--3.0-ff2112" alt="LGPL-3.0"></a>
   <a href="https://discord.gg/D4rUnmbpJr"><img src="https://img.shields.io/badge/discord-join-ff2112" alt="Discord"></a>
