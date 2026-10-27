@@ -22,6 +22,10 @@ import com.taz.foraging.MoongladeResources;
 import com.taz.foraging.RubyVeilshrooms;
 import com.taz.foraging.SweepDetails;
 import com.taz.foraging.TreeProgress;
+import com.taz.foraging.safari.Critters;
+import com.taz.foraging.safari.SafariConfig;
+import com.taz.foraging.safari.SafariGuide;
+import com.taz.foraging.safari.SafariHelper;
 import com.taz.hud.MovableHud;
 import com.taz.hud.TazHud;
 import com.taz.hud.TextHud;
@@ -48,12 +52,12 @@ import java.util.stream.Stream;
 /**
  * The Moonglade Marsh / Torrhus Canyon features: Ruby Veilshroom finder, tree progress, sweep details, Sea Lumies
  * and Lushlilac, hunting mob glows, Fairy Souls and the island guide. Parts: veilshrooms, treeprogress, sweep,
- * resources, huntingmobs, fairysouls, guide; "galatea" runs them all. Runs with -Dtaz.foraging.anywhere=true,
+ * resources, huntingmobs, fairysouls, guide, safari...; "galatea" runs them all. Runs with -Dtaz.foraging.anywhere=true,
  * so the flat test world counts as both islands.
  */
 public class GalateaGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"veilshrooms", "treeprogress", "sweep", "resources", "huntingmobs", "fairysouls", "guide",
-			"treegifts", "starlyn", "protected", "recorder", "hotfreset", "contesttiming", "pressure", "route"};
+			"treegifts", "starlyn", "protected", "recorder", "hotfreset", "contesttiming", "pressure", "route", "safari"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	private final List<String> shown = new CopyOnWriteArrayList<>();
@@ -95,6 +99,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 			if (runs("contesttiming")) contestTiming();
 			if (runs("pressure")) pressure();
 			if (runs("route")) route();
+			if (runs("safari")) safari();
 		}
 		System.out.println("[GalateaGameTest] PASSED");
 	}
@@ -703,6 +708,152 @@ public class GalateaGameTest implements FabricClientGameTest {
 			Taz.config().galatea.route.enabled = false;
 		});
 		cmd("tp @p " + x + " " + y + " " + z);
+	}
+
+	// ---- Critter Safari
+
+	private void safari() {
+		ctx.runOnClient(mc -> {
+			SafariConfig cfg = Taz.config().galatea.safari;
+			cfg.enabled = true;
+			cfg.highlight = SafariConfig.Highlight.RUN;
+			cfg.caught.clear();
+			SafariHelper.testWhere = SafariHelper.Where.ENTRANCE;
+		});
+		ctx.waitTicks(10);
+		List<String> lines = hudLines(SafariGuide.class);
+		check("safari: entrance guide (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Safari Manager"))
+				&& lines.stream().anyMatch(l -> l.contains("Hunting XV")) && lines.stream().anyMatch(l -> l.contains("none with you")));
+		check("safari: entrance tip in chat", said("way into the Critter Safari"));
+
+		ctx.runOnClient(mc -> {
+			SafariHelper.testWhere = SafariHelper.Where.INSIDE;
+			SafariHelper.testBiome = Critters.Biome.FOREST;
+			SafariHelper.reset();
+		});
+		int x = start.getX() + 5, y = start.getY(), z = start.getZ();
+		String mob = " {NoAI:1b,PersistenceRequired:1b,Silent:1b,Tags:[\"taztest\"]}";
+		cmd("summon fox " + x + " " + y + " " + (z - 6) + mob);
+		label(x, y + 1.0, z - 6, "Foxtrot");
+		cmd("summon frog " + x + " " + y + " " + (z - 3) + mob);
+		label(x, y + 0.8, z - 3, "Treefrog");
+		cmd("summon parrot " + x + " " + y + " " + z + mob);
+		label(x, y + 1.0, z, "SPARKLING Bluebird");
+		cmd("summon armor_stand " + x + " " + y + " " + (z + 3)
+				+ " {Invisible:1b,NoGravity:1b,equipment:{head:{id:\"minecraft:player_head\",count:1}},Tags:[\"taztest\"]}");
+		label(x, y + 2.2, z + 3, "Cavernfish");
+		cmd("summon item_display " + x + " " + (y + 0.5) + " " + (z + 6) + " {item:{id:\"minecraft:green_shulker_box\",count:1},Tags:[\"taztest\"]}");
+		label(x, y + 1.3, z + 6, "Hideonfloor");
+		cmd("summon silverfish " + x + " " + y + " " + (z + 9) + mob);
+		label(x, y + 1.0, z + 9, "Litterbug");
+		label(x + 0.5, y + 1.0, z + 9, "CAPTURING"); // a catch going on: not one to find
+		label(x, y + 1.0, z + 12, "Tepid Shard"); // not a critter
+		cmd("tp @p " + (x - 8) + " " + (y + 1) + " " + z + " facing " + x + " " + y + " " + z);
+		clearAlert();
+		ctx.waitTicks(15);
+
+		String seen = ctx.computeOnClient(mc -> SafariHelper.sightings().stream()
+				.map(s -> s.critter().name() + (s.sparkling() ? "*" : "") + ":" + (s.body() == null ? "none" : s.body().getType().toShortString()))
+				.sorted().toList().toString());
+		check("safari: critters found with their bodies (" + seen + ")",
+				seen.equals("[Bluebird*:parrot, Cavernfish:armor_stand, Foxtrot:fox, Hideonfloor:item_display, Treefrog:frog]"));
+		String glows = glows();
+		String red = Integer.toHexString(SafariHelper.RED), gold = Integer.toHexString(SafariHelper.GOLD);
+		check("safari: the critters you need glow (" + glows + ")", glows.contains("fox=" + red) && glows.contains("frog=" + red)
+				&& glows.contains("parrot=" + gold) && glows.contains("armor_stand=" + red) && glows.contains("item_display=" + red)
+				&& glows.contains("silverfish=no"));
+		check("safari: Sparkling alert (" + Alert.lastTitle + ")", Alert.lastTitle != null && Alert.lastTitle.contains("SPARKLING"));
+		check("safari: welcome and biome tips", said("Welcome to the Critter Safari")
+				&& said("Forest Biome: 9 critters"));
+		lines = hudLines(SafariGuide.class);
+		check("safari: guide HUD (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Forest (you're here) 9 left"))
+				&& lines.stream().anyMatch(l -> l.contains("Macaw - feed the Birdfeeder a Bag of Seeds"))
+				&& lines.stream().anyMatch(l -> l.contains("Cavern 9 | Haunted 10 | Icy 9")));
+
+		tell("CAPTURE! You caught a Foxtrot and gained 2x Foxtrot Shard!");
+		tell("LOOT SHARE! You received a Treefrog Shard from Steve catching a Treefrog!");
+		tell("Party > [MVP+] Bob: CAPTURE! You caught a Hideonfloor and gained a Hideonfloor Shard!");
+		ctx.waitTicks(6);
+		glows = glows();
+		check("safari: caught ones stop glowing, a quoted catch doesn't count (" + glows + ")", glows.contains("fox=no")
+				&& glows.contains("frog=no") && glows.contains("item_display=" + red));
+		check("safari: your own catch is remembered, a party member's isn't", ctx.computeOnClient(mc ->
+				Taz.config().galatea.safari.caught.equals(List.of("Foxtrot"))) && said("Your first Foxtrot!"));
+		lines = hudLines(SafariGuide.class);
+		List<String> afterCatch = lines;
+		check("safari: guide counts the catches (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Forest (you're here) 7 left"))
+				&& lines.stream().noneMatch(l -> l.startsWith(" Foxtrot")) && afterCatch.get(0).contains("2/37"));
+
+		ctx.runOnClient(mc -> Taz.config().galatea.safari.highlight = SafariConfig.Highlight.MINE);
+		ctx.waitTicks(6);
+		glows = glows();
+		check("safari: never-caught-by-me mode (" + glows + ")", glows.contains("fox=no") && glows.contains("frog=" + red));
+		ctx.runOnClient(mc -> Taz.config().galatea.safari.highlight = SafariConfig.Highlight.RUN);
+
+		tell("HOTSPOT! Your Hunting Hotspot is the Icy Biome!");
+		clearAlert();
+		tell("Two Macaws were attracted to the Birdfeeder!");
+		check("safari: Macaw alert (" + Alert.lastTitle + ")", Alert.lastTitle != null && Alert.lastTitle.contains("MACAW"));
+		cmd("give @p paper[custom_name=\"Bag of Seeds\"]");
+		cmd("give @p player_head[custom_data={id:\"CRITTER_CAPSULE\"},custom_name=\"Critter Capsule\"] 4");
+		ctx.waitTicks(25);
+		check("safari: quest item and low capsule tips", said("You have a Bag of Seeds: feed it to the Birdfeeder")
+				&& said("Only 4 Critter Capsules left"));
+		lines = hudLines(SafariGuide.class);
+		check("safari: HUD shows capsules, hotspot and quest items (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Capsules 4")
+				&& l.contains("Hotspot Icy")) && lines.stream().anyMatch(l -> l.startsWith("Bag of Seeds: feed it to the Birdfeeder")));
+		ctx.takeScreenshot("galatea-safari");
+
+		for (String c : List.of("Bluebird", "Honeybug", "Woodchucker", "Fluffling", "Hideonfloor", "Parakeet")) {
+			tell("CAPTURE! You caught a " + c + " and gained a " + c + " Shard!");
+		}
+		check("safari: Forest done except the Macaw", said("Forest is done except the Macaw"));
+		tell("CAPTURE! You caught a Macaw and gained 2x Macaw Shard!");
+		check("safari: biome done, go to your hotspot next", said("Forest Biome is done! Next: the Icy Biome (9 left)."));
+		ctx.waitTicks(6);
+		glows = glows();
+		check("safari: a Sparkling one glows even when caught (" + glows + ")", glows.contains("parrot=" + gold) && glows.contains("item_display=no"));
+
+		ctx.runOnClient(mc -> SafariHelper.testBiome = null);
+		ctx.waitTicks(6);
+		lines = hudLines(SafariGuide.class);
+		check("safari: no biome known (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Walk into a biome")));
+
+		cmd("kill @e[tag=taztest]");
+		cmd("clear @p paper");
+		cmd("clear @p player_head");
+		ctx.runOnClient(mc -> {
+			SafariHelper.testWhere = null;
+			SafariHelper.testBiome = null;
+			Taz.config().galatea.safari.caught.clear();
+			Taz.config().galatea.safari.enabled = false;
+		});
+		cmd("tp @p " + start.getX() + " " + y + " " + z);
+		ctx.waitTicks(5);
+	}
+
+	private void label(double x, double y, double z, String name) {
+		cmd(String.format(java.util.Locale.ROOT, "summon armor_stand %.2f %.2f %.2f {CustomName:\"%s\",CustomNameVisible:1b,Invisible:1b,NoGravity:1b,"
+				+ "Marker:1b,Tags:[\"taztest\"]}", x, y, z, name));
+	}
+
+	/** "fox=ff2e2e frog=no ..." for the test entities, from the glow the game draws. */
+	private String glows() {
+		return ctx.computeOnClient(mc -> {
+			StringBuilder sb = new StringBuilder();
+			for (Entity e : mc.level.entitiesForRendering()) {
+				if (e instanceof net.minecraft.world.entity.player.Player || e.hasCustomName()) continue;
+				int color = com.taz.render.Glow.color(e);
+				boolean glowing = mc.shouldEntityAppearGlowing(e) && e.getTeamColor() == color;
+				sb.append(e.getType().toShortString()).append('=').append(color >= 0 && glowing ? Integer.toHexString(color) : "no").append(' ');
+			}
+			return sb.toString().trim();
+		});
+	}
+
+	/** Taz said this in chat. */
+	private static boolean said(String text) {
+		return com.taz.util.TazChat.RECENT.stream().anyMatch(l -> l.contains(text));
 	}
 
 	private static String point(int x, int y, int z, String name) {

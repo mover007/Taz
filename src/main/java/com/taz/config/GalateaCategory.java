@@ -15,6 +15,7 @@ import com.taz.foraging.TreeProgressConfig;
 import com.taz.foraging.TreesConfig;
 import com.taz.foraging.VeilshroomConfig;
 import com.taz.foraging.WhisperConfig;
+import com.taz.foraging.safari.SafariConfig;
 import io.github.notenoughupdates.moulconfig.annotations.Accordion;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 
@@ -80,6 +81,12 @@ public final class GalateaCategory {
 	@ConfigOption(name = "Hunting Mobs", desc = "Hideonleaf, Hideonsun, Shellwise, Coralot and Blue Jay glow through walls; mute Phantoms.")
 	@Accordion
 	public HuntingMobsConfig huntingMobs = new HuntingMobsConfig();
+
+	@Expose
+	@ConfigOption(name = "Critter Safari", desc = "Your guide to the Critter Safari: the critters you still need glow with a name tag, "
+			+ "a HUD says what's left and how to find each one, and Taz tells you what to do.")
+	@Accordion
+	public SafariConfig safari = new SafariConfig();
 
 	@Expose
 	@ConfigOption(name = "Fairy Souls", desc = "Waypoints and hints for the Moonglade Marsh and Torrhus Canyon Fairy Souls you haven't found.")

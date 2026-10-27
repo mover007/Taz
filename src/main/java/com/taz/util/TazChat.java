@@ -20,6 +20,8 @@ import java.util.Map;
  */
 public final class TazChat {
 	public static final String PREFIX = "[TAZ] ";
+	/** Test hook: the last lines said with {@link #info}. */
+	public static final java.util.Deque<String> RECENT = new java.util.concurrent.ConcurrentLinkedDeque<>();
 	private static final long CONFIRM_MS = 5000;
 	/** Nothing else may have been sent this recently (ms) when a party message goes out. */
 	private static final long GAP_MS = 700;
@@ -49,6 +51,8 @@ public final class TazChat {
 	}
 
 	public static void info(String message) {
+		RECENT.addLast(message);
+		while (RECENT.size() > 50) RECENT.pollFirst();
 		send(Component.literal(message).withStyle(s -> s.withColor(0xD8C8C8)));
 	}
 

@@ -12,6 +12,7 @@
 		"ClientLevelMixin",
 		"ClientPacketListenerMixin",
 		"ContainerScreenMixin",
+		"DisplayMixin",
 		"EntityMixin",
 		"EntityRenderDispatcherMixin",
 		"GuiMixin",

@@ -148,6 +148,7 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.dungeons.map.DungeonMap());
 		TazHud.register(new com.taz.dungeons.map.MapInfo.Score());
 		TazHud.register(new com.taz.dungeons.map.MapInfo.RoomSecrets());
+		TazHud.register(new com.taz.foraging.safari.SafariGuide());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -166,6 +167,7 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(MoongladeResources::render);
 		LevelRenderEvents.END_MAIN.register(FairySouls::render);
 		LevelRenderEvents.END_MAIN.register(IslandGuide::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.foraging.safari.SafariHelper::render);
 		LevelRenderEvents.END_MAIN.register(RouteAssist::render);
 		LevelRenderEvents.END_MAIN.register(Waypoints::render);
 		LevelRenderEvents.END_MAIN.register(SlayerHelper::render);
@@ -418,6 +420,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Tree gifts chat", () -> TreeGifts.onChat(content, line));
 		safely("Starlyn contest chat", () -> StarlynContest.onChat(line));
 		safely("Protected trees chat", () -> ProtectedTrees.onChat(line));
+		safely("Safari helper chat", () -> com.taz.foraging.safari.SafariHelper.onChat(line));
 		safely("Skill Issue chat", () -> SkillIssue.onChat(line));
 		safely("Mask timers chat", () -> com.taz.dungeons.info.MaskTimers.onChat(line));
 		safely("Score alerts chat", () -> com.taz.dungeons.info.ScoreAlerts.onChat(line));
@@ -504,6 +507,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Tree progress", () -> TreeProgress.tick(mc));
 		safely("Sea Lumies / Lushlilac", () -> MoongladeResources.tick(mc));
 		safely("Island guide", () -> IslandGuide.tick(mc));
+		safely("Safari helper", () -> com.taz.foraging.safari.SafariHelper.tick(mc));
 		safely("Tree gifts", TreeGifts::tick);
 		safely("Tree route", () -> RouteAssist.tick(mc));
 		safely("Starlyn contest", StarlynContest::tick);
