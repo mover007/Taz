@@ -18,7 +18,7 @@ The island comes from the tab list's `Area:` line, so keep that widget on.
 
 ## Tree Route Assist
 
-Taz comes with the **Helix route** for Torrhus Canyon (11 trees), used until you pick another. Import your own from Skyblocker (Waypoints → Share → Export, then **Import from clipboard**), and switch between routes with **Next route here**. Point names say what they are: `3` is a tree, `E3` an etherwarp spot, `TP3` a teleport, anything else a stop.
+Taz comes with the **Helix route** for Torrhus Canyon (11 trees), used until you pick another. Import your own from Skyblocker (Waypoints → Share → Export, then **Import from clipboard**), and use **Choose route** to pick which route each island uses. Point names say what they are: `3` is a tree, `E3` an etherwarp spot, `TP3` a teleport, anything else a stop.
 
 - **Normal** mode shows the whole route with numbers and path lines.
 - **Guide** mode shows one tree at a time, with the warps that get you there. The next tree comes up when this one is done or skipped (not grown, or regenerating).

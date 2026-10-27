@@ -124,15 +124,10 @@ public final class TreeRoutes {
 		load();
 	}
 
-	/** Use the next route on this island; returns it, or null when there's none. */
-	public static Route cycle() {
-		List<Route> here = all().stream().filter(r -> Islands.here(r.island)).toList();
-		if (here.isEmpty()) return null;
-		Route cur = active();
-		Route next = here.get((here.indexOf(cur) + 1) % here.size());
-		ACTIVE.put(next.island, next.name);
+	/** Use this route on its island. */
+	public static void use(Route r) {
+		ACTIVE.put(r.island, r.name);
 		save();
-		return next;
 	}
 
 	/** Removes one of your routes; Taz's own can't be (false). */

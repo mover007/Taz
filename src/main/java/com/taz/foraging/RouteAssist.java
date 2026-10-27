@@ -97,21 +97,15 @@ public final class RouteAssist extends TextHud {
 		}
 	}
 
-	public static void switchRoute() {
-		TreeRoutes.Route r = TreeRoutes.cycle();
-		TazChat.info(r == null ? "No route for this island." : "Using \"" + r.name + "\".");
-		restart();
+	/** Opens the route chooser. */
+	public static void chooseRoute() {
+		Taz.openScreenNextTick(TreeRouteScreen::new);
 	}
 
-	public static void listRoutes() {
-		if (TreeRoutes.all().isEmpty()) {
-			TazChat.info("No routes yet: copy one from Skyblocker and press Import.");
-			return;
-		}
-		for (TreeRoutes.Route r : TreeRoutes.all()) {
-			TazChat.info(r.name + ": " + r.points.size() + " points on " + Islands.name(r.island)
-					+ (r.bestLapMs > 0 ? ", best lap " + TextUtil.formatTimeTenths(r.bestLapMs) : ""));
-		}
+	/** Uses a route on its island (from the chooser). */
+	public static void useRoute(TreeRoutes.Route r) {
+		TreeRoutes.use(r);
+		restart();
 	}
 
 	public static void deleteRoute() {

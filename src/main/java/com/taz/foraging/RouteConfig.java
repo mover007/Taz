@@ -34,7 +34,8 @@ public final class RouteConfig {
 
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "A tree route to follow. Taz comes with the Helix route for Torrhus Canyon; import your own "
-			+ "from Skyblocker (copy its export, then Import below). A route only shows on the island it's for. Guide mode shows just the next tree and the warps that get you there, and moves on by itself "
+			+ "from Skyblocker (copy its export, then Import below) and pick which one to use with Choose route. A route only shows "
+			+ "on the island it's for. Guide mode shows just the next tree and the warps that get you there, and moves on by itself "
 			+ "when the tree is done.")
 	@ConfigEditorBoolean
 	@SearchTag("tree route waypoints skyblocker import export training etherwarp lap splits")
@@ -54,6 +55,11 @@ public final class RouteConfig {
 	@ConfigEditorBoolean
 	public boolean endStops = false;
 
+	@ConfigOption(name = "Choose route", desc = "Every route you have, by island, with its best lap: click one to use it. The Helix route "
+			+ "(comes with Taz) is used until you pick another.")
+	@ConfigEditorButton(buttonText = "Choose")
+	public transient Runnable chooseRoute = RouteAssist::chooseRoute;
+
 	@ConfigOption(name = "Import from clipboard", desc = "Copy a route in Skyblocker (Waypoints > Share > Export) and press this. "
 			+ "A route made for no island gets the island you're standing on.")
 	@ConfigEditorButton(buttonText = "Import")
@@ -62,14 +68,6 @@ public final class RouteConfig {
 	@ConfigOption(name = "Export to clipboard", desc = "Copies this island's route for Skyblocker.")
 	@ConfigEditorButton(buttonText = "Export")
 	public transient Runnable exportRoute = RouteAssist::exportToClipboard;
-
-	@ConfigOption(name = "Next route here", desc = "Switch to your next route for this island.")
-	@ConfigEditorButton(buttonText = "Switch")
-	public transient Runnable nextRoute = RouteAssist::switchRoute;
-
-	@ConfigOption(name = "List routes", desc = "Show every route you have, its island and best lap.")
-	@ConfigEditorButton(buttonText = "List")
-	public transient Runnable list = RouteAssist::listRoutes;
 
 	@ConfigOption(name = "Delete this route", desc = "Remove the route in use on this island (click twice). The Helix route comes "
 			+ "with Taz and stays.")

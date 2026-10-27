@@ -626,7 +626,24 @@ public class GalateaGameTest implements FabricClientGameTest {
 		String merged = ctx.computeOnClient(mc -> TreeRoutes.all().stream().map(r -> r.name + "/" + r.bestLapMs).toList() + " in use "
 				+ TreeRoutes.activeOn("foraging_3").name);
 		check("route: your old copy folds into the Helix route with its best lap (" + merged + ")", merged.equals("[Helix route/75701] in use Helix route"));
+		// Another route for the island: imported, it's the one in use; Choose route lists both and switches back.
 		ctx.runOnClient(mc -> {
+			mc.keyboardHandler.setClipboard("[{\"name\":\"Fig route\",\"island\":\"foraging_3\",\"waypoints\":[" + point(-600, 100, 150, "1") + ","
+					+ point(-610, 100, 150, "2") + "]}]");
+			RouteAssist.importFromClipboard();
+		});
+		check("route: an imported route is used on its island", ctx.computeOnClient(mc -> TreeRoutes.activeOn("foraging_3").name).equals("Fig route"));
+		ctx.runOnClient(mc -> RouteAssist.chooseRoute());
+		ctx.waitTicks(3);
+		String chooser = ctx.computeOnClient(mc -> mc.screen instanceof com.taz.foraging.TreeRouteScreen s ? s.children().stream()
+				.filter(c -> c instanceof net.minecraft.client.gui.components.Button).map(c -> ((net.minecraft.client.gui.components.Button) c)
+						.getMessage().getString() + (((net.minecraft.client.gui.components.Button) c).active ? "" : " [off]")).toList().toString() : "not open");
+		check("route: Choose route lists every route, the one in use ticked (" + chooser + ")",
+				chooser.contains("Helix route · Torrhus Canyon · 11 trees · best 1:15.7 · Taz") && chooser.contains("✔ Fig route · Torrhus Canyon · 2 trees [off]"));
+		ctx.runOnClient(mc -> RouteAssist.useRoute(TreeRoutes.all().get(0)));
+		check("route: picking the Helix route uses it", ctx.computeOnClient(mc -> TreeRoutes.activeOn("foraging_3").name).equals("Helix route"));
+		ctx.runOnClient(mc -> {
+			mc.setScreen(null);
 			for (TreeRoutes.Route r : new java.util.ArrayList<>(TreeRoutes.all())) TreeRoutes.delete(r);
 		});
 		check("route: kinds (1 = tree, E1 = etherwarp, TP1 = teleport)", imported.points.get(0).kind() == TreeRoutes.Kind.TREE
