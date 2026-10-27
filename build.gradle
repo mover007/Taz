@@ -88,10 +88,12 @@ java {
 // The plain jar has no MoulConfig in it; the shadow jar (taz-<version>.jar) is the one to install.
 jar {
 	archiveClassifier = "slim"
+	from("LICENSE") { rename { "LICENSE_taz" } }
 }
 
 shadowJar {
 	archiveClassifier = ""
+	from("LICENSE") { rename { "LICENSE_taz" } }
 	configurations = []
 	from(provider { zipTree(project.configurations.shade.singleFile) }) {
 		// MoulConfig ships LibNinePatch's mod json and its own access widener; Taz's replace both.

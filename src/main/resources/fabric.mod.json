@@ -3,12 +3,14 @@
 	"id": "taz",
 	"version": "${version}",
 	"name": "Taz",
-	"description": "mTaz's Hypixel SkyBlock features in one mod: Galatea and Torrhus Canyon foraging (tree routes, tree pointer, whispers, honeyhives, Ruby Veilshrooms), dungeon run predictor, cheapest SkyBlock XP list, alerts, timers and more. Settings: /taz.",
+	"description": "Hypixel SkyBlock features in one mod: Galatea foraging, the Critter Safari, dungeons, SkyBlock XP and everyday helpers. Settings: /taz.",
 	"authors": ["mTaz"],
 	"contact": {
-		"sources": "https://github.com/mover007/Taz"
+		"homepage": "https://github.com/mover007/Taz",
+		"sources": "https://github.com/mover007/Taz",
+		"issues": "https://github.com/mover007/Taz/issues"
 	},
-	"license": "MIT",
+	"license": "LGPL-3.0-only",
 	"icon": "assets/taz/icon.png",
 	"environment": "client",
 	"entrypoints": {
