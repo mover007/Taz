@@ -75,10 +75,23 @@ public final class SafariConfig {
 	public boolean tips = true;
 
 	@Expose
-	@ConfigOption(name = "Show the way", desc = "A beam to the Safari Manager at the entrance, and to the Birdfeeder, gem pedestals or "
-			+ "ritual room when you have the quest item for it.")
+	@ConfigOption(name = "Show the way", desc = "A path along the Safari's walkways (SkyHanni's map) to what to do next: the Ritual, "
+			+ "Gem Podiums or Birdfeeder when you carry the quest item for it, the spots of critters you still need in your biome, "
+			+ "the next biome when yours is done, or the nearest floor drop. At the entrance, a beam to the Safari Manager.")
 	@ConfigEditorBoolean
 	public boolean showWay = true;
+
+	@Expose
+	@ConfigOption(name = "Floor drops", desc = "A green box and name on every floor drop (the string on the ground with a green "
+			+ "sparkle), through walls, so you find them fast. They give quest items, Safari Essence and Hunting XP.")
+	@ConfigEditorBoolean
+	public boolean floorDrops = true;
+
+	@Expose
+	@ConfigOption(name = "Rockmite mounds", desc = "An orange box on each small rock mound in the Cavern while you still need a "
+			+ "Rockmite: punch them and one in four has a Rockmite.")
+	@ConfigEditorBoolean
+	public boolean mounds = true;
 
 	@Expose
 	@ConfigOption(name = "Alerts", desc = "A title for a Sparkling critter, a Macaw at the Birdfeeder, the Wumpa, the Doomspiral and Gemzies.")

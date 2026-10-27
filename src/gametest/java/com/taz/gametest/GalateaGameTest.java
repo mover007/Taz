@@ -24,8 +24,11 @@ import com.taz.foraging.SweepDetails;
 import com.taz.foraging.TreeProgress;
 import com.taz.foraging.safari.Critters;
 import com.taz.foraging.safari.SafariConfig;
+import com.taz.foraging.safari.SafariFinds;
 import com.taz.foraging.safari.SafariGuide;
 import com.taz.foraging.safari.SafariHelper;
+import com.taz.foraging.safari.SafariMap;
+import com.taz.foraging.safari.SafariWay;
 import com.taz.hud.MovableHud;
 import com.taz.hud.TazHud;
 import com.taz.hud.TextHud;
@@ -57,7 +60,7 @@ import java.util.stream.Stream;
  */
 public class GalateaGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"veilshrooms", "treeprogress", "sweep", "resources", "huntingmobs", "fairysouls", "guide",
-			"treegifts", "starlyn", "protected", "recorder", "hotfreset", "contesttiming", "pressure", "route", "safari"};
+			"treegifts", "starlyn", "protected", "recorder", "hotfreset", "contesttiming", "pressure", "route", "safari", "safariway"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	private final List<String> shown = new CopyOnWriteArrayList<>();
@@ -100,6 +103,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 			if (runs("pressure")) pressure();
 			if (runs("route")) route();
 			if (runs("safari")) safari();
+			if (runs("safariway")) safariWay();
 		}
 		System.out.println("[GalateaGameTest] PASSED");
 	}
@@ -853,6 +857,72 @@ public class GalateaGameTest implements FabricClientGameTest {
 			}
 			return sb.toString().trim();
 		});
+	}
+
+	// ---- Critter Safari: the way to go, floor drops and Rockmite mounds
+
+	private void safariWay() {
+		SafariMap.Walk toRitual = SafariMap.path(new Vec3(-51.5, 69, 21.5), SafariMap.matching(n -> n.is("Ritual")).stream()
+				.map(SafariMap.Node::pos).toList());
+		Vec3 ritual = SafariMap.matching(n -> n.is("Ritual")).get(0).pos();
+		check("safari way: the map loads (" + SafariMap.nodes().size() + " points)", SafariMap.nodes().size() > 1000);
+		check("safari way: a walk from the Safari Manager to the Ritual (" + (toRitual == null ? "none" : Math.round(toRitual.length()) + "m, "
+				+ toRitual.points().size() + " points") + ")", toRitual != null && toRitual.points().get(toRitual.points().size() - 1).equals(ritual)
+				&& toRitual.length() > ritual.distanceTo(new Vec3(-51.5, 69, 21.5)) && toRitual.points().size() > 5);
+
+		ctx.runOnClient(mc -> {
+			SafariConfig cfg = Taz.config().galatea.safari;
+			cfg.enabled = true;
+			cfg.highlight = SafariConfig.Highlight.RUN;
+			SafariHelper.testWhere = SafariHelper.Where.INSIDE;
+			SafariHelper.testBiome = Critters.Biome.HAUNTED;
+			SafariHelper.reset();
+		});
+		cmd("give @p paper[custom_name=\"Soothing Incense\"]");
+		ctx.waitTicks(30);
+		String goal = ctx.computeOnClient(mc -> SafariWay.goal() == null ? "none" : SafariWay.goal().name());
+		check("safari way: carrying Soothing Incense goes to the Ritual (" + goal + ")", goal.equals("Ritual"));
+		List<String> lines = hudLines(SafariGuide.class);
+		check("safari way: HUD says where (" + lines + ")", lines.stream().anyMatch(l -> l.startsWith("Go to Ritual (use your Soothing Incense)")));
+
+		cmd("clear @p paper");
+		ctx.waitTicks(30);
+		goal = ctx.computeOnClient(mc -> SafariWay.goal() == null ? "none" : SafariWay.goal().name());
+		check("safari way: then the spots of Haunted critters still to catch (" + goal + ")",
+				List.of("Hideonwall", "Areita", "Litterbug", "Hideyho").contains(goal));
+
+		int x = start.getX() + 3, y = start.getY(), z = start.getZ() + 4;
+		for (int i = 0; i < 3; i++) {
+			cmd(String.format(java.util.Locale.ROOT, "summon item_display %.2f %.2f %.2f {item:{id:\"minecraft:string\",count:1}}", x + 0.3 * i + 0.2, y + 0.1, z + 0.5));
+		}
+		for (int i = 0; i < 2; i++) { // two strings are scenery, not a drop
+			cmd(String.format(java.util.Locale.ROOT, "summon item_display %.2f %.2f %.2f {item:{id:\"minecraft:string\",count:1}}", x + 0.3 * i + 0.2, y + 0.1, z + 6.5));
+		}
+		String texture = java.util.Base64.getEncoder().encodeToString(("{\"textures\":{\"SKIN\":{\"url\":\"http://textures.minecraft.net/texture/"
+				+ SafariFinds.MOUND_TEXTURE + "\"}}}").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+		cmd("summon item_display " + (x + 4) + " " + (y + 0.5) + " " + (z + 3) + " {item:{id:\"minecraft:player_head\",count:1,components:{"
+				+ "\"minecraft:profile\":{properties:[{name:\"textures\",value:\"" + texture + "\"}]}}}}");
+		ctx.runOnClient(mc -> SafariHelper.testBiome = Critters.Biome.FOREST); // no Forest critter has a spot to walk to
+		cmd("tp @p " + (x - 6) + " " + (y + 1) + " " + (z + 2) + " facing " + x + " " + y + " " + (z + 2));
+		ctx.waitTicks(30);
+		String finds = ctx.computeOnClient(mc -> "drops=" + SafariFinds.drops().size() + " mounds=" + SafariFinds.mounds().size());
+		check("safari finds: a floor drop (3 strings) and a Rockmite mound (" + finds + ")", finds.equals("drops=1 mounds=1"));
+		goal = ctx.computeOnClient(mc -> SafariWay.goal() == null ? "none" : SafariWay.goal().name());
+		Vec3 end = ctx.computeOnClient(mc -> SafariWay.walk() == null ? Vec3.ZERO : SafariWay.walk().points().get(SafariWay.walk().points().size() - 1));
+		double length = ctx.computeOnClient(mc -> SafariWay.walk() == null ? -1 : SafariWay.walk().length());
+		check("safari way: with nothing else to do, the nearest floor drop, straight there (" + goal + " at " + end + ", " + length + "m)",
+				goal.equals("Floor drop") && end.distanceTo(new Vec3(x + 0.5, y, z + 0.5)) < 1 && length > 0 && length < 12);
+		ctx.takeScreenshot("galatea-safari-way");
+
+		cmd("kill @e[type=item_display]");
+		ctx.runOnClient(mc -> {
+			SafariHelper.testWhere = null;
+			SafariHelper.testBiome = null;
+			Taz.config().galatea.safari.caught.clear();
+			Taz.config().galatea.safari.enabled = false;
+		});
+		cmd("tp @p " + start.getX() + " " + y + " " + start.getZ());
+		ctx.waitTicks(5);
 	}
 
 	/** Taz said this in chat. */

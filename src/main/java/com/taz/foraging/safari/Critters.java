@@ -1,21 +1,21 @@
 package com.taz.foraging.safari;
 
-import net.minecraft.world.phys.Vec3;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The 37 Critter Safari critters by biome, with where to find each one, and the quest items from floor drops with what
  * they're for. Names and rarities as Hypixel writes them (checked against critterMod by MrCloudy2, MIT, built from real
- * catch logs); where they live from the Hypixel SkyBlock wiki's critter table and the forum guide.
+ * catch logs); where they live from the Hypixel SkyBlock wiki's critter table and the forum guide, and the places from
+ * SkyHanni's Safari map ({@link SafariMap}).
  */
 public final class Critters {
 	public enum Biome {
-		FOREST("Forest", "Feed the Birdfeeder (-1, 90, 44) a Yogi Berry, Wriggleworm or Bag of Seeds from floor drops for Bluebirds, "
+		FOREST("Forest", "Feed the Birdfeeder (-2, 90, 44) a Yogi Berry, Wriggleworm or Bag of Seeds from floor drops for Bluebirds, "
 				+ "Parakeets and Macaws, and punch beehives for Honeybugs."),
 		CAVERN("Cavern", "It's the slowest biome. Punch the small rock mounds for Rockmites, break the cracked walls near the TNT for "
 				+ "Snoozles, feed Scrappies Wheat, Fish or Lily Pads, and put the Purple, Lime and Orange Gems on their pedestals for Gemzies."),
@@ -56,14 +56,22 @@ public final class Critters {
 	public record Critter(String name, Biome biome, Rarity rarity, String hint) {
 	}
 
-	/** A floor-drop item, what to do with it, and where (null when the spot isn't a fixed one). */
-	public record QuestItem(String name, String use, Vec3 place, String placeName) {
+	/**
+	 * A floor-drop item, what to do with it, the place on the Safari map it's used at (a {@link SafariMap} name, or null
+	 * when there's no fixed spot) and the critters it brings.
+	 */
+	public record QuestItem(String name, String use, String place, List<String> brings) {
 	}
 
-	private static final Vec3 BIRDFEEDER = new Vec3(-0.5, 90, 44.5);
-	private static final Vec3 GEM_PEDESTALS = new Vec3(-139.5, 61, 50.5);
-	private static final Vec3 RITUAL_ROOM = new Vec3(47.5, 68, -18.5);
 	private static final String SCRAPPY = "feed it to a Scrappy in the Cavern (3 to catch one)";
+	private static final List<String> BIRDS = List.of("Bluebird", "Parakeet", "Macaw");
+	private static final List<String> GEMZIE = List.of("Gemzie");
+
+	/**
+	 * Critters with spots on the Safari map named after them. Only ones you can just walk to: the Doomspiral, Gemzies
+	 * and birds need a quest item, so the way goes there when you carry it.
+	 */
+	public static final Set<String> ON_MAP = Set.of("Hideonwall", "Areita", "Litterbug", "Flitter", "Shyworm", "Chuckwalla");
 
 	public static final List<Critter> ALL = List.of(
 			new Critter("Foxtrot", Biome.FOREST, Rarity.COMMON, "runs around the forest floor"),
@@ -108,19 +116,20 @@ public final class Critters {
 			new Critter("Wumpa", Biome.ICY, Rarity.LEGENDARY, "catch every other Icy critter first"));
 
 	public static final List<QuestItem> QUEST_ITEMS = List.of(
-			new QuestItem("Yogi Berry", "feed it to the Birdfeeder in the Forest (most often a Bluebird)", BIRDFEEDER, "Birdfeeder"),
-			new QuestItem("Wriggleworm", "feed it to the Birdfeeder in the Forest (often a Parakeet)", BIRDFEEDER, "Birdfeeder"),
-			new QuestItem("Bag of Seeds", "feed it to the Birdfeeder in the Forest (the best bait for Macaws)", BIRDFEEDER, "Birdfeeder"),
-			new QuestItem("Soothing Incense", "light one of the 4 ritual candles under the Haunted biome (all 4 bring the Doomspiral)",
-					RITUAL_ROOM, "Ritual room"),
-			new QuestItem("Shining Coin", "throw it into the water in the Haunted mansion's basement for a Gimmiegold", null, null),
-			new QuestItem("Icebreaker", "break an ice wall in the Icy biome to get to a Troodon", null, null),
-			new QuestItem("Purple Gem", "put it on its pedestal in the Cavern (all 3 gems bring 3 Gemzies)", GEM_PEDESTALS, "Gem pedestals"),
-			new QuestItem("Lime Gem", "put it on its pedestal in the Cavern (all 3 gems bring 3 Gemzies)", GEM_PEDESTALS, "Gem pedestals"),
-			new QuestItem("Orange Gem", "put it on its pedestal in the Cavern (all 3 gems bring 3 Gemzies)", GEM_PEDESTALS, "Gem pedestals"),
-			new QuestItem("Wholesale Wheat", SCRAPPY, null, null),
-			new QuestItem("Flavor-packed Fish", SCRAPPY, null, null),
-			new QuestItem("Lush Lily Pad", SCRAPPY, null, null));
+			new QuestItem("Yogi Berry", "feed it to the Birdfeeder in the Forest (most often a Bluebird)", "Birdfeeder", BIRDS),
+			new QuestItem("Wriggleworm", "feed it to the Birdfeeder in the Forest (often a Parakeet)", "Birdfeeder", BIRDS),
+			new QuestItem("Bag of Seeds", "feed it to the Birdfeeder in the Forest (the best bait for Macaws)", "Birdfeeder", BIRDS),
+			new QuestItem("Soothing Incense", "light one of the 4 candles at the Ritual under the Haunted biome (all 4 bring the "
+					+ "Doomspiral)", "Ritual", List.of("Doomspiral")),
+			new QuestItem("Shining Coin", "throw it into the water in the Haunted mansion's basement for a Gimmiegold",
+					"Luigis Mansion 64", List.of("Gimmiegold")),
+			new QuestItem("Icebreaker", "break an ice wall in the Icy biome to get to a Troodon", null, List.of("Troodon")),
+			new QuestItem("Purple Gem", "put it on its pedestal at the Gem Podiums in the Cavern (all 3 gems bring 3 Gemzies)", "Gem Podiums", GEMZIE),
+			new QuestItem("Lime Gem", "put it on its pedestal at the Gem Podiums in the Cavern (all 3 gems bring 3 Gemzies)", "Gem Podiums", GEMZIE),
+			new QuestItem("Orange Gem", "put it on its pedestal at the Gem Podiums in the Cavern (all 3 gems bring 3 Gemzies)", "Gem Podiums", GEMZIE),
+			new QuestItem("Wholesale Wheat", SCRAPPY, null, List.of("Scrappy")),
+			new QuestItem("Flavor-packed Fish", SCRAPPY, null, List.of("Scrappy")),
+			new QuestItem("Lush Lily Pad", SCRAPPY, null, List.of("Scrappy")));
 
 	private static final Map<String, Critter> BY_NAME = new HashMap<>();
 	/** Longest name first, so "Mantis Shrimp" is found before anything shorter inside it. */

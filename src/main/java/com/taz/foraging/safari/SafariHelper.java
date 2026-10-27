@@ -194,6 +194,7 @@ public final class SafariHelper {
 			biome = null;
 			sightings = List.of();
 			GLOW.clear();
+			SafariWay.clear();
 			return;
 		}
 		startRunIfNew(mc);
@@ -201,6 +202,8 @@ public final class SafariHelper {
 		scan(mc, cfg);
 		if (ticks % 20 == 0) readInventory(mc, true);
 		if (cfg.tips) tips(cfg);
+		SafariFinds.tick(mc, cfg);
+		SafariWay.tick(mc, cfg);
 	}
 
 	private static void startRunIfNew(Minecraft mc) {
@@ -215,6 +218,8 @@ public final class SafariHelper {
 		BIOMES_TOLD.clear();
 		SPARKLING_SEEN.clear();
 		MISSED.clear();
+		SafariFinds.reset();
+		SafariWay.reset();
 		hotspot = null;
 		welcomed = toldTen = toldTwo = toldLow = toldOut = false;
 		capsules = -1;
@@ -526,14 +531,20 @@ public final class SafariHelper {
 		}
 	}
 
-	/** "Next: the Cavern Biome (4 left)." Your hotspot first, then the biome with the most left. */
+	/** "Next: the Cavern Biome (4 left)." */
 	public static String nextStep() {
+		Biome best = nextBiome();
+		if (best == null) return "Nothing left to catch!";
+		return "Next: the " + best.label + " Biome (" + left(best) + " left).";
+	}
+
+	/** Where to go when your biome is done: your hotspot, else the biome with the most left. Null when all are done. */
+	public static Biome nextBiome() {
 		Biome best = hotspot != null && left(hotspot) > 0 ? hotspot : null;
 		if (best == null) {
 			for (Biome b : Biome.values()) if (left(b) > 0 && (best == null || left(b) > left(best))) best = b;
 		}
-		if (best == null) return "Nothing left to catch!";
-		return "Next: the " + best.label + " Biome (" + left(best) + " left).";
+		return best;
 	}
 
 	public static void forgetCaught() {
@@ -577,7 +588,7 @@ public final class SafariHelper {
 
 	// ---- in the world
 
-	/** LevelRenderEvents.END_MAIN: name tags, and beams to where you need to go. */
+	/** LevelRenderEvents.END_MAIN: the critters' boxes and name tags, floor drops, mounds and the way to go. */
 	public static void render(LevelRenderContext context) {
 		SafariConfig cfg = SafariConfig.get();
 		if (!cfg.enabled || where == Where.ELSEWHERE) return;
@@ -602,13 +613,8 @@ public final class SafariHelper {
 					batch.label(at, text, color, true);
 				}
 			}
-			if (cfg.showWay) {
-				Set<Vec3> drawn = new HashSet<>();
-				for (String name : quest.keySet()) {
-					QuestItem q = Critters.quest(name);
-					if (q.place() != null && drawn.add(q.place())) beam(batch, q.place(), q.placeName() + ": use your " + q.name());
-				}
-			}
+			SafariFinds.render(batch, cfg);
+			SafariWay.render(batch);
 		} catch (Exception e) {
 			Taz.LOGGER.error("Safari helper render failed", e);
 		}
