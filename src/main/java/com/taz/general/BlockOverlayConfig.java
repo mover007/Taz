@@ -7,7 +7,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Block Overlay in the Taz settings GUI (/taz). */
+/** Visuals > Block Overlay in the Taz settings GUI (/taz). */
 public final class BlockOverlayConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "The block you look at gets a red box instead of the thin black outline.")
@@ -41,6 +41,6 @@ public final class BlockOverlayConfig {
 	public boolean hideWithEtherwarp = false;
 
 	public static BlockOverlayConfig get() {
-		return Taz.config().general.blockOverlay;
+		return Taz.config().visuals.blockOverlay;
 	}
 }

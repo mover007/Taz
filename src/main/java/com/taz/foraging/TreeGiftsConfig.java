@@ -12,7 +12,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** Galatea > Tree Gifts & Loot in the Taz settings GUI (/taz). */
+/** Foraging > Tree Gifts & Loot in the Taz settings GUI (/taz). */
 public final class TreeGiftsConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Counts your Tree Gifts (per tree, bonus gifts, KARMA double loot, mobs that fall out), honeyhive "
@@ -58,6 +58,6 @@ public final class TreeGiftsConfig {
 	public HudPos hud = new HudPos(0.005, 0.40);
 
 	public static TreeGiftsConfig get() {
-		return Taz.config().galatea.treeGifts;
+		return Taz.config().foraging.treeGifts;
 	}
 }

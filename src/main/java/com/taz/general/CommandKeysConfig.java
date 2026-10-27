@@ -10,7 +10,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 import org.lwjgl.glfw.GLFW;
 
-/** General > Command Keys in the Taz settings GUI (/taz): a key for any command. */
+/** Controls > Command Keys in the Taz settings GUI (/taz): a key for any command. */
 public final class CommandKeysConfig {
 	public static final class Slot {
 		@Expose
@@ -83,6 +83,6 @@ public final class CommandKeysConfig {
 	}
 
 	public static CommandKeysConfig get() {
-		return Taz.config().general.commandKeys;
+		return Taz.config().controls.commandKeys;
 	}
 }

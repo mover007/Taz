@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Gyro Wand in the Taz settings GUI (/taz). */
+/** Visuals > Gyro Wand in the Taz settings GUI (/taz). */
 public final class GyroWandConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "While you hold the Gyrokinetic Wand, a ring showing where its pull lands.")
@@ -25,6 +25,6 @@ public final class GyroWandConfig {
 	public boolean throughWalls = false;
 
 	public static GyroWandConfig get() {
-		return Taz.config().general.gyroWand;
+		return Taz.config().visuals.gyroWand;
 	}
 }

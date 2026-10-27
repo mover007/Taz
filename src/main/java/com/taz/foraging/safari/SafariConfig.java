@@ -6,6 +6,8 @@ import com.taz.hud.HudPos;
 import com.taz.hud.TazHud;
 import com.taz.util.Alert;
 import com.taz.util.TazChat;
+import io.github.notenoughupdates.moulconfig.annotations.ConfigAccordionId;
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorAccordion;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
@@ -16,7 +18,7 @@ import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Galatea > Critter Safari in the Taz settings GUI (/taz). */
+/** The "Critter Safari" category of the Taz settings GUI (/taz). */
 public final class SafariConfig {
 	/** The biome the route works first. */
 	public enum Zone {
@@ -62,41 +64,42 @@ public final class SafariConfig {
 	@SearchTag("critter safari hunting critters capsule highlight glow critterdex shard biome forest cavern haunted icy macaw wumpa doomspiral sparkling")
 	public boolean enabled = false;
 
+	@ConfigOption(name = "Highlights", desc = "Which critters glow, and how they're marked.")
+	@ConfigEditorAccordion(id = 0)
+	public boolean section0 = false;
+
 	@Expose
+	@ConfigAccordionId(id = 0)
 	@ConfigOption(name = "Highlight", desc = "Which critters glow: the ones nobody in your party has caught this run (each new one gives "
 			+ "+5,000 Hunting XP), the ones you've never caught yourself, or all of them. Sparkling ones always glow.")
 	@ConfigEditorDropdown
 	public Highlight highlight = Highlight.RUN;
 
 	@Expose
+	@ConfigAccordionId(id = 0)
 	@ConfigOption(name = "Boxes", desc = "A red box round each critter you need, through walls (gold if Sparkling).")
 	@ConfigEditorBoolean
 	public boolean boxes = true;
 
 	@Expose
+	@ConfigAccordionId(id = 0)
 	@ConfigOption(name = "Glow", desc = "The critters you need also glow with an outline through walls.")
 	@ConfigEditorBoolean
 	public boolean glow = true;
 
 	@Expose
+	@ConfigAccordionId(id = 0)
 	@ConfigOption(name = "Name tags", desc = "A red name tag over each critter you need, with how far away it is. \"new\" means you've "
 			+ "never caught one.")
 	@ConfigEditorBoolean
 	public boolean nameTags = true;
 
-	@Expose
-	@ConfigOption(name = "Guide HUD", desc = "Critters left in your biome and how to find each, the other biomes, your capsules, "
-			+ "the time left and what your quest items are for. At the entrance: what you need to get in.")
-	@ConfigEditorBoolean
-	public boolean guide = true;
+	@ConfigOption(name = "Route", desc = "The path through the run, biome by biome.")
+	@ConfigEditorAccordion(id = 1)
+	public boolean section1 = false;
 
 	@Expose
-	@ConfigOption(name = "Tips in chat", desc = "Taz explains each step in chat: how the Safari works, every biome, your hotspot, "
-			+ "what each quest item you pick up is for, and where to go next.")
-	@ConfigEditorBoolean
-	public boolean tips = true;
-
-	@Expose
+	@ConfigAccordionId(id = 1)
 	@ConfigOption(name = "Show the way", desc = "A path through the whole run, one biome at a time, along the Safari's walkways "
 			+ "(SkyHanni's map): to critters you still need, then bee nests, walls, perches, beds, mounds and the Ritual, Gem Podiums "
 			+ "or Birdfeeder when you have what they need, then round the biome for the ones that roam, and to floor drops when "
@@ -105,44 +108,82 @@ public final class SafariConfig {
 	public boolean showWay = true;
 
 	@Expose
+	@ConfigAccordionId(id = 1)
 	@ConfigOption(name = "Your biome", desc = "The biome the route does first. Auto: your Hunting Hotspot (everyone in a party gets a "
 			+ "different one), then the one you're in, then the one with most left. In a party that agreed on other biomes, pick "
 			+ "yours. When it's done (the Macaw doesn't count) the route moves on.")
 	@ConfigEditorDropdown
 	public Zone zone = Zone.AUTO;
 
+	@ConfigOption(name = "Floor drops & mounds", desc = "Boxes on floor drops and Rockmite mounds.")
+	@ConfigEditorAccordion(id = 2)
+	public boolean section2 = false;
+
 	@Expose
+	@ConfigAccordionId(id = 2)
 	@ConfigOption(name = "Floor drops", desc = "A green box and name on every floor drop (the string on the ground with a green "
 			+ "sparkle), through walls, so you find them fast. They give quest items, Safari Essence and Hunting XP.")
 	@ConfigEditorBoolean
 	public boolean floorDrops = true;
 
 	@Expose
+	@ConfigAccordionId(id = 2)
 	@ConfigOption(name = "Floor drop range", desc = "Only floor drops this many blocks away or closer get a box and name. The route "
 			+ "still knows about the rest.")
 	@ConfigEditorSlider(minValue = 5, maxValue = 150, minStep = 5)
 	public int floorDropRange = 30;
 
 	@Expose
+	@ConfigAccordionId(id = 2)
 	@ConfigOption(name = "Rockmite mounds", desc = "An orange box on each small rock mound in the Cavern while you still need a "
 			+ "Rockmite: punch them and one in four has a Rockmite.")
 	@ConfigEditorBoolean
 	public boolean mounds = true;
 
+	@ConfigOption(name = "Guide & tips", desc = "The guide HUD and the tips in chat.")
+	@ConfigEditorAccordion(id = 3)
+	public boolean section3 = false;
+
 	@Expose
+	@ConfigAccordionId(id = 3)
+	@ConfigOption(name = "Guide HUD", desc = "Critters left in your biome and how to find each, the other biomes, your capsules, "
+			+ "the time left and what your quest items are for. At the entrance: what you need to get in.")
+	@ConfigEditorBoolean
+	public boolean guide = true;
+
+	@ConfigAccordionId(id = 3)
+	@ConfigOption(name = "Guide HUD position", desc = "Drag it to move, scroll to resize.")
+	@ConfigEditorButton(buttonText = "Edit")
+	public transient Runnable editHud = TazHud::openEditor;
+
+	@Expose
+	@ConfigAccordionId(id = 3)
+	@ConfigOption(name = "Tips in chat", desc = "Taz explains each step in chat: how the Safari works, every biome, your hotspot, "
+			+ "what each quest item you pick up is for, and where to go next.")
+	@ConfigEditorBoolean
+	public boolean tips = true;
+
+	@ConfigOption(name = "Alerts", desc = "Titles for the moments you shouldn't miss.")
+	@ConfigEditorAccordion(id = 4)
+	public boolean section4 = false;
+
+	@Expose
+	@ConfigAccordionId(id = 4)
 	@ConfigOption(name = "Alerts", desc = "A title for a Sparkling critter, a Macaw at the Birdfeeder, the Wumpa, the Doomspiral and Gemzies.")
 	@ConfigEditorBoolean
 	public boolean alerts = true;
 
 	@Expose
+	@ConfigAccordionId(id = 4)
 	@ConfigOption(name = "Alert sound", desc = "")
 	@ConfigEditorDropdown
 	public Alert.Sound sound = Alert.Sound.PLING;
 
-	@ConfigOption(name = "Guide HUD position", desc = "Drag it to move, scroll to resize.")
-	@ConfigEditorButton(buttonText = "Edit")
-	public transient Runnable editHud = TazHud::openEditor;
+	@ConfigOption(name = "Your catches", desc = "The critters Taz remembers you catching.")
+	@ConfigEditorAccordion(id = 5)
+	public boolean section5 = false;
 
+	@ConfigAccordionId(id = 5)
 	@ConfigOption(name = "Forget my catches", desc = "Count every critter as never caught (click twice).")
 	@ConfigEditorButton(buttonText = "Forget")
 	public transient Runnable forget = () -> {
@@ -157,6 +198,6 @@ public final class SafariConfig {
 	public List<String> caught = new ArrayList<>();
 
 	public static SafariConfig get() {
-		return Taz.config().galatea.safari;
+		return Taz.config().safari;
 	}
 }

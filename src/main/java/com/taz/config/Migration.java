@@ -71,6 +71,7 @@ public final class Migration {
 			if (version < 2) upgradeToV2(root);
 			if (version < 3) upgradeToV3(root);
 			if (version < 4) upgradeToV4(root);
+			if (version < 5) upgradeToV5(root);
 			root.addProperty("configVersion", TazConfig.CURRENT_VERSION);
 			Files.writeString(file, ModConfig.GSON.toJson(root), StandardCharsets.UTF_8);
 			Taz.LOGGER.info("Upgraded {} from layout {} to {}", file, version, TazConfig.CURRENT_VERSION);
@@ -148,6 +149,45 @@ public final class Migration {
 		}
 	}
 
+	/**
+	 * v5: more categories. Chat, Controls and Visuals came out of General, the inventory screens went to Inventory, the
+	 * trees to Foraging, and the Run Predictor, Secret Routes, Puzzle Solvers, Dungeon Map and Critter Safari got their own.
+	 */
+	public static void upgradeToV5(JsonObject root) {
+		for (String f : new String[]{"chatFilter", "chatCommands", "chat", "waypoints", "commandShortcuts"}) moveFeature(root, "general", f, "chat", f);
+		for (String f : new String[]{"commandKeys", "slotBinds", "loadoutKeybinds", "autoSprint", "noCursorReset", "camera"}) {
+			moveFeature(root, "general", f, "controls", f);
+		}
+		for (String f : new String[]{"performance", "renderOptimizer", "heldItem", "blockOverlay", "darkMode", "soundVolumes", "arrowFix",
+				"etherwarp", "gyroWand"}) {
+			moveFeature(root, "general", f, "visuals", f);
+		}
+		for (String f : new String[]{"storageOverlay", "auctionInput"}) moveFeature(root, "general", f, "inventory", f);
+		for (String f : new String[]{"treePointer", "route", "treeProgress", "sweep", "treeGifts", "whispers", "starlyn"}) {
+			moveFeature(root, "galatea", f, "foraging", f);
+		}
+		for (String f : new String[]{"map", "mapInfo"}) moveFeature(root, "dungeons", f, "dungeonMap", f);
+		JsonObject dungeons = object(root, "dungeons");
+		if (dungeons != null) {
+			move(dungeons, "runPredictor", root, "runPredictor");
+			move(dungeons, "secrets", root, "secretRoutes");
+			move(dungeons, "puzzles", root, "puzzles");
+		}
+		JsonObject galatea = object(root, "galatea");
+		if (galatea != null) move(galatea, "safari", root, "safari");
+	}
+
+	private static void moveFeature(JsonObject root, String fromCategory, String feature, String toCategory, String newName) {
+		JsonObject from = object(root, fromCategory);
+		if (from == null || !from.has(feature)) return;
+		JsonObject to = object(root, toCategory);
+		if (to == null) {
+			to = new JsonObject();
+			root.add(toCategory, to);
+		}
+		move(from, feature, to, newName);
+	}
+
 	private static JsonObject object(JsonObject o, String key) {
 		return o.has(key) && o.get(key).isJsonObject() ? o.getAsJsonObject(key) : null;
 	}
@@ -161,7 +201,7 @@ public final class Migration {
 		JsonObject drp = read(OLD_DUNGEONS.resolve("config.json"));
 		if (drp != null) {
 			try {
-				importDungeons(drp, cfg.dungeons.runPredictor);
+				importDungeons(drp, cfg.runPredictor);
 				Taz.LOGGER.info("Imported Dungeon Run Predictor settings");
 			} catch (RuntimeException e) {
 				Taz.LOGGER.error("Could not import Dungeon Run Predictor settings", e);

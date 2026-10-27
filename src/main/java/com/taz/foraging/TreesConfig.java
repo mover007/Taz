@@ -80,7 +80,7 @@ public final class TreesConfig {
 	public transient Runnable status = TreeTracker::printStatus;
 
 	public static TreesConfig get() {
-		return Taz.config().galatea.treePointer;
+		return Taz.config().foraging.treePointer;
 	}
 
 	public boolean enabled(TreeTracker.Kind kind) {

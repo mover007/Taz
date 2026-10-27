@@ -7,7 +7,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Dark Mode in the Taz settings GUI (/taz). */
+/** Visuals > Dark Mode in the Taz settings GUI (/taz). */
 public final class DarkModeConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Darkens the world with a black tint.")
@@ -26,6 +26,6 @@ public final class DarkModeConfig {
 	public boolean tintHud = false;
 
 	public static DarkModeConfig get() {
-		return Taz.config().general.darkMode;
+		return Taz.config().visuals.darkMode;
 	}
 }

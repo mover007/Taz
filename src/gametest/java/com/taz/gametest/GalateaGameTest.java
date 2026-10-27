@@ -175,7 +175,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 	// ---- tree progress
 
 	private void treeProgress() {
-		ctx.runOnClient(mc -> Taz.config().galatea.treeProgress.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().foraging.treeProgress.enabled = true);
 		int x = start.getX(), y = start.getY(), z = start.getZ();
 		cmd("summon armor_stand " + (x + 5.5) + " " + (y + 2) + " " + (z + 0.5)
 				+ " {CustomName:\"FIG TREE 37%\",CustomNameVisible:1b,Invisible:1b,NoGravity:1b,Marker:1b,Tags:[\"taztest\"]}");
@@ -199,8 +199,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 	private void sweep() {
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.sweep.enabled = true;
-			Taz.config().galatea.sweep.hideChat = true;
+			Taz.config().foraging.sweep.enabled = true;
+			Taz.config().foraging.sweep.hideChat = true;
 		});
 		clearAlert();
 		tell("Sweep Details: 120∮ Sweep");
@@ -351,9 +351,9 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 	private void treeGifts() {
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.treeGifts.enabled = true;
-			Taz.config().galatea.treeGifts.compact = true;
-			Taz.config().galatea.treeGifts.rareChance = 1.0f;
+			Taz.config().foraging.treeGifts.enabled = true;
+			Taz.config().foraging.treeGifts.compact = true;
+			Taz.config().foraging.treeGifts.rareChance = 1.0f;
 			TreeGifts.resetCounts();
 		});
 		clearAlert();
@@ -405,8 +405,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 	private void starlyn() {
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.starlyn.enabled = true;
-			Taz.config().galatea.starlyn.compactClaims = true;
+			Taz.config().foraging.starlyn.enabled = true;
+			Taz.config().foraging.starlyn.compactClaims = true;
 		});
 		int before = shown.size();
 		tellAll("STARLYN CONTEST REWARDS CLAIMED", "» Agatha Contest on Spring 22nd, Year 521", "REWARDS", "Agatha's Coupon x15",
@@ -424,7 +424,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		long day = SkyblockEvent.EPOCH_S + 5 * SkyblockEvent.DAY_S;
 		check("starlyn: a contest ends 30s before its SkyBlock day", StarlynContest.endsAt(day + 100) == day + SkyblockEvent.DAY_S - 30);
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.starlyn.endAlert = true;
+			Taz.config().foraging.starlyn.endAlert = true;
 			EventTimers.testNowMs = (StarlynContest.endsAt(System.currentTimeMillis() / 1000) - 30) * 1000 + 500;
 		});
 		clearAlert();
@@ -441,9 +441,9 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 	private void protectedTrees() {
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.treePointer.enabled = true;
-			Taz.config().galatea.treePointer.skipProtected = true;
-			Taz.config().galatea.treePointer.protectedAlert = true;
+			Taz.config().foraging.treePointer.enabled = true;
+			Taz.config().foraging.treePointer.skipProtected = true;
+			Taz.config().foraging.treePointer.protectedAlert = true;
 			ProtectedTrees.forget();
 		});
 		int x = start.getX(), y = start.getY(), z = start.getZ();
@@ -469,7 +469,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> ProtectedTrees.forget());
 		cmd("fill " + ax + " " + y + " " + z + " " + (bx + 1) + " " + (y + 4) + " " + (z + 1) + " air");
 		cmd("tp @p " + x + " " + y + " " + z);
-		ctx.runOnClient(mc -> Taz.config().galatea.treePointer.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().foraging.treePointer.enabled = false);
 	}
 
 	private Integer nextTreeX() {
@@ -512,7 +512,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 	private void hotfReset() {
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.whispers.enabled = true;
+			Taz.config().foraging.whispers.enabled = true;
 			WhisperTracker.reset();
 			WhisperTracker.onServerChange();
 			WhisperTracker.testLines = List.of("Forest Whispers: 10,000", "Desert Whispers: 500");
@@ -529,7 +529,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> {
 			WhisperTracker.testLines = null;
 			WhisperTracker.reset();
-			Taz.config().galatea.whispers.enabled = false;
+			Taz.config().foraging.whispers.enabled = false;
 		});
 	}
 
@@ -537,8 +537,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 	private void contestTiming() {
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.starlyn.enabled = true;
-			Taz.config().galatea.starlyn.endAlert = true;
+			Taz.config().foraging.starlyn.enabled = true;
+			Taz.config().foraging.starlyn.endAlert = true;
 		});
 		long day = SkyblockEvent.EPOCH_S + 7 * SkyblockEvent.DAY_S;
 		check("contest timing: ends at :x4:30, not :x5:00", StarlynContest.endsAt(day + 60) == day + SkyblockEvent.DAY_S - 30);
@@ -559,7 +559,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> StarlynContest.readSidebar(List.of("Miria's Contest 16m12s"), System.currentTimeMillis()));
 		lines = hudLines(StarlynContest.class);
 		check("contest timing: minutes and seconds read (" + lines.get(0) + ")", lines.get(0).contains("16:1"));
-		ctx.runOnClient(mc -> Taz.config().galatea.starlyn.endAlert = false);
+		ctx.runOnClient(mc -> Taz.config().foraging.starlyn.endAlert = false);
 	}
 
 	// ---- pressure warning
@@ -588,8 +588,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 	private void route() {
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.route.enabled = true;
-			Taz.config().galatea.route.mode = RouteConfig.Mode.NORMAL;
+			Taz.config().foraging.route.enabled = true;
+			Taz.config().foraging.route.mode = RouteConfig.Mode.NORMAL;
 			for (TreeRoutes.Route r : new java.util.ArrayList<>(TreeRoutes.all())) TreeRoutes.delete(r);
 			mc.keyboardHandler.setClipboard(USER_ROUTE);
 			RouteAssist.importFromClipboard();
@@ -626,9 +626,9 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> {
 			mc.keyboardHandler.setClipboard(json);
 			RouteAssist.importFromClipboard();
-			Taz.config().galatea.route.mode = RouteConfig.Mode.TRAINING;
-			Taz.config().galatea.route.reach = 2;
-			Taz.config().galatea.route.endStops = true;
+			Taz.config().foraging.route.mode = RouteConfig.Mode.TRAINING;
+			Taz.config().foraging.route.reach = 2;
+			Taz.config().foraging.route.endStops = true;
 			RouteAssist.restart();
 		});
 		cmd("tp @p " + x + " " + y + " " + (z - 6) + " facing " + (x + 12) + " " + y + " " + z);
@@ -680,13 +680,13 @@ public class GalateaGameTest implements FabricClientGameTest {
 		// End stops off: leaving a tree moves on, and the lap ends at the last tree.
 		cmd("fill " + (x + 5) + " " + y + " " + z + " " + (x + 6) + " " + (y + 5) + " " + (z + 1) + " stripped_spruce_wood");
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.route.endStops = false;
+			Taz.config().foraging.route.endStops = false;
 			RouteAssist.restart();
 		});
 		goTo(x + 4, y, z);
 		goTo(x + 4, y, z - 20);
 		check("route: leaving the tree moves on", !ctx.computeOnClient(mc -> RouteAssist.atTree()) && ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 1);
-		ctx.runOnClient(mc -> Taz.config().galatea.route.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4);
+		ctx.runOnClient(mc -> Taz.config().foraging.route.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4);
 		ctx.getInput().holdKeyFor(org.lwjgl.glfw.GLFW.GLFW_KEY_KP_4, 2);
 		ctx.waitTicks(3);
 		check("route: restart key", ctx.computeOnClient(mc -> RouteAssist.nextIndex()) == 0
@@ -701,8 +701,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 				&& lines.stream().anyMatch(l -> l.contains("Go to Tree 1 to start")));
 		cmd("fill " + (x + 5) + " " + y + " " + z + " " + (x + 6) + " " + (y + 5) + " " + (z + 1) + " air");
 		ctx.runOnClient(mc -> {
-			Taz.config().galatea.route.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN;
-			Taz.config().galatea.route.mode = RouteConfig.Mode.NORMAL;
+			Taz.config().foraging.route.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN;
+			Taz.config().foraging.route.mode = RouteConfig.Mode.NORMAL;
 		});
 		cmd("tp @p " + x + " " + (y + 3) + " " + (z - 14) + " facing " + (x + 24) + " " + y + " " + z);
 		ctx.waitTicks(5);
@@ -710,7 +710,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		cmd("fill " + (x + 31) + " " + y + " " + z + " " + (x + 32) + " " + (y + 5) + " " + (z + 1) + " air");
 		ctx.runOnClient(mc -> {
 			for (TreeRoutes.Route r : new java.util.ArrayList<>(TreeRoutes.all())) TreeRoutes.delete(r);
-			Taz.config().galatea.route.enabled = false;
+			Taz.config().foraging.route.enabled = false;
 		});
 		cmd("tp @p " + x + " " + y + " " + z);
 	}
@@ -719,7 +719,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 	private void safari() {
 		ctx.runOnClient(mc -> {
-			SafariConfig cfg = Taz.config().galatea.safari;
+			SafariConfig cfg = Taz.config().safari;
 			cfg.enabled = true;
 			cfg.highlight = SafariConfig.Highlight.RUN;
 			cfg.caught.clear();
@@ -787,17 +787,17 @@ public class GalateaGameTest implements FabricClientGameTest {
 		check("safari: caught ones stop glowing, a quoted catch doesn't count (" + glows + ")", glows.contains("fox=no")
 				&& glows.contains("frog=no") && glows.contains("item_display=" + red));
 		check("safari: your own catch is remembered, a party member's isn't", ctx.computeOnClient(mc ->
-				Taz.config().galatea.safari.caught.equals(List.of("Foxtrot"))) && said("Your first Foxtrot!"));
+				Taz.config().safari.caught.equals(List.of("Foxtrot"))) && said("Your first Foxtrot!"));
 		lines = hudLines(SafariGuide.class);
 		List<String> afterCatch = lines;
 		check("safari: guide counts the catches (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Forest (you're here) 7 left"))
 				&& lines.stream().noneMatch(l -> l.startsWith(" Foxtrot")) && afterCatch.get(0).contains("2/37"));
 
-		ctx.runOnClient(mc -> Taz.config().galatea.safari.highlight = SafariConfig.Highlight.MINE);
+		ctx.runOnClient(mc -> Taz.config().safari.highlight = SafariConfig.Highlight.MINE);
 		ctx.waitTicks(6);
 		glows = glows();
 		check("safari: never-caught-by-me mode (" + glows + ")", glows.contains("fox=no") && glows.contains("frog=" + red));
-		ctx.runOnClient(mc -> Taz.config().galatea.safari.highlight = SafariConfig.Highlight.RUN);
+		ctx.runOnClient(mc -> Taz.config().safari.highlight = SafariConfig.Highlight.RUN);
 
 		tell("HOTSPOT! Your Hunting Hotspot is the Icy Biome!");
 		clearAlert();
@@ -834,8 +834,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> {
 			SafariHelper.testWhere = null;
 			SafariHelper.testBiome = null;
-			Taz.config().galatea.safari.caught.clear();
-			Taz.config().galatea.safari.enabled = false;
+			Taz.config().safari.caught.clear();
+			Taz.config().safari.enabled = false;
 		});
 		cmd("tp @p " + start.getX() + " " + y + " " + z);
 		ctx.waitTicks(5);
@@ -876,7 +876,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 				zones.equals("Birdfeeder=FOREST Ritual=HAUNTED Gem Podiums=CAVERN Polaris cave=ICY"));
 
 		ctx.runOnClient(mc -> {
-			SafariConfig cfg = Taz.config().galatea.safari;
+			SafariConfig cfg = Taz.config().safari;
 			cfg.enabled = true;
 			cfg.highlight = SafariConfig.Highlight.RUN;
 			cfg.zone = SafariConfig.Zone.AUTO;
@@ -913,7 +913,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		List<String> lines = hudLines(SafariGuide.class);
 		check("safari way: HUD says what's next (" + lines + ")", lines.stream().anyMatch(l -> l.startsWith("Next: Bluebird - feed the Birdfeeder")));
 
-		ctx.runOnClient(mc -> Taz.config().galatea.safari.zone = SafariConfig.Zone.CAVERN);
+		ctx.runOnClient(mc -> Taz.config().safari.zone = SafariConfig.Zone.CAVERN);
 		ctx.waitTicks(15);
 		String cavern = ctx.computeOnClient(mc -> SafariWay.zone() + " " + (SafariWay.goal() == null ? "none" : SafariMap.zoneAt(SafariWay.goal().pos())));
 		lines = hudLines(SafariGuide.class);
@@ -957,7 +957,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 		cmd("kill @e[type=armor_stand]");
 		setblock(new BlockPos(x - 3, y, z - 3), "air");
 		ctx.runOnClient(mc -> SafariSpots.testFoodAnywhere = false);
-		ctx.runOnClient(mc -> Taz.config().galatea.safari.zone = SafariConfig.Zone.AUTO);
+		ctx.runOnClient(mc -> Taz.config().safari.zone = SafariConfig.Zone.AUTO);
 
 		cmd("clear @p paper");
 		tell("HOTSPOT! Your Hunting Hotspot is the Icy Biome!");
@@ -967,11 +967,11 @@ public class GalateaGameTest implements FabricClientGameTest {
 		for (Critters.Critter c : Critters.in(Critters.Biome.FOREST)) {
 			if (!c.name().equals("Macaw")) tell("CAPTURE! You caught a " + c.name() + " and gained a " + c.name() + " Shard!");
 		}
-		ctx.runOnClient(mc -> Taz.config().galatea.safari.zone = SafariConfig.Zone.FOREST);
+		ctx.runOnClient(mc -> Taz.config().safari.zone = SafariConfig.Zone.FOREST);
 		ctx.waitTicks(30);
 		String next = ctx.computeOnClient(mc -> String.valueOf(SafariWay.zone()));
 		check("safari way: a picked biome done but the Macaw moves on (" + next + ")", next.equals("ICY"));
-		ctx.runOnClient(mc -> Taz.config().galatea.safari.zone = SafariConfig.Zone.AUTO);
+		ctx.runOnClient(mc -> Taz.config().safari.zone = SafariConfig.Zone.AUTO);
 
 		// Hypixel draws the strings off their entity's position with the display's transformation: half a block up here.
 		String lifted = ",transformation:{translation:[0f,0.5f,0f],left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],scale:[1f,1f,1f]}";
@@ -1045,8 +1045,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> {
 			SafariHelper.testWhere = null;
 			SafariHelper.testBiome = null;
-			Taz.config().galatea.safari.caught.clear();
-			Taz.config().galatea.safari.enabled = false;
+			Taz.config().safari.caught.clear();
+			Taz.config().safari.enabled = false;
 		});
 		cmd("tp @p " + start.getX() + " " + y + " " + start.getZ());
 		ctx.waitTicks(5);

@@ -99,9 +99,9 @@ public final class DungeonPredictorClient {
 		openStatsNextTick = true;
 	}
 
-	/** Opens the Taz settings at the Dungeons category. */
+	/** Opens the Taz settings at the Run Predictor. */
 	public static void openSettings() {
-		Taz.openSettings("Dungeons");
+		Taz.openSettings("Run Predictor");
 	}
 
 	/** Opens the HUD editor on the next tick (a command runs while the chat screen is still closing). */

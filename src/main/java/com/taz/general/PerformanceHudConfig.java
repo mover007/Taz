@@ -9,7 +9,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Performance HUD in the Taz settings GUI (/taz). */
+/** Visuals > Performance HUD in the Taz settings GUI (/taz). */
 public final class PerformanceHudConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Shows your FPS, the server's TPS and your ping.")
@@ -45,6 +45,6 @@ public final class PerformanceHudConfig {
 	public HudPos hud = new HudPos(0.01, 0.01);
 
 	public static PerformanceHudConfig get() {
-		return Taz.config().general.performance;
+		return Taz.config().visuals.performance;
 	}
 }

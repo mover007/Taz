@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Chat in the Taz settings GUI (/taz). */
+/** Chat > Chat in the Taz settings GUI (/taz). */
 public final class ChatTweaksConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Ctrl + click to copy a chat message, emoji codes like :skull: and <3, and Explosive Shot damage per enemy.")
@@ -30,6 +30,6 @@ public final class ChatTweaksConfig {
 	public boolean explosiveShot = true;
 
 	public static ChatTweaksConfig get() {
-		return Taz.config().general.chat;
+		return Taz.config().chat.chat;
 	}
 }

@@ -1,36 +1,23 @@
 package com.taz.config;
 
 import com.google.gson.annotations.Expose;
-import com.taz.dungeons.config.ModConfig;
 import com.taz.dungeons.highlight.DoorsAndKeysConfig;
 import com.taz.dungeons.highlight.SecretClickedConfig;
 import com.taz.dungeons.highlight.StarredMobsConfig;
 import com.taz.dungeons.info.BlessingsConfig;
 import com.taz.dungeons.info.BloodCampConfig;
 import com.taz.dungeons.info.MageBeamConfig;
-import com.taz.dungeons.puzzles.PuzzlesConfig;
 import com.taz.dungeons.info.MaskTimersConfig;
 import com.taz.dungeons.info.RoomAlertsConfig;
 import com.taz.dungeons.info.ScoreAlertsConfig;
 import com.taz.dungeons.info.TerracottaTimerConfig;
 import com.taz.dungeons.secrets.RoomTimesConfig;
-import com.taz.dungeons.secrets.SecretsConfig;
 import com.taz.dungeons.skillissue.SkillIssueConfig;
 import io.github.notenoughupdates.moulconfig.annotations.Accordion;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 
 /** The "Dungeons" category: one dropdown per dungeon feature. */
 public final class DungeonsCategory {
-	@Expose
-	@ConfigOption(name = "Run Predictor", desc = "Run timer, end-time prediction, score, splits, PBs and chat messages for Catacombs runs.")
-	@Accordion
-	public ModConfig runPredictor = new ModConfig();
-
-	@Expose
-	@ConfigOption(name = "Secret Routes", desc = "Secret routes for every room from Odin waypoint packs, with a guide mode that shows the next step and times each room.")
-	@Accordion
-	public SecretsConfig secrets = new SecretsConfig();
-
 	@Expose
 	@ConfigOption(name = "Room Secret Times", desc = "How long each room's secrets took you, from the first secret to the last, in party chat "
 			+ "and your chat. Works with any route, no waypoints needed.")
@@ -94,12 +81,6 @@ public final class DungeonsCategory {
 	public MageBeamConfig mageBeam = new MageBeamConfig();
 
 	@Expose
-	@ConfigOption(name = "Puzzle Solvers", desc = "The answer to each dungeon puzzle: Water Board, Teleport Maze, Ice Fill, Ice Path, Blaze, Creeper Beams, "
-			+ "Three Weirdos, Quiz, Boulder and Tic Tac Toe.")
-	@Accordion
-	public PuzzlesConfig puzzles = new PuzzlesConfig();
-
-	@Expose
 	@ConfigOption(name = "Auto Requeue", desc = "When a run ends, queue the same floor again.")
 	@Accordion
 	public com.taz.dungeons.info.AutoRequeueConfig autoRequeue = new com.taz.dungeons.info.AutoRequeueConfig();
@@ -113,14 +94,4 @@ public final class DungeonsCategory {
 	@ConfigOption(name = "Party Finder", desc = "Stats of players who join, Auto Kick, and missing classes in the Party Finder menu.")
 	@Accordion
 	public com.taz.dungeons.info.PartyFinderConfig partyFinder = new com.taz.dungeons.info.PartyFinderConfig();
-
-	@Expose
-	@ConfigOption(name = "Dungeon Map", desc = "Hypixel's dungeon map redrawn bigger, with room names, secrets and teammates' faces.")
-	@Accordion
-	public com.taz.dungeons.map.DungeonMapConfig map = new com.taz.dungeons.map.DungeonMapConfig();
-
-	@Expose
-	@ConfigOption(name = "Map Info", desc = "A score HUD, the room's secrets, and the Blood portal boxed at 300 score.")
-	@Accordion
-	public com.taz.dungeons.map.MapInfoConfig mapInfo = new com.taz.dungeons.map.MapInfoConfig();
 }

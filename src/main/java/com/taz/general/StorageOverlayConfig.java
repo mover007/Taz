@@ -7,7 +7,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Storage Overlay in the Taz settings GUI (/taz). */
+/** Inventory > Storage Overlay in the Taz settings GUI (/taz). */
 public final class StorageOverlayConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "/storage shows every ender chest page and backpack with its items at once; click one to open it.")
@@ -41,6 +41,6 @@ public final class StorageOverlayConfig {
 	public boolean keepScroll = true;
 
 	public static StorageOverlayConfig get() {
-		return Taz.config().general.storageOverlay;
+		return Taz.config().inventory.storageOverlay;
 	}
 }

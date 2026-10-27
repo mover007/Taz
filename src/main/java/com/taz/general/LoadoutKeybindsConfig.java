@@ -8,7 +8,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 import org.lwjgl.glfw.GLFW;
 
-/** General > Loadout Keybinds in the Taz settings GUI (/taz). */
+/** Controls > Loadout Keybinds in the Taz settings GUI (/taz). */
 public final class LoadoutKeybindsConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "In the Loadout menu: number keys pick a loadout, the arrow keys turn the page.")
@@ -91,6 +91,6 @@ public final class LoadoutKeybindsConfig {
 	}
 
 	public static LoadoutKeybindsConfig get() {
-		return Taz.config().general.loadoutKeybinds;
+		return Taz.config().controls.loadoutKeybinds;
 	}
 }

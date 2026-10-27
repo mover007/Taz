@@ -12,7 +12,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 import org.lwjgl.glfw.GLFW;
 
-/** General > Chat Waypoints in the Taz settings GUI (/taz). */
+/** Chat > Chat Waypoints in the Taz settings GUI (/taz). */
 public final class WaypointsConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Coordinates people post in chat (\"x: 12, y: 70, z: -5\") become a beam you can walk to. "
@@ -52,7 +52,7 @@ public final class WaypointsConfig {
 	public transient Runnable clear = Waypoints::clear;
 
 	public static WaypointsConfig get() {
-		return Taz.config().general.waypoints;
+		return Taz.config().chat.waypoints;
 	}
 
 	public int argb() {

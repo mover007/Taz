@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Arrow Fix in the Taz settings GUI (/taz). */
+/** Visuals > Arrow Fix in the Taz settings GUI (/taz). */
 public final class ArrowFixConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Shortbows (Terminator, Juju...) don't do the bow pull-back animation, since they shoot straight away. From NoammAddons.")
@@ -15,6 +15,6 @@ public final class ArrowFixConfig {
 	public boolean enabled = false;
 
 	public static ArrowFixConfig get() {
-		return Taz.config().general.arrowFix;
+		return Taz.config().visuals.arrowFix;
 	}
 }

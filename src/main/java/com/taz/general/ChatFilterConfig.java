@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Chat Filter in the Taz settings GUI (/taz). */
+/** Chat > Chat Filter in the Taz settings GUI (/taz). */
 public final class ChatFilterConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Hides spammy Hypixel messages. Taz features still see them (the dungeon timer reads boss lines either way).")
@@ -55,6 +55,6 @@ public final class ChatFilterConfig {
 	public boolean autopet = false;
 
 	public static ChatFilterConfig get() {
-		return Taz.config().general.chatFilter;
+		return Taz.config().chat.chatFilter;
 	}
 }

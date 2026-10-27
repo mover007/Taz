@@ -11,7 +11,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** Dungeons > Dungeon Map in the Taz settings GUI (/taz). */
+/** Dungeon Map > Dungeon Map in the Taz settings GUI (/taz). */
 public final class DungeonMapConfig {
 	public enum Style {
 		CHECKMARKS("Ticks"), SECRETS("Secrets"), NAME("Room name"), NAME_SECRETS("Room name + secrets");
@@ -98,6 +98,6 @@ public final class DungeonMapConfig {
 	public HudPos hud = new HudPos(0.005, 0.30);
 
 	public static DungeonMapConfig get() {
-		return Taz.config().dungeons.map;
+		return Taz.config().dungeonMap.map;
 	}
 }

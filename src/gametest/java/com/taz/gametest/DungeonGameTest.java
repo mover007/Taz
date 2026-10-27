@@ -183,7 +183,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 
 	private void route() {
 		ctx.runOnClient(mc -> {
-			SecretsConfig cfg = Taz.config().dungeons.secrets;
+			SecretsConfig cfg = Taz.config().secretRoutes;
 			cfg.enabled = true;
 			cfg.mode = SecretsConfig.Mode.GUIDE;
 			cfg.defaultRoutes = false;
@@ -239,7 +239,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 				&& best != null && best > 0 && lines.contains("Route done") && lines.stream().anyMatch(l -> l.startsWith("Test Room done in")));
 
 		// Restart: back to the red start. Arriving on step 1 straight away ticks the start off too.
-		ctx.runOnClient(mc -> Taz.config().dungeons.secrets.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5);
+		ctx.runOnClient(mc -> Taz.config().secretRoutes.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_KP_5);
 		goTo(new BlockPos(CX, FLOOR + 1, CZ));
 		restart();
 		check("restart key: back to the red start, timer waiting", step() == SecretTrainer.START && !started() && !cleared(LINE));
@@ -307,8 +307,8 @@ public class DungeonGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> SecretTrainer.importFromOdin());
 		check("import from Odin: its packs copied", ctx.computeOnClient(mc -> SecretRoutes.imported().stream().anyMatch(p -> p.name().equals("Odin mine") && p.waypoints() == 11)));
 		ctx.runOnClient(mc -> {
-			Taz.config().dungeons.secrets.mode = SecretsConfig.Mode.NORMAL;
-			Taz.config().dungeons.secrets.defaultRoutes = true;
+			Taz.config().secretRoutes.mode = SecretsConfig.Mode.NORMAL;
+			Taz.config().secretRoutes.defaultRoutes = true;
 		});
 		cmd("tp @p " + (CX + 8) + " " + (FLOOR + 4) + " " + (CZ - 10) + " facing " + CX + " " + FLOOR + " " + CZ);
 		ctx.waitTicks(5);
@@ -318,7 +318,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 
 		ctx.runOnClient(mc -> {
 			SecretTrainer.removeImported();
-			SecretsConfig cfg = Taz.config().dungeons.secrets;
+			SecretsConfig cfg = Taz.config().secretRoutes;
 			cfg.enabled = false;
 			cfg.mode = SecretsConfig.Mode.GUIDE;
 			cfg.restartKey = org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN;
@@ -326,9 +326,9 @@ public class DungeonGameTest implements FabricClientGameTest {
 		});
 		check("remove imported: none left", ctx.computeOnClient(mc -> SecretRoutes.imported().isEmpty()));
 
-		ctx.runOnClient(mc -> Taz.openSettings("Dungeons"));
+		ctx.runOnClient(mc -> Taz.openSettings("Secret Routes"));
 		ctx.waitTicks(10);
-		check("settings: the Dungeons category opens with Secret Routes", ctx.computeOnClient(mc -> mc.screen != null));
+		check("settings: Secret Routes has its own page", ctx.computeOnClient(mc -> mc.screen != null && "Secret Routes".equals(Taz.settingsPage())));
 		ctx.takeScreenshot("dungeon-secrets-settings");
 		ctx.runOnClient(mc -> mc.setScreen(null));
 	}
@@ -337,7 +337,7 @@ public class DungeonGameTest implements FabricClientGameTest {
 
 	private void roomTimes() {
 		ctx.runOnClient(mc -> {
-			Taz.config().dungeons.secrets.enabled = false;
+			Taz.config().secretRoutes.enabled = false;
 			RoomTimesConfig cfg = Taz.config().dungeons.roomTimes;
 			cfg.enabled = true;
 			cfg.partyChat = true;

@@ -89,7 +89,7 @@ public class PortedGameTest implements FabricClientGameTest {
 	}
 
 	private void performance() {
-		ctx.runOnClient(mc -> Taz.config().general.performance.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().visuals.performance.enabled = true);
 		ctx.waitTicks(45);
 		List<String> lines = hud(com.taz.general.PerformanceHud.class);
 		check("performance: TPS, FPS and ping (" + lines + ")", lines.size() == 1 && lines.get(0).startsWith("TPS ") && lines.get(0).contains("FPS ")
@@ -322,7 +322,7 @@ public class PortedGameTest implements FabricClientGameTest {
 	}
 
 	private void etherwarp() {
-		ctx.runOnClient(mc -> Taz.config().general.etherwarp.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().visuals.etherwarp.enabled = true);
 		platform(500, 100, 500);
 		cmd("tp @p 500 101 500 0 90");
 		cmd("item replace entity @p weapon.mainhand with diamond_shovel[custom_data={id:\"ASPECT_OF_THE_VOID\",ethermerge:1,tuned_transmission:3}]");
@@ -345,12 +345,12 @@ public class PortedGameTest implements FabricClientGameTest {
 		ctx.waitTicks(3);
 		check("etherwarp: nothing when not sneaking", ctx.computeOnClient(mc -> com.taz.general.EtherwarpGuess.guess() == null));
 		cmd("item replace entity @p weapon.mainhand with air");
-		ctx.runOnClient(mc -> Taz.config().general.etherwarp.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().visuals.etherwarp.enabled = false);
 	}
 
 	private void gyro() {
 		ctx.runOnClient(mc -> {
-			Taz.config().general.gyroWand.enabled = true;
+			Taz.config().visuals.gyroWand.enabled = true;
 			com.taz.general.GyroWand.reset();
 		});
 		platform(600, 100, 600);
@@ -365,7 +365,7 @@ public class PortedGameTest implements FabricClientGameTest {
 		ctx.waitTicks(5);
 		check("gyro: the burst of witch particles starts the cooldown", ctx.computeOnClient(mc -> com.taz.general.GyroWand.onCooldown()));
 		cmd("item replace entity @p weapon.mainhand with air");
-		ctx.runOnClient(mc -> Taz.config().general.gyroWand.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().visuals.gyroWand.enabled = false);
 	}
 
 	private void mageBeam() {

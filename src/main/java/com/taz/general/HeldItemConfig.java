@@ -9,7 +9,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
 /**
- * General > Held Item in the Taz settings GUI (/taz): the size, place and swing of the item in your hand. From NoammAddons'
+ * Visuals > Held Item in the Taz settings GUI (/taz): the size, place and swing of the item in your hand. From NoammAddons'
  * Animations (ItemInHandRendererMixin and LivingEntityMixin read these).
  */
 public final class HeldItemConfig {
@@ -104,6 +104,6 @@ public final class HeldItemConfig {
 	public transient Runnable importNoamm = HeldItem::importFromNoamm;
 
 	public static HeldItemConfig get() {
-		return Taz.config().general.heldItem;
+		return Taz.config().visuals.heldItem;
 	}
 }

@@ -10,7 +10,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** Galatea > Whisper Counter in the Taz settings GUI (/taz). */
+/** Foraging > Whisper Counter in the Taz settings GUI (/taz). */
 public final class WhisperConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "A small HUD with how many Forest and Desert Whispers you get per hour, counted only while you forage.")
@@ -45,6 +45,6 @@ public final class WhisperConfig {
 	public HudPos hud = new HudPos(WhisperHud.DEFAULT_X, WhisperHud.DEFAULT_Y);
 
 	public static WhisperConfig get() {
-		return Taz.config().galatea.whispers;
+		return Taz.config().foraging.whispers;
 	}
 }

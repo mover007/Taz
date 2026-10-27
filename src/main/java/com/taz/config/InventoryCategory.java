@@ -17,4 +17,14 @@ public final class InventoryCategory {
 	@ConfigOption(name = "Item Overlays", desc = "Rarity colours behind items and numbers on them (pet level, book level, minion tier ...).")
 	@Accordion
 	public ItemOverlayConfig overlays = new ItemOverlayConfig();
+
+	@Expose
+	@ConfigOption(name = "Storage Overlay", desc = "/storage shows every ender chest page and backpack with its items at once.")
+	@Accordion
+	public com.taz.general.StorageOverlayConfig storageOverlay = new com.taz.general.StorageOverlayConfig();
+
+	@Expose
+	@ConfigOption(name = "Auction Price Input", desc = "A text box for auction prices with an undercut mode.")
+	@Accordion
+	public com.taz.general.AuctionInputConfig auctionInput = new com.taz.general.AuctionInputConfig();
 }

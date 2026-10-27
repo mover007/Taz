@@ -7,7 +7,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Chat Commands in the Taz settings GUI (/taz). */
+/** Chat > Chat Commands in the Taz settings GUI (/taz). */
 public final class ChatCommandsConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Answers \"!\" commands from your party (and private messages, co-op, guild): !warp, !pt, !kick, !f7, !cf, !8ball, "
@@ -162,6 +162,6 @@ public final class ChatCommandsConfig {
 	public boolean time = false;
 
 	public static ChatCommandsConfig get() {
-		return Taz.config().general.chatCommands;
+		return Taz.config().chat.chatCommands;
 	}
 }

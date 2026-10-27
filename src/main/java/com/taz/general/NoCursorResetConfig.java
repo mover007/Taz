@@ -7,7 +7,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > No Cursor Reset in the Taz settings GUI (/taz). */
+/** Controls > No Cursor Reset in the Taz settings GUI (/taz). */
 public final class NoCursorResetConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "When a menu opens right after another closes (Hypixel menus do this), the mouse stays where it was instead of jumping to the middle. From Odin.")
@@ -21,6 +21,6 @@ public final class NoCursorResetConfig {
 	public int timeoutMs = 150;
 
 	public static NoCursorResetConfig get() {
-		return Taz.config().general.noCursorReset;
+		return Taz.config().controls.noCursorReset;
 	}
 }

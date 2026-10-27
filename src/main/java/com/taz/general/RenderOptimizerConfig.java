@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Render Optimizer in the Taz settings GUI (/taz). */
+/** Visuals > Render Optimizer in the Taz settings GUI (/taz). */
 public final class RenderOptimizerConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Stops drawing things you don't need: falling blocks, lightning, XP orbs, dying mobs, explosions, the fire on your screen and more.")
@@ -70,6 +70,6 @@ public final class RenderOptimizerConfig {
 	public boolean tentacle = true;
 
 	public static RenderOptimizerConfig get() {
-		return Taz.config().general.renderOptimizer;
+		return Taz.config().visuals.renderOptimizer;
 	}
 }

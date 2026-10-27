@@ -9,7 +9,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** Galatea > Sweep Details in the Taz settings GUI (/taz). */
+/** Foraging > Sweep Details in the Taz settings GUI (/taz). */
 public final class SweepConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Turns Hypixel's \"Sweep Details\" chat block into a small HUD (sweep, tree toughness, logs, penalties) "
@@ -37,6 +37,6 @@ public final class SweepConfig {
 	public HudPos hud = new HudPos(0.52, 0.64);
 
 	public static SweepConfig get() {
-		return Taz.config().galatea.sweep;
+		return Taz.config().foraging.sweep;
 	}
 }

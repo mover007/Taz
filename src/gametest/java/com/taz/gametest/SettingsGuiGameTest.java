@@ -29,11 +29,18 @@ public class SettingsGuiGameTest implements FabricClientGameTest {
 		if (TestFilter.skip("settings")) return;
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getClientLevel().waitForChunksRender();
-			for (String category : new String[]{"About", "Dungeons", "Galatea", "SkyBlock XP"}) {
+			java.util.Set<String> ownCategory = java.util.Set.of("Run Predictor", "Secret Routes", "Puzzle Solvers", "Critter Safari");
+			for (String category : new String[]{"About", "General", "Chat", "Controls", "Visuals", "Inventory", "Dungeons", "Run Predictor",
+					"Secret Routes", "Puzzle Solvers", "Dungeon Map", "Floor 7", "Slayer", "Fishing", "Foraging", "Galatea", "Critter Safari",
+					"SkyBlock XP"}) {
+				ctx.runOnClient(mc -> mc.setScreen(Taz.settingsScreen(null, category)));
+				ctx.waitTicks(3);
+				check("settings: the " + category + " page opens (" + ctx.computeOnClient(mc -> Taz.settingsPage()) + ")",
+						category.equals(ctx.computeOnClient(mc -> Taz.settingsPage())));
 				ctx.runOnClient(mc -> mc.setScreen(Taz.settingsScreen(null, category)));
 				ctx.waitTicks(5);
 				ctx.takeScreenshot("taz-settings-" + category.toLowerCase(Locale.ROOT).replace(' ', '-'));
-				if (!category.equals("About")) {
+				if (!category.equals("About") && !ownCategory.contains(category)) {
 					// Click the feature's dropdown header open (first row of the options panel).
 					ctx.getInput().setCursorPos(560, 200);
 					ctx.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
@@ -97,14 +104,14 @@ public class SettingsGuiGameTest implements FabricClientGameTest {
 
 		TazConfig cfg = new TazConfig();
 		Migration.importOldSettings(cfg);
-		check("HUD_PB imported", cfg.dungeons.runPredictor.timer.pb);
-		check("CHAT_PORTAL off imported", !cfg.dungeons.runPredictor.chat.portal);
-		check("party end time imported", cfg.dungeons.runPredictor.party.end);
-		check("untouched feature keeps its default", cfg.dungeons.runPredictor.timer.elapsed);
-		check("score panel shown", cfg.dungeons.runPredictor.panelVisible(HudPanel.SCORE));
-		check("score panel moved", Math.abs(cfg.dungeons.runPredictor.panel(HudPanel.SCORE).x - 0.3) < 1e-9 && cfg.dungeons.runPredictor.panel(HudPanel.SCORE).scale == 1.5f);
-		check("result seconds", cfg.dungeons.runPredictor.advanced.resultSeconds == 45);
-		check("history cutoff", "2026-09-01".equals(cfg.dungeons.runPredictor.advanced.historyCutoff));
+		check("HUD_PB imported", cfg.runPredictor.timer.pb);
+		check("CHAT_PORTAL off imported", !cfg.runPredictor.chat.portal);
+		check("party end time imported", cfg.runPredictor.party.end);
+		check("untouched feature keeps its default", cfg.runPredictor.timer.elapsed);
+		check("score panel shown", cfg.runPredictor.panelVisible(HudPanel.SCORE));
+		check("score panel moved", Math.abs(cfg.runPredictor.panel(HudPanel.SCORE).x - 0.3) < 1e-9 && cfg.runPredictor.panel(HudPanel.SCORE).scale == 1.5f);
+		check("result seconds", cfg.runPredictor.advanced.resultSeconds == 45);
+		check("history cutoff", "2026-09-01".equals(cfg.runPredictor.advanced.historyCutoff));
 		check("API key", "test-key".equals(cfg.skyblockXp.xpAssist.profile.hypixelApiKey));
 		check("XP HUD position", cfg.skyblockXp.xpAssist.hud.hudX == 120 && cfg.skyblockXp.xpAssist.hud.hudScale == 1.5f);
 		check("bazaar mode", cfg.skyblockXp.xpAssist.xpList.bazaarMode == ModConfig.BazaarMode.BUY_ORDER);
@@ -131,14 +138,14 @@ public class SettingsGuiGameTest implements FabricClientGameTest {
 			Migration.upgradeConfigFile(file);
 			String json = Files.readString(file, StandardCharsets.UTF_8);
 			TazConfig cfg = new GsonMapper<>(TazConfig.class).deserialize(json);
-			check("upgrade: party messages kept", cfg.dungeons.runPredictor.party.end && cfg.dungeons.runPredictor.party.best);
-			check("upgrade: PB line kept", cfg.dungeons.runPredictor.timer.pb);
-			check("upgrade: timer panel position kept", Math.abs(cfg.dungeons.runPredictor.panel(HudPanel.TIMER).x - 0.8457) < 1e-9);
-			check("upgrade: tools floor moved", cfg.dungeons.runPredictor.tools.floor == com.taz.dungeons.dungeon.Floor.F7);
-			check("upgrade: advanced moved", cfg.dungeons.runPredictor.advanced.resultSeconds == 45
-					&& "2026-09-01".equals(cfg.dungeons.runPredictor.advanced.historyCutoff));
-			check("upgrade: tree pointer off kept", !cfg.galatea.treePointer.enabled);
-			check("upgrade: tree types and radius kept", !cfg.galatea.treePointer.mangrove && cfg.galatea.treePointer.radius == 64);
+			check("upgrade: party messages kept", cfg.runPredictor.party.end && cfg.runPredictor.party.best);
+			check("upgrade: PB line kept", cfg.runPredictor.timer.pb);
+			check("upgrade: timer panel position kept", Math.abs(cfg.runPredictor.panel(HudPanel.TIMER).x - 0.8457) < 1e-9);
+			check("upgrade: tools floor moved", cfg.runPredictor.tools.floor == com.taz.dungeons.dungeon.Floor.F7);
+			check("upgrade: advanced moved", cfg.runPredictor.advanced.resultSeconds == 45
+					&& "2026-09-01".equals(cfg.runPredictor.advanced.historyCutoff));
+			check("upgrade: tree pointer off kept", !cfg.foraging.treePointer.enabled);
+			check("upgrade: tree types and radius kept", !cfg.foraging.treePointer.mangrove && cfg.foraging.treePointer.radius == 64);
 			check("upgrade: XP HUD off and plan levels kept", !cfg.skyblockXp.xpAssist.hud.hudEnabled && cfg.skyblockXp.xpAssist.hud.planLevels == 21);
 			check("upgrade: XP data sources moved", cfg.skyblockXp.xpAssist.dataSources.priceRefreshMinutes == 15
 					&& "main".equals(cfg.skyblockXp.xpAssist.dataSources.neuRepoBranch));

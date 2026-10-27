@@ -10,7 +10,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** Dungeons > Puzzle Solvers in the Taz settings GUI (/taz). */
+/** The "Puzzle Solvers" category of the Taz settings GUI (/taz). */
 public final class PuzzlesConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Shows the answer to each dungeon puzzle (the ones turned on below) and times them.")
@@ -136,6 +136,6 @@ public final class PuzzlesConfig {
 	public HudPos quizHud = new HudPos(0.45, 0.30);
 
 	public static PuzzlesConfig get() {
-		return Taz.config().dungeons.puzzles;
+		return Taz.config().puzzles;
 	}
 }

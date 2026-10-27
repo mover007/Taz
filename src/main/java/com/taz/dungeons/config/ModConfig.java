@@ -23,7 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * The "Dungeons" category of the Taz settings GUI (/taz). Saved inside config/taz/config.json;
+ * The "Run Predictor" category of the Taz settings GUI (/taz). Saved inside config/taz/config.json;
  * run history, triggers and logs live in config/taz/dungeons/. Defaults are the "Simple" preset:
  * elapsed time, then the end time once you enter the boss portal.
  */
@@ -340,7 +340,7 @@ public final class ModConfig {
 	}
 
 	public static ModConfig get() {
-		return Taz.config().dungeons.runPredictor;
+		return Taz.config().runPredictor;
 	}
 
 	public static void save() {

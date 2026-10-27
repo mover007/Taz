@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Auction Price Input in the Taz settings GUI (/taz). */
+/** Inventory > Auction Price Input in the Taz settings GUI (/taz). */
 public final class AuctionInputConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "A text box for auction prices (10m, 2.5k) with an undercut mode, and Enter presses Create and Confirm.")
@@ -30,6 +30,6 @@ public final class AuctionInputConfig {
 	public boolean rememberMode = false;
 
 	public static AuctionInputConfig get() {
-		return Taz.config().general.auctionInput;
+		return Taz.config().inventory.auctionInput;
 	}
 }

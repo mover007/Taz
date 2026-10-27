@@ -14,7 +14,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 import org.lwjgl.glfw.GLFW;
 
-/** Galatea > Tree Route Assist in the Taz settings GUI (/taz). */
+/** Foraging > Tree Route Assist in the Taz settings GUI (/taz). */
 public final class RouteConfig {
 	public enum Mode {
 		NORMAL("Normal: show the whole route"),
@@ -116,6 +116,6 @@ public final class RouteConfig {
 	public HudPos hud = new HudPos(0.70, 0.08);
 
 	public static RouteConfig get() {
-		return Taz.config().galatea.route;
+		return Taz.config().foraging.route;
 	}
 }

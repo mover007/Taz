@@ -28,20 +28,23 @@ On first start Taz copies everything from the old mods: run history, triggers an
 
 ## Settings
 
-`/taz` is the only command, and it opens the settings GUI (so do Mod Menu and an optional key). **Everything is in there**: every setting, keybind and action of every feature. Categories on the left are areas of the game; **each feature is one collapsed dropdown** in its category, with **Enabled** as its first option, so the menu stays short as features are added. **Every feature starts off**: turn on the ones you want. It works like SkyHanni's: categories on the left, a search bar, and a description for every option. It reopens where you left it: the same category, scrolled to the same spot. It is [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig), the same library SkyHanni uses, bundled inside the jar.
+`/taz` is the only command, and it opens the settings GUI (so do Mod Menu and an optional key). **Everything is in there**: every setting, keybind and action of every feature. Categories on the left are areas of the game, and a big feature (the Run Predictor, Secret Routes, Puzzle Solvers, the Dungeon Map, the Critter Safari) has a category of its own; otherwise **each feature is one collapsed dropdown** in its category, with **Enabled** as its first option, so the menu stays short as features are added. **Every feature starts off**: turn on the ones you want. It works like SkyHanni's: categories on the left, a search bar, and a description for every option. It reopens where you left it: the same category, scrolled to the same spot. It is [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig), the same library SkyHanni uses, bundled inside the jar.
 
 - **About:** a key to open the menu, and **Move HUDs** for the HUD editor.
-- **General:** Alerts, Dark Auction Reminder, Chat Filter, Command Keys, Event Timers, Skill Tracker, Chat Waypoints.
-- **Inventory:** Item Prices, Item Overlays.
+- **General:** Alerts, Dark Auction Reminder, Event Timers, Skill Tracker, Pet Display, Ragnarock, Spring Boots, Kick Timer.
+- **Chat:** Chat Filter, Chat Commands, Chat, Chat Waypoints, Command Shortcuts.
+- **Controls:** Command Keys, Slot Binds, Loadout Keybinds, Auto Sprint, No Cursor Reset, Camera.
+- **Visuals:** Performance HUD, Render Optimizer, Held Item, Block Overlay, Dark Mode, Sound Volumes, Arrow Fix, Etherwarp, Gyro Wand.
+- **Inventory:** Item Prices, Item Overlays, Storage Overlay, Auction Price Input.
+- **Dungeons:** Room Secret Times, Skill Issue, Blessings, Mask Timers, Score Alerts, Room Alerts, Terracotta Timer, Starred Mobs, Doors & Keys, Secret Clicked, Blood Camp, Mage Beam, Auto Requeue, Leap Menu, Party Finder. **Room Secret Times:** Enabled, Party chat, Your chat, Reset best times. **Skill Issue:** Enabled, Tone (toxic / friendly), Where (party chat / only me), excuses for your deaths, Try it. See [Room Secret Times and Skill Issue](#room-secret-times-and-skill-issue).
+- **Run Predictor** (its own category): Enabled, Move HUD, Stats, Simple / Everything-on presets, Timer HUD, Score, Chat, Party Chat, **After a run** (how long the HUD stays) and **History** (delete one floor's recorded runs).
+- **Secret Routes** (its own category): Enabled, Mode (Normal / Guide), Taz's routes, Import from clipboard, Import from Odin, Export, List routes, Remove imported routes, reach distance, show the next step, show hints, path line, Skip and Restart room keys, Reset best times, Move HUD. See [Secret Routes](#secret-routes).
+- **Puzzle Solvers** and **Dungeon Map** (Dungeon Map, Map Info): their own categories.
+- **Floor 7:** Tick Timers, Leap Counter, Terminal Highlight, Door Fix, Terminal Solver, Simon Says, Arrow Align, Wither Dragons.
 - **Slayer → Slayer Helper** and **Fishing → Fishing Helper**.
-- **Dungeons → Run Predictor:** Enabled, Move HUD, Stats, Simple / Everything-on presets, Timer HUD, Score, Chat, Party Chat, **After a run** (how long the HUD stays) and **History** (delete one floor's recorded runs). Each of these is a dropdown inside Run Predictor.
-- **Dungeons → Secret Routes:** Enabled, Mode (Normal / Guide), Taz's routes, Import from clipboard, Import from Odin, Export, List routes, Remove imported routes, reach distance, show the next step, show hints, path line, Skip and Restart room keys, Reset best times, Move HUD. See [Secret Routes](#secret-routes).
-- **Dungeons → Room Secret Times:** Enabled, Party chat, Your chat, Reset best times. **Dungeons → Skill Issue:** Enabled, Tone (toxic / friendly), Where (party chat / only me), excuses for your deaths, Try it. See [Room Secret Times and Skill Issue](#room-secret-times-and-skill-issue).
-- **Galatea → Next Tree Pointer:** Enabled, **Fig / Mangrove / Helix** (which trees to point at), search radius, a colour per type, and Tree status (counts, next tree, and how long updates take).
-- **Galatea → Honeyhives:** Enabled, next hive pointer, refill timers, through walls, colour, Hive status.
-- **Galatea → Whisper Counter:** Enabled, show Forest / Desert, pause after (seconds, default 3), Reset counter, Move HUD.
-- **Galatea → Tree Progress, Sweep Details, Ruby Veilshroom Finder, Sea Lumies & Lushlilac, Hunting Mobs, Fairy Souls, Island Guide:** see [More Galatea](#more-galatea).
-- **Galatea → Critter Safari:** see [Critter Safari](#critter-safari).
+- **Foraging:** **Next Tree Pointer** (Enabled, **Fig / Mangrove / Helix**, search radius, a colour per type, Tree status), Tree Route Assist, Tree Progress, Sweep Details, Tree Gifts & Loot, **Whisper Counter** (Enabled, show Forest / Desert, pause after, Reset counter, Move HUD), Starlyn Contests.
+- **Galatea:** **Honeyhives** (Enabled, next hive pointer, refill timers, through walls, colour, Hive status), Ruby Veilshroom Finder, Pressure Warning, Sea Lumies & Lushlilac, Hunting Mobs, Fairy Souls, Island Guide. See [More Galatea](#more-galatea).
+- **Critter Safari** (its own category): Enabled, then **Highlights**, **Route**, **Floor drops & mounds**, **Guide & tips**, **Alerts** and **Your catches** sections. See [Critter Safari](#critter-safari).
 - **SkyBlock XP → XP Assist:** Enabled (turns off the list, HUD, NPC tracker, progress reading and downloads), open the list / plan / NPC finder, next upgrades in chat, stop tracking, **Keybinds** (XP list = K, level plan, NPC finder, toggle HUD, stop tracking), Profile (API key, EliteBot), HUD, XP List (pricing), NPC Tracker, **Progress** (refresh, how to sync, unhide, forget seen progress).
 
 Changing the API key or profile re-downloads your XP data by itself; changing pricing options recalculates the list. Buttons that delete data (Delete floor history, Forget seen progress) need a second click within 5 seconds.
@@ -135,7 +138,7 @@ Moonglade Marsh and Torrhus Canyon, from the 0.27 patch notes, the wiki and the 
 
 ## Critter Safari
 
-New to the Safari? Turn on **Galatea → Critter Safari** and Taz walks you through it.
+New to the Safari? Turn on the **Critter Safari** category and Taz walks you through it.
 
 - **Getting in:** near the Critter Safari entrance in Torrhus Canyon, a HUD lists what you need (Hunting XV and a Safari Ticket, won in Miria's Starlyn Contests), whether you're carrying a ticket, and a beam points to the Safari Manager, who takes it. Taz also says once in chat how it works: go with 3-4 players and take one biome each (Forest, Cavern, Haunted, Icy).
 - **Highlights:** right-click a Critter Capsule to throw it. Rarer critters can escape: a Common one is always caught, a Rare one within 3 throws, a Legendary one within 20. The critters you still need **glow red** with a red name tag and how far away they are (`Foxtrot ✦ new 23m`, where "new" means you've never caught one). A Sparkling one glows gold and gets a title. **Highlight** picks which critters glow: the ones nobody in your party has caught this run (the default; each new one is +5,000 Hunting XP), the ones you've never caught yourself, or all of them.

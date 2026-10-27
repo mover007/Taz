@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Etherwarp in the Taz settings GUI (/taz). */
+/** Visuals > Etherwarp in the Taz settings GUI (/taz). */
 public final class EtherwarpConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "While you sneak with an Etherwarp item, a box where you'd land: red when it works, black when it won't.")
@@ -35,6 +35,6 @@ public final class EtherwarpConfig {
 	public boolean sound = false;
 
 	public static EtherwarpConfig get() {
-		return Taz.config().general.etherwarp;
+		return Taz.config().visuals.etherwarp;
 	}
 }

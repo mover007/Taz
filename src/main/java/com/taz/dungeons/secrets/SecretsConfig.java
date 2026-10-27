@@ -14,7 +14,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 import org.lwjgl.glfw.GLFW;
 
-/** Dungeons > Secret Routes in the Taz settings GUI (/taz). */
+/** The "Secret Routes" category of the Taz settings GUI (/taz). */
 public final class SecretsConfig {
 	public enum Mode {
 		NORMAL("Normal: every waypoint in the room"),
@@ -121,6 +121,6 @@ public final class SecretsConfig {
 	public HudPos hud = new HudPos(0.70, 0.30);
 
 	public static SecretsConfig get() {
-		return Taz.config().dungeons.secrets;
+		return Taz.config().secretRoutes;
 	}
 }

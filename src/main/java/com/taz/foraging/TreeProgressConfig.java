@@ -11,7 +11,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** Galatea > Tree Progress in the Taz settings GUI (/taz). */
+/** Foraging > Tree Progress in the Taz settings GUI (/taz). */
 public final class TreeProgressConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "A HUD with how far the tree you're chopping is (\"Fig Tree 37%\"), a TIMBER! alert when it falls, "
@@ -47,6 +47,6 @@ public final class TreeProgressConfig {
 	public HudPos hud = new HudPos(0.20, 0.64);
 
 	public static TreeProgressConfig get() {
-		return Taz.config().galatea.treeProgress;
+		return Taz.config().foraging.treeProgress;
 	}
 }

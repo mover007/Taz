@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Auto Sprint in the Taz settings GUI (/taz). */
+/** Controls > Auto Sprint in the Taz settings GUI (/taz). */
 public final class AutoSprintConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "You always sprint, without holding the sprint key. From Odin.")
@@ -15,6 +15,6 @@ public final class AutoSprintConfig {
 	public boolean enabled = false;
 
 	public static AutoSprintConfig get() {
-		return Taz.config().general.autoSprint;
+		return Taz.config().controls.autoSprint;
 	}
 }

@@ -9,7 +9,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** Galatea > Starlyn Contests in the Taz settings GUI (/taz). */
+/** Foraging > Starlyn Contests in the Taz settings GUI (/taz). */
 public final class StarlynConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Agatha's (Moonglade) and Miria's (Torrhus) contests: time left in the current one (a new one starts every "
@@ -41,6 +41,6 @@ public final class StarlynConfig {
 	public HudPos hud = new HudPos(0.72, 0.80);
 
 	public static StarlynConfig get() {
-		return Taz.config().galatea.starlyn;
+		return Taz.config().foraging.starlyn;
 	}
 }

@@ -79,7 +79,7 @@ public class QolGameTest implements FabricClientGameTest {
 
 	private void chatCommands() {
 		ctx.runOnClient(mc -> {
-			Taz.config().general.chatCommands.enabled = true;
+			Taz.config().chat.chatCommands.enabled = true;
 			com.taz.general.ChatCommands.clear();
 		});
 		int before = ctx.computeOnClient(mc -> TazChat.sent());
@@ -107,35 +107,35 @@ public class QolGameTest implements FabricClientGameTest {
 				&& ctx.computeOnClient(mc -> com.taz.util.Party.members().contains("Other") && !com.taz.util.Party.maybeLeader()));
 		tell("You left the party.");
 		check("party: gone after leaving", com.taz.util.Party.leader() == null);
-		ctx.runOnClient(mc -> Taz.config().general.chatCommands.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().chat.chatCommands.enabled = false);
 	}
 
 	private void chatTweaks() {
-		ctx.runOnClient(mc -> Taz.config().general.chat.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().chat.chat.enabled = true);
 		check("chat: emoji codes", ctx.computeOnClient(mc -> com.taz.general.ChatTweaks.emoji("gg :skull: <3 o/")).equals("gg ☠ ❤ ( ﾟ◡ﾟ)/"));
 		check("chat: emoji in /pc only", ctx.computeOnClient(mc -> com.taz.general.ChatTweaks.emojiCommand("pc <3")).equals("pc ❤")
 				&& ctx.computeOnClient(mc -> com.taz.general.ChatTweaks.emojiCommand("warp <3")).equals("warp <3"));
 		tell("the newest message");
 		String at = ctx.computeOnClient(mc -> com.taz.general.ChatTweaks.messageAt(10, mc.getWindow().getGuiScaledHeight() - 42));
 		check("chat: the message under the mouse (" + at + ")", "the newest message".equals(at));
-		ctx.runOnClient(mc -> Taz.config().general.chat.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().chat.chat.enabled = false);
 	}
 
 	private void shortcuts() {
-		ctx.runOnClient(mc -> Taz.config().general.commandShortcuts.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().chat.commandShortcuts.enabled = true);
 		check("shortcuts: /dn is /warp dhub", ctx.computeOnClient(mc -> com.taz.general.CommandShortcuts.rewrite("dn")).equals("warp dhub")
 				&& ctx.computeOnClient(mc -> com.taz.general.CommandShortcuts.rewrite("dn now")).equals("warp dhub now")
 				&& ctx.computeOnClient(mc -> com.taz.general.CommandShortcuts.rewrite("dnx")).equals("dnx"));
-		ctx.runOnClient(mc -> Taz.config().general.commandShortcuts.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().chat.commandShortcuts.enabled = false);
 	}
 
 	private void slotBinds() {
 		cmd("gamemode survival @p");
 		ctx.waitTicks(5);
 		ctx.runOnClient(mc -> {
-			Taz.config().general.slotBinds.enabled = true;
-			Taz.config().general.slotBinds.bindKey = GLFW.GLFW_KEY_I;
-			Taz.config().general.slotBinds.binds.clear();
+			Taz.config().controls.slotBinds.enabled = true;
+			Taz.config().controls.slotBinds.bindKey = GLFW.GLFW_KEY_I;
+			Taz.config().controls.slotBinds.binds.clear();
 			mc.setScreen(new InventoryScreen(mc.player));
 		});
 		ctx.waitTicks(5);
@@ -145,17 +145,17 @@ public class QolGameTest implements FabricClientGameTest {
 			com.taz.general.InventoryKeys.onKey(s, s.getMenu().getSlot(37), GLFW.GLFW_KEY_I);
 		});
 		check("slot binds: slot 9 bound to hotbar slot 37 (" + ctx.computeOnClient(mc -> mc.screen.getClass().getSimpleName()) + ")",
-				Integer.valueOf(37).equals(ctx.computeOnClient(mc -> Taz.config().general.slotBinds.binds.get("9"))));
+				Integer.valueOf(37).equals(ctx.computeOnClient(mc -> Taz.config().controls.slotBinds.binds.get("9"))));
 		ctx.takeScreenshot("qol-slot-binds");
 		ctx.runOnClient(mc -> {
 			mc.setScreen(null);
-			Taz.config().general.slotBinds.enabled = false;
+			Taz.config().controls.slotBinds.enabled = false;
 		});
 		cmd("gamemode creative @p");
 	}
 
 	private void loadouts() {
-		ctx.runOnClient(mc -> Taz.config().general.loadoutKeybinds.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().controls.loadoutKeybinds.enabled = true);
 		cmd("setblock 2 -60 2 chest{CustomName:\"(1/2) Loadout\"}");
 		cmd("tp @p 2 -59 0");
 		ctx.waitTicks(5);
@@ -168,7 +168,7 @@ public class QolGameTest implements FabricClientGameTest {
 				&& !com.taz.general.InventoryKeys.onKey(s, null, GLFW.GLFW_KEY_LEFT)));
 		ctx.runOnClient(mc -> {
 			mc.player.closeContainer();
-			Taz.config().general.loadoutKeybinds.enabled = false;
+			Taz.config().controls.loadoutKeybinds.enabled = false;
 		});
 	}
 
@@ -190,7 +190,7 @@ public class QolGameTest implements FabricClientGameTest {
 	}
 
 	private void renderOptimizer() {
-		ctx.runOnClient(mc -> Taz.config().general.renderOptimizer.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().visuals.renderOptimizer.enabled = true);
 		cmd("summon experience_orb ~ ~1 ~3 {Value:5}");
 		ctx.waitTicks(5);
 		check("render optimizer: XP orbs hidden", ctx.computeOnClient(mc -> mc.level.getEntitiesOfClass(net.minecraft.world.entity.ExperienceOrb.class,
@@ -198,19 +198,19 @@ public class QolGameTest implements FabricClientGameTest {
 		check("render optimizer: explosions and screen fire", ctx.computeOnClient(mc -> com.taz.general.RenderOptimizer.hideParticle(
 				net.minecraft.core.particles.ParticleTypes.EXPLOSION) && com.taz.general.RenderOptimizer.hideFire()));
 		cmd("kill @e[type=experience_orb]");
-		ctx.runOnClient(mc -> Taz.config().general.renderOptimizer.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().visuals.renderOptimizer.enabled = false);
 	}
 
 	private void tweaks() {
 		ctx.runOnClient(mc -> {
-			Taz.config().general.camera.enabled = true;
+			Taz.config().controls.camera.enabled = true;
 			mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
 		});
 		ctx.waitTicks(3);
 		check("camera: no front view", ctx.computeOnClient(mc -> mc.options.getCameraType()) == CameraType.FIRST_PERSON);
 		ctx.runOnClient(mc -> {
-			Taz.config().general.camera.enabled = false;
-			Taz.config().general.arrowFix.enabled = true;
+			Taz.config().controls.camera.enabled = false;
+			Taz.config().visuals.arrowFix.enabled = true;
 		});
 		check("arrow fix: a shortbow", ctx.computeOnClient(mc -> {
 			ItemStack bow = new ItemStack(Items.BOW);
@@ -218,8 +218,8 @@ public class QolGameTest implements FabricClientGameTest {
 			return com.taz.general.Tweaks.noPullback(bow) && !com.taz.general.Tweaks.noPullback(new ItemStack(Items.BOW));
 		}));
 		ctx.runOnClient(mc -> {
-			Taz.config().general.arrowFix.enabled = false;
-			Taz.config().general.autoSprint.enabled = true;
+			Taz.config().visuals.arrowFix.enabled = false;
+			Taz.config().controls.autoSprint.enabled = true;
 		});
 		cmd("tp @p -20 -60 -20 180 0");
 		ctx.waitTicks(5);
@@ -228,14 +228,14 @@ public class QolGameTest implements FabricClientGameTest {
 		check("auto sprint: walking is sprinting", ctx.computeOnClient(mc -> mc.player.isSprinting()));
 		ctx.runOnClient(mc -> {
 			mc.options.keyUp.setDown(false);
-			Taz.config().general.autoSprint.enabled = false;
+			Taz.config().controls.autoSprint.enabled = false;
 		});
 		ctx.waitTicks(5);
 	}
 
 	private void heldItem() {
 		ctx.runOnClient(mc -> {
-			var c = Taz.config().general.heldItem;
+			var c = Taz.config().visuals.heldItem;
 			c.enabled = true;
 			c.scale = -0.45f;
 			c.x = -0.18f;
@@ -247,31 +247,31 @@ public class QolGameTest implements FabricClientGameTest {
 		cmd("item replace entity @p weapon.mainhand with diamond_sword");
 		ctx.waitTicks(5);
 		ctx.takeScreenshot("qol-held-item");
-		ctx.runOnClient(mc -> Taz.config().general.heldItem.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().visuals.heldItem.enabled = false);
 		cmd("item replace entity @p weapon.mainhand with air");
 	}
 
 	private void blockOverlay() {
-		ctx.runOnClient(mc -> Taz.config().general.blockOverlay.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().visuals.blockOverlay.enabled = true);
 		cmd("setblock 0 -60 3 stone");
 		cmd("tp @p 0 -59 0 0 30");
 		ctx.waitTicks(10);
 		check("block overlay: replaces the outline", ctx.computeOnClient(mc -> com.taz.general.BlockOverlay.replaces()));
 		ctx.takeScreenshot("qol-block-overlay");
-		ctx.runOnClient(mc -> Taz.config().general.blockOverlay.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().visuals.blockOverlay.enabled = false);
 	}
 
 	private void soundVolumes() {
-		ctx.runOnClient(mc -> Taz.config().general.soundVolumes.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().visuals.soundVolumes.enabled = true);
 		check("sound volumes: amethyst at 1.35", ctx.computeOnClient(mc -> com.taz.general.SoundVolumes.multiplier("minecraft:block.amethyst_block.break")) == 1.35f
 				&& ctx.computeOnClient(mc -> com.taz.general.SoundVolumes.multiplier("minecraft:block.stone.break")) == 1f);
 		ctx.runOnClient(mc -> {
-			Taz.config().general.soundVolumes.enabled = false;
-			Taz.config().general.etherwarp.enabled = true;
-			Taz.config().general.etherwarp.sound = true;
+			Taz.config().visuals.soundVolumes.enabled = false;
+			Taz.config().visuals.etherwarp.enabled = true;
+			Taz.config().visuals.etherwarp.sound = true;
 		});
 		check("etherwarp sound: Hypixel's swapped for the XP orb", ctx.computeOnClient(mc -> com.taz.general.EtherwarpGuess.onSound("entity.ender_dragon.hurt", 0.53968257f)));
-		ctx.runOnClient(mc -> Taz.config().general.etherwarp.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().visuals.etherwarp.enabled = false);
 	}
 
 	private String head(int slot, String name) {
@@ -345,7 +345,7 @@ public class QolGameTest implements FabricClientGameTest {
 	}
 
 	private void auctionInput() {
-		ctx.runOnClient(mc -> Taz.config().general.auctionInput.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().inventory.auctionInput.enabled = true);
 		check("auction input: 10m, 2.5k, 1,000", ctx.computeOnClient(mc -> com.taz.general.AuctionInput.parse("10m")) == 10_000_000L
 				&& ctx.computeOnClient(mc -> com.taz.general.AuctionInput.parse("2.5k")) == 2500L
 				&& ctx.computeOnClient(mc -> com.taz.general.AuctionInput.parse("1,000")) == 1000L
@@ -358,7 +358,7 @@ public class QolGameTest implements FabricClientGameTest {
 				&& com.taz.general.AuctionInput.onKey(s, GLFW.GLFW_KEY_ENTER)));
 		ctx.runOnClient(mc -> {
 			mc.player.closeContainer();
-			Taz.config().general.auctionInput.enabled = false;
+			Taz.config().inventory.auctionInput.enabled = false;
 		});
 	}
 
@@ -373,7 +373,7 @@ public class QolGameTest implements FabricClientGameTest {
 
 	private void dungeonMap() {
 		ctx.runOnClient(mc -> {
-			Taz.config().dungeons.map.enabled = true;
+			Taz.config().dungeonMap.map.enabled = true;
 			DungeonLocation.setTestFloor("F7");
 		});
 		ctx.waitTicks(25);
@@ -398,14 +398,14 @@ public class QolGameTest implements FabricClientGameTest {
 						&& com.taz.dungeons.map.DungeonMap.describe(0, 2).equals("ROOM NORMAL UNOPENED")));
 		ctx.takeScreenshot("qol-dungeon-map");
 		ctx.runOnClient(mc -> {
-			Taz.config().dungeons.map.enabled = false;
+			Taz.config().dungeonMap.map.enabled = false;
 			DungeonLocation.setTestFloor(null);
 		});
 	}
 
 	private void mapInfo() {
 		ctx.runOnClient(mc -> {
-			Taz.config().dungeons.mapInfo.enabled = true;
+			Taz.config().dungeonMap.mapInfo.enabled = true;
 			com.taz.dungeons.map.MapInfo.testScore(302);
 			com.taz.dungeons.map.MapInfo.onActionBar("§c1200/1200❤     §a2/5 Secrets     §b500/500✎ Mana");
 		});
@@ -413,19 +413,19 @@ public class QolGameTest implements FabricClientGameTest {
 				+ hudLines(com.taz.dungeons.map.MapInfo.RoomSecrets.class) + ")",
 				hudLines(com.taz.dungeons.map.MapInfo.Score.class).equals(List.of("Score 302"))
 						&& hudLines(com.taz.dungeons.map.MapInfo.RoomSecrets.class).equals(List.of("2/5")));
-		ctx.runOnClient(mc -> Taz.config().dungeons.mapInfo.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().dungeonMap.mapInfo.enabled = false);
 	}
 
 	private void darkMode() {
-		ctx.runOnClient(mc -> Taz.config().general.darkMode.enabled = true);
+		ctx.runOnClient(mc -> Taz.config().visuals.darkMode.enabled = true);
 		ctx.waitTicks(3);
 		ctx.takeScreenshot("qol-dark-mode");
-		ctx.runOnClient(mc -> Taz.config().general.darkMode.enabled = false);
+		ctx.runOnClient(mc -> Taz.config().visuals.darkMode.enabled = false);
 	}
 
 	private void storage() {
 		ctx.runOnClient(mc -> {
-			Taz.config().general.storageOverlay.enabled = true;
+			Taz.config().inventory.storageOverlay.enabled = true;
 			com.taz.general.StorageOverlay.pages().clear();
 		});
 		cmd("tp @p 14 -60 0");
@@ -451,7 +451,7 @@ public class QolGameTest implements FabricClientGameTest {
 		ctx.takeScreenshot("qol-storage-overlay");
 		ctx.runOnClient(mc -> {
 			mc.player.closeContainer();
-			Taz.config().general.storageOverlay.enabled = false;
+			Taz.config().inventory.storageOverlay.enabled = false;
 		});
 	}
 

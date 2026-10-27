@@ -93,8 +93,8 @@ public class GeneralGameTest implements FabricClientGameTest {
 			// Every feature starts off; switch on the ones tested here.
 			ctx.runOnClient(mc -> {
 				var g = Taz.config().general;
-				g.alerts.enabled = g.darkAuction.enabled = g.chatFilter.enabled = g.commandKeys.enabled = true;
-				g.eventTimers.enabled = g.skillTracker.enabled = g.waypoints.enabled = true;
+				g.alerts.enabled = g.darkAuction.enabled = g.eventTimers.enabled = g.skillTracker.enabled = true;
+				Taz.config().chat.chatFilter.enabled = Taz.config().chat.waypoints.enabled = Taz.config().controls.commandKeys.enabled = true;
 				Taz.config().inventory.prices.enabled = Taz.config().inventory.overlays.enabled = true;
 				Taz.config().slayer.helper.enabled = Taz.config().fishing.helper.enabled = true;
 			});
@@ -125,6 +125,13 @@ public class GeneralGameTest implements FabricClientGameTest {
 			for (java.lang.reflect.Field category : TazConfig.class.getFields()) {
 				Object c = category.get(fresh);
 				if (c == null || category.getType().isPrimitive()) continue;
+				try { // a big feature is a category of its own
+					boolean enabled = c.getClass().getField("enabled").getBoolean(c);
+					features++;
+					if (enabled) on.add(category.getName());
+				} catch (NoSuchFieldException notAFeature) {
+					// a category of features
+				}
 				for (java.lang.reflect.Field feature : c.getClass().getFields()) {
 					Object f = feature.get(c);
 					if (f == null) continue;
@@ -156,16 +163,31 @@ public class GeneralGameTest implements FabricClientGameTest {
 			TazConfig up = new GsonMapper<>(TazConfig.class).deserialize(Files.readString(v3, StandardCharsets.UTF_8));
 			check("defaults: new features switched off once", !up.general.alerts.enabled && !up.inventory.prices.enabled
 					&& !up.slayer.helper.enabled && !up.fishing.helper.enabled && up.general.alerts.rareDrops);
-			check("defaults: features you had on stay on", up.galatea.whispers.enabled && up.galatea.honeyhives.enabled
-					&& up.dungeons.runPredictor.enabled);
+			check("defaults: features you had on stay on", up.foraging.whispers.enabled && up.galatea.honeyhives.enabled
+					&& up.runPredictor.enabled);
+			// A version 4 file: every feature that got a new category keeps its settings there.
+			Path v4 = dir.resolve("v4.json");
+			Files.writeString(v4, """
+					{"configVersion":4,"general":{"alerts":{"enabled":true},"chatCommands":{"enabled":true,"taz":false},"slotBinds":{"enabled":true},
+					 "heldItem":{"enabled":true,"scale":0.5},"storageOverlay":{"enabled":true}},
+					 "dungeons":{"starredMobs":{"enabled":true},"secrets":{"enabled":true},"puzzles":{"enabled":true},"map":{"enabled":true}},
+					 "galatea":{"honeyhives":{"enabled":true},"route":{"enabled":true},"safari":{"enabled":true,"floorDropRange":55}}}""",
+					StandardCharsets.UTF_8);
+			Migration.upgradeConfigFile(v4);
+			TazConfig v5 = new GsonMapper<>(TazConfig.class).deserialize(Files.readString(v4, StandardCharsets.UTF_8));
+			check("defaults: a v4 file's settings follow their features to the new categories", v5.general.alerts.enabled
+					&& v5.chat.chatCommands.enabled && !v5.chat.chatCommands.taz && v5.controls.slotBinds.enabled && v5.visuals.heldItem.enabled
+					&& v5.visuals.heldItem.scale == 0.5f && v5.inventory.storageOverlay.enabled && v5.dungeons.starredMobs.enabled
+					&& v5.secretRoutes.enabled && v5.puzzles.enabled && v5.dungeonMap.map.enabled && v5.galatea.honeyhives.enabled
+					&& v5.foraging.route.enabled && v5.safari.enabled && v5.safari.floorDropRange == 55);
 			// A version 1 file (no on/off flags): what you used then stays on.
 			Path v1 = dir.resolve("v1.json");
 			Files.writeString(v1, """
 					{"dungeons":{"timer":{"pb":true}},"galatea":{"fig":true},"xpAssist":{"hud":{"planLevels":8}}}""", StandardCharsets.UTF_8);
 			Migration.upgradeConfigFile(v1);
 			TazConfig old = new GsonMapper<>(TazConfig.class).deserialize(Files.readString(v1, StandardCharsets.UTF_8));
-			check("defaults: a v1 file keeps Run Predictor, tree pointer and XP Assist on", old.dungeons.runPredictor.enabled
-					&& old.galatea.treePointer.enabled && old.skyblockXp.xpAssist.enabled && !old.general.alerts.enabled);
+			check("defaults: a v1 file keeps Run Predictor, tree pointer and XP Assist on", old.runPredictor.enabled
+					&& old.foraging.treePointer.enabled && old.skyblockXp.xpAssist.enabled && !old.general.alerts.enabled);
 		} catch (java.io.IOException e) {
 			throw new AssertionError(e);
 		}

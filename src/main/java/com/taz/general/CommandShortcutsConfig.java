@@ -7,7 +7,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorText;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Command Shortcuts in the Taz settings GUI (/taz). */
+/** Chat > Command Shortcuts in the Taz settings GUI (/taz). */
 public final class CommandShortcutsConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Your own short commands: /dn sends /warp dhub.")
@@ -21,6 +21,6 @@ public final class CommandShortcutsConfig {
 	public String shortcuts = "dn=warp dhub";
 
 	public static CommandShortcutsConfig get() {
-		return Taz.config().general.commandShortcuts;
+		return Taz.config().chat.commandShortcuts;
 	}
 }

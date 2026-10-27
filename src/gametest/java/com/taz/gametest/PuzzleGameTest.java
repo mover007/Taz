@@ -45,7 +45,7 @@ public class PuzzleGameTest implements FabricClientGameTest {
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			sp = world;
 			world.getClientLevel().waitForChunksRender();
-			ctx.runOnClient(mc -> Taz.config().dungeons.puzzles.enabled = true);
+			ctx.runOnClient(mc -> Taz.config().puzzles.enabled = true);
 			build();
 			if (runs("quiz")) quiz();
 			if (runs("weirdos")) weirdos();
@@ -130,7 +130,7 @@ public class PuzzleGameTest implements FabricClientGameTest {
 
 	private void blaze() {
 		enter("Higher Blaze");
-		ctx.runOnClient(mc -> Taz.config().dungeons.puzzles.hideBlazes = true);
+		ctx.runOnClient(mc -> Taz.config().puzzles.hideBlazes = true);
 		cmd("summon armor_stand " + (CX + 5) + " 62 " + CZ + " {CustomName:\"[Lv10] Blaze 300/300❤\",NoGravity:1b,Tags:[\"blazetag\"]}");
 		cmd("summon armor_stand " + (CX - 5) + " 62 " + CZ + " {CustomName:\"[Lv10] Blaze 90/100❤\",NoGravity:1b,Tags:[\"blazetag\"]}");
 		cmd("summon blaze " + (CX + 5) + " 61 " + (CZ + 4) + " {NoAI:1b}");

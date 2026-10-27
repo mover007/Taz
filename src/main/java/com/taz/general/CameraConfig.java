@@ -6,7 +6,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** General > Camera in the Taz settings GUI (/taz). */
+/** Controls > Camera in the Taz settings GUI (/taz). */
 public final class CameraConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "F5 skips the front-facing view (first person, then behind you). From Odin.")
@@ -15,6 +15,6 @@ public final class CameraConfig {
 	public boolean enabled = false;
 
 	public static CameraConfig get() {
-		return Taz.config().general.camera;
+		return Taz.config().controls.camera;
 	}
 }

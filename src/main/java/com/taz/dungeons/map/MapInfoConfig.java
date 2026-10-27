@@ -9,7 +9,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
 
-/** Dungeons > Map Info in the Taz settings GUI (/taz). */
+/** Dungeon Map > Map Info in the Taz settings GUI (/taz). */
 public final class MapInfoConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "A small score HUD, the secrets found in the room you're in, and a box on the Blood room's portal at 300 score.")
@@ -48,6 +48,6 @@ public final class MapInfoConfig {
 	public HudPos roomHud = new HudPos(0.48, 0.55);
 
 	public static MapInfoConfig get() {
-		return Taz.config().dungeons.mapInfo;
+		return Taz.config().dungeonMap.mapInfo;
 	}
 }

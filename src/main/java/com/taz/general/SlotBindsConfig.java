@@ -13,7 +13,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** General > Slot Binds in the Taz settings GUI (/taz). */
+/** Controls > Slot Binds in the Taz settings GUI (/taz). */
 public final class SlotBindsConfig {
 	@Expose
 	@ConfigOption(name = "Enabled", desc = "Bind inventory slots to hotbar slots, then shift + click either to swap them. In your inventory, press the bind "
@@ -48,6 +48,6 @@ public final class SlotBindsConfig {
 	}
 
 	public static SlotBindsConfig get() {
-		return Taz.config().general.slotBinds;
+		return Taz.config().controls.slotBinds;
 	}
 }
