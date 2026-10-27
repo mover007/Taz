@@ -21,7 +21,7 @@ mTaz's Hypixel SkyBlock features in one client-side Fabric mod for **Minecraft 2
 ## Install
 
 1. Fabric Loader 0.19.5+, **Fabric API** for 26.1.2 and **Fabric Language Kotlin** (the settings GUI library needs it; SkyHanni needs it too, so you likely have it).
-2. Put `build/libs/taz-1.0.0.jar` in `mods`. Don't use `taz-1.0.0-slim.jar`; it is missing the settings GUI.
+2. Put `build/libs/taz-<version>.jar` (like `taz-1.1.0.jar`) in `mods`, and remove any older `taz-*.jar` from there. Don't use the `-slim` jar; it is missing the settings GUI.
 3. **Remove** `dungeon-run-predictor-*.jar` and `skyblock-xp-assist-*.jar`. Taz replaces both, and the game won't start with them installed together.
 
 On first start Taz copies everything from the old mods: run history, triggers and boss lines from `config/dungeonpredictor/`, XP progress and caches from `config/skyblockxpassist/`, and every setting (HUD positions, toggles, API key). The old folders aren't changed.
@@ -278,12 +278,14 @@ Secret Routes uses Odin's dungeon room table (`assets/taz/dungeons/rooms.json`),
 
 The code is in git (`main`), with a commit per change, so the history shows how the mod was built. `.gitattributes` keeps `gradlew` working on every OS.
 
+The version (`mod_version` in `gradle.properties`) goes up with every change: new features raise the middle number (1.1.0 to 1.2.0), fixes the last one (1.1.0 to 1.1.1).
+
 ## Build and test
 
 JDK 25 · Minecraft 26.1.2 (Mojang names) · Fabric Loader 0.19.5 · Fabric API 0.155.3+26.1.2 · Loom 1.18.4 · Shadow 9.6.1 · MoulConfig 4.8.0 (modern-26.1) · Fabric Language Kotlin 1.13.12.
 
 ```
-gradlew build                 # build/libs/taz-1.0.0.jar
+gradlew build                 # build/libs/taz-<version>.jar
 gradlew runClient             # dev client
 gradlew runClientGameTest     # in-game tests, screenshots in build/run/clientGameTest/screenshots
 gradlew runClientGameTest -Ptests=honeyhive   # only one feature's tests (honeyhive, trees, xp, settings, whispers, general, galatea, secrets, roomtimes, skillissue, ported, puzzles, qol)
