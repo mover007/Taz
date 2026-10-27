@@ -87,7 +87,7 @@ public final class SafariHelper {
 	private static final Set<Critter> CAUGHT_RUN = new HashSet<>();
 	private static final Set<Biome> BIOMES_TOLD = EnumSet.noneOf(Biome.class);
 	private static Biome hotspot;
-	private static boolean welcomed, toldTen, toldTwo, toldLow, toldOut, toldEntrance;
+	private static boolean welcomed, toldTen, toldTwo, toldLow, toldOut, toldEntrance, toldScrappy;
 	private static int capsules = -1;
 	private static boolean hadCapsules;
 	/** Quest items in your inventory, by name, and how many. */
@@ -223,7 +223,7 @@ public final class SafariHelper {
 		SafariWay.reset();
 		SafariSpots.BEDS.reset();
 		hotspot = null;
-		welcomed = toldTen = toldTwo = toldLow = toldOut = false;
+		welcomed = toldTen = toldTwo = toldLow = toldOut = toldScrappy = false;
 		capsules = -1;
 		hadCapsules = false;
 		quest = new LinkedHashMap<>();
@@ -494,6 +494,12 @@ public final class SafariHelper {
 			Critter bird = Critters.named(m.group(1).trim());
 			if (bird != null && bird.name().equals("Macaw") && toDo(bird) && cfg.alerts) {
 				Alert.show("§6§lMACAW!", "§fAt the Birdfeeder in the Forest", cfg.sound);
+			}
+		} else if (line.startsWith("Your Critter Capsule can't get through Scrappy's armor")) {
+			if (cfg.tips && !toldScrappy) {
+				toldScrappy = true;
+				TazChat.info("A Scrappy has to be fed before a capsule works: give it 3 Wholesale Wheat, Flavor-packed Fish or Lush Lily "
+						+ "Pads (punch the fish, break the lily pads, around -111, 81, 36 in the Cavern), then throw.");
 			}
 		} else if (line.startsWith("A rumbling sound can be heard")) {
 			if (cfg.alerts) Alert.show("§c§lGEMZIES!", "§f3 Gemzies are flying in the Cavern gem room", cfg.sound);

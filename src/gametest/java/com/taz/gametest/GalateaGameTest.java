@@ -910,6 +910,21 @@ public class GalateaGameTest implements FabricClientGameTest {
 		lines = hudLines(SafariGuide.class);
 		check("safari way: a picked biome is done first (" + cavern + ", " + lines + ")", cavern.equals("CAVERN CAVERN")
 				&& lines.stream().anyMatch(l -> l.startsWith("Next: (Cavern)")));
+
+		// A Scrappy's armour stops capsules until it's fed: without food the way goes for food, with it to the Scrappy.
+		cmd("summon silverfish " + (x + 5) + " " + y + " " + (z - 6) + " {NoAI:1b,PersistenceRequired:1b,Silent:1b}");
+		label(x + 5.5, y + 0.8, z - 5.5, "Scrappy");
+		ctx.waitTicks(15);
+		goal = goalName();
+		check("safari way: a Scrappy in view but no food: get food first (" + goal + ")", goal.equals("Scrappy food"));
+		cmd("give @p paper[custom_name=\"Wholesale Wheat\"] 3");
+		ctx.waitTicks(30);
+		goal = ctx.computeOnClient(mc -> SafariWay.goal() == null ? "none" : SafariWay.goal().name() + " - " + SafariWay.goal().why());
+		check("safari way: with food, go feed the Scrappy (" + goal + ")", goal.equals("Scrappy - feed it 3 Wheat, Fish or Lily Pads, then throw"));
+		tell("Your Critter Capsule can't get through Scrappy's armor!");
+		check("safari way: the armour message explained", said("A Scrappy has to be fed before a capsule works"));
+		cmd("kill @e[type=silverfish]");
+		cmd("kill @e[type=armor_stand]");
 		ctx.runOnClient(mc -> Taz.config().galatea.safari.zone = SafariConfig.Zone.AUTO);
 
 		cmd("clear @p paper");

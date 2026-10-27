@@ -160,7 +160,7 @@ public final class Critters {
 
 	/** The quest item an inventory item's name is ("Lush Lily Pads" counts as a Lush Lily Pad), or null. */
 	public static QuestItem quest(String itemName) {
-		for (QuestItem q : QUEST_ITEMS) if (itemName.startsWith(q.name())) return q;
+		for (QuestItem q : QUEST_ITEMS) if (itemName.regionMatches(true, 0, q.name(), 0, q.name().length())) return q;
 		return null;
 	}
 }

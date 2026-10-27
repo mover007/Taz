@@ -85,6 +85,20 @@ public final class SafariSpots {
 		};
 	}
 
+	/** What to do when you've found one: most just take capsules; some want something first. */
+	public static String howToCatch(String critter) {
+		return switch (critter) {
+			case "Scrappy" -> "feed it 3 Wheat, Fish or Lily Pads, then throw";
+			case "Bloodbat" -> "1 throw wakes it, the next catches it";
+			case "Duplico" -> "right-click it to make it run, then throw";
+			case "Chuckwalla" -> "hit it, then crawl after it into its hole";
+			case "Treefrog" -> "throw from far away or from above";
+			case "Wumpa" -> "lure it into the obsidian pillar, then throw";
+			case "Hideyho" -> "walk up to him: no capsule needed";
+			default -> "catch it";
+		};
+	}
+
 	/** Where Scrappy food grows (punch the fish, break the lily pads). */
 	public static Vec3 scrappyFood() {
 		return SCRAPPY_FOOD;

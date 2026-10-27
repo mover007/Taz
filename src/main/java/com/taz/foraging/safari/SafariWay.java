@@ -116,7 +116,12 @@ public final class SafariWay {
 			if (!SafariHelper.toDo(s.critter()) && !s.sparkling()) continue;
 			Entity body = s.body() != null ? s.body() : s.label();
 			if (s.critter().biome() != z && body.position().distanceTo(me) > OTHER_BIOME_NEARBY) continue;
-			now.add(new Goal(s.critter().name(), "catch it", body.position(), 0));
+			// A Scrappy's armour stops capsules until it's fed: one in view without food means going for food first.
+			if (s.critter().name().equals("Scrappy") && !has("food")) {
+				now.add(new Goal("Scrappy food", "for the Scrappy you found: punch the fish, break the lily pads", SafariSpots.scrappyFood(), 0));
+				continue;
+			}
+			now.add(new Goal(s.critter().name(), SafariSpots.howToCatch(s.critter().name()), body.position(), 0));
 		}
 		Set<String> roaming = new LinkedHashSet<>(), missing = new LinkedHashSet<>();
 		for (Critter c : Critters.in(z)) {
@@ -126,7 +131,8 @@ public final class SafariWay {
 			Task t = SafariSpots.task(c.name());
 			if (t == null || c.name().equals("Wumpa") && !wumpaReady()) continue;
 			if (t.needs() != null && !has(t.needs())) {
-				if (c.name().equals("Scrappy")) tasks.add(new Goal("Scrappy food", "punch the fish, break the lily pads", SafariSpots.scrappyFood(), ARRIVED));
+				// Stays the goal until you have food: wait there for fish to come down if need be.
+				if (c.name().equals("Scrappy")) tasks.add(new Goal("Scrappy food", "punch the fish, break the lily pads", SafariSpots.scrappyFood(), 0));
 				else if (!optional) missing.add(String.join(" or ", SafariSpots.NEEDS.get(t.needs())).replace("Purple Gem or Lime Gem or Orange Gem", "a gem")
 						.replace("Yogi Berry or Wriggleworm or Bag of Seeds", "bird bait"));
 				continue;
