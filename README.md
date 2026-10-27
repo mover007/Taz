@@ -9,15 +9,26 @@
 
 # Taz
 
-A Hypixel SkyBlock mod for Fabric. Galatea foraging, the Critter Safari, dungeons, SkyBlock XP and everyday helpers, all in one settings menu: `/taz`.
+A Hypixel SkyBlock **dungeons** mod for Fabric: a run end-time predictor, Secret Routes, puzzle solvers and Floor 7 tools. It also covers Galatea foraging, the Critter Safari, SkyBlock XP and everyday helpers, all in one settings menu: `/taz`.
 
 Every feature starts off, so you only get what you turn on.
 
 ## Features
 
+### Dungeons
+
+- **Run Predictor:** when your run will end, learned from your own past runs, with live score, splits and PBs.
+- **Secret Routes:** waypoints for every room in Odin's format, with a guide mode that shows the next step and times each room.
+- **Puzzle Solvers:** Water Board, Teleport Maze, Ice Fill, Ice Path, Blaze, Creeper Beams, Three Weirdos, Quiz, Boulder and Tic Tac Toe.
+- **Floor 7:** Terminal Solver, Simon Says, Arrow Align, Tick Timers, Leap Counter and Wither Dragons.
+- **Party and map:** a Dungeon Map, Leap Menu, Party Finder stats, Auto Requeue, Starred Mobs, Mask Timers, Score Alerts, Room Secret Times and Skill Issue.
+
+[All dungeon features](docs/dungeons.md)
+
+### Also in Taz
+
 - **Foraging:** a pointer to the next grown tree, Tree Route Assist with the Helix route built in, honeyhives with refill timers, a Whisper Counter, Ruby Veilshrooms, Tree Gifts, Starlyn Contests and Fairy Souls. [More](docs/foraging.md)
 - **Critter Safari:** the critters you need highlighted, a route through every biome, floor drops, a quest item guide, countdowns, a run report and a capsule throw preview. [More](docs/critter-safari.md)
-- **Dungeons:** a run end-time predictor, Secret Routes (Odin packs), puzzle solvers, a dungeon map, Floor 7 tools, Room Secret Times and Skill Issue. [More](docs/dungeons.md)
 - **SkyBlock XP:** the cheapest upgrades you haven't done, a level plan and an NPC finder. [More](docs/skyblock-xp.md)
 - **Everyday:** alerts, a Dark Auction reminder, event timers, item prices in tooltips, a chat filter, command keys, a storage overlay, and slayer and fishing helpers. [More](docs/general.md)
 

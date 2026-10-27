@@ -3,7 +3,7 @@
 	"id": "taz",
 	"version": "${version}",
 	"name": "Taz",
-	"description": "Hypixel SkyBlock features in one mod: Galatea foraging, the Critter Safari, dungeons, SkyBlock XP and everyday helpers. Settings: /taz.",
+	"description": "A Hypixel SkyBlock dungeons mod: run predictor, secret routes, puzzle solvers and Floor 7 tools, plus Galatea foraging, the Critter Safari, SkyBlock XP and more. Settings: /taz.",
 	"authors": ["mTaz"],
 	"contact": {
 		"homepage": "https://github.com/mover007/Taz",
