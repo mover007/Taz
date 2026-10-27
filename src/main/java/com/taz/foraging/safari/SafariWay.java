@@ -70,7 +70,7 @@ public final class SafariWay {
 		List<List<Goal>> plan = plan(mc, zone);
 		marks = plan.get(1);
 		for (List<Goal> step : plan) {
-			SafariMap.Walk w = SafariMap.path(mc.player.position(), step.stream().map(Goal::pos).toList());
+			SafariMap.Walk w = SafariMap.path(mc.level, mc.player.position(), step.stream().map(Goal::pos).toList());
 			if (w == null) continue;
 			goal = step.get(w.target());
 			walk = w;
@@ -78,7 +78,11 @@ public final class SafariWay {
 		}
 	}
 
-	/** The biome to work: the one you picked, the one already being worked, where you are, your hotspot, the most left. */
+	/**
+	 * The biome to work: the one you picked; else your Hunting Hotspot (each player in a party is given a different one,
+	 * so going to yours splits the party by itself, and it takes over when Hypixel names it a few seconds in); else the
+	 * one already being worked, where you are, and the one with most left.
+	 */
 	private static Biome pickZone(Minecraft mc, SafariConfig cfg) {
 		if (cfg.zone != zoneSetting) {
 			zoneSetting = cfg.zone;
@@ -86,11 +90,11 @@ public final class SafariWay {
 		}
 		Biome picked = cfg.zone.biome();
 		if (picked != null && hasWork(mc, picked)) return picked;
+		Biome hot = SafariHelper.hotspot();
+		if (hot != null && hasWork(mc, hot)) return hot;
 		if (zone != null && hasWork(mc, zone)) return zone;
 		Biome here = SafariHelper.biome();
 		if (here != null && hasWork(mc, here)) return here;
-		Biome hot = SafariHelper.hotspot();
-		if (hot != null && hasWork(mc, hot)) return hot;
 		Biome best = null;
 		for (Biome b : Biome.values()) {
 			if (hasWork(mc, b) && (best == null || left(b) > left(best))) best = b;

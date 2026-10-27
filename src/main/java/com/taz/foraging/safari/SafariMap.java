@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.taz.Taz;
 import com.taz.foraging.safari.Critters.Biome;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 import java.io.InputStream;
@@ -151,9 +152,38 @@ public final class SafariMap {
 	public record Walk(List<Vec3> points, int target, double length) {
 	}
 
+	/** Targets this near get a path over the blocks all the way ({@link BlockPath}). */
+	private static final double BLOCK_RANGE = 32;
+
 	/**
-	 * The shortest walk from {@code from} along the map to whichever target is nearest that way. Each target is a
-	 * position; the walk goes to the map point nearest it, then straight to it. Null when none can be reached.
+	 * The way to the nearest target, walked all the way: over the blocks for targets close by; along the map's
+	 * walkways for the rest, with the last stretch from the walkway to the target over the blocks too. A straight line
+	 * only for what nobody can walk to (a critter in the air), or blocks that aren't loaded.
+	 */
+	public static Walk path(Level level, Vec3 from, List<Vec3> targets) {
+		List<Integer> near = new ArrayList<>();
+		for (int t = 0; t < targets.size(); t++) {
+			if (targets.get(t).distanceTo(from) <= BLOCK_RANGE) near.add(t);
+		}
+		if (level != null && !near.isEmpty()) {
+			BlockPath.Result r = BlockPath.find(level, from, near.stream().map(targets::get).toList(), BLOCK_RANGE + 16);
+			if (r != null) return new Walk(r.points(), near.get(r.target()), r.length());
+		}
+		Walk walk = path(from, targets);
+		if (walk == null || level == null || walk.points().size() < 2) return walk;
+		List<Vec3> points = walk.points();
+		Vec3 join = points.get(points.size() - 2), target = points.get(points.size() - 1);
+		if (join.distanceTo(target) <= BlockPath.REACH) return walk;
+		BlockPath.Result end = BlockPath.find(level, join, List.of(target), BLOCK_RANGE + 16);
+		if (end == null) return walk;
+		List<Vec3> joined = new ArrayList<>(points.subList(0, points.size() - 1));
+		joined.addAll(end.points().subList(1, end.points().size()));
+		return new Walk(joined, walk.target(), walk.length() - join.distanceTo(target) + end.length());
+	}
+
+	/**
+	 * The shortest walk from {@code from} along the map to whichever target is nearest that way, by the map alone. Each
+	 * target is a position; the walk goes to the map point nearest it, then straight to it. Null when none can be reached.
 	 */
 	public static Walk path(Vec3 from, List<Vec3> targets) {
 		List<Node> all = nodes();

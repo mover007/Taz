@@ -505,7 +505,9 @@ public final class SafariHelper {
 			if (c != null) caught(mc, c, false);
 		} else if ((m = HOTSPOT.matcher(line)).matches()) {
 			hotspot = Biome.named(m.group(1));
-			if (hotspot != null && cfg.tips) TazChat.info("Your Hunting Hotspot is the " + hotspot.label + " Biome. If your party splits up, "
+			if (hotspot != null && cfg.tips) TazChat.info("Your Hunting Hotspot is the " + hotspot.label + " Biome: the route does it first. "
+					+ "Everyone in a party gets a different one, so each of you taking yours splits the biomes. If you agreed on another, "
+					+ "set Your biome in /taz. If your party splits up, "
 					+ "take that one.");
 		} else if ((m = BIRDFEEDER.matcher(line)).matches()) {
 			Critter bird = Critters.named(m.group(1).trim());

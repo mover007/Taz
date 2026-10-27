@@ -105,8 +105,9 @@ public final class SafariConfig {
 	public boolean showWay = true;
 
 	@Expose
-	@ConfigOption(name = "Your biome", desc = "The biome the route does first. Auto: the one you're in, then your hotspot, then the one "
-			+ "with most left. In a party, pick the one you took. When it's done (the Macaw doesn't count) the route moves on.")
+	@ConfigOption(name = "Your biome", desc = "The biome the route does first. Auto: your Hunting Hotspot (everyone in a party gets a "
+			+ "different one), then the one you're in, then the one with most left. In a party that agreed on other biomes, pick "
+			+ "yours. When it's done (the Macaw doesn't count) the route moves on.")
 	@ConfigEditorDropdown
 	public Zone zone = Zone.AUTO;
 

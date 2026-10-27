@@ -961,12 +961,17 @@ public class GalateaGameTest implements FabricClientGameTest {
 
 		cmd("clear @p paper");
 		tell("HOTSPOT! Your Hunting Hotspot is the Icy Biome!");
+		ctx.waitTicks(15);
+		String hot = ctx.computeOnClient(mc -> SafariWay.zone() + " " + (SafariWay.goal() == null ? "none" : SafariMap.zoneAt(SafariWay.goal().pos())));
+		check("safari way: your hotspot comes first, even standing in the Forest (" + hot + ")", hot.equals("ICY ICY"));
 		for (Critters.Critter c : Critters.in(Critters.Biome.FOREST)) {
 			if (!c.name().equals("Macaw")) tell("CAPTURE! You caught a " + c.name() + " and gained a " + c.name() + " Shard!");
 		}
+		ctx.runOnClient(mc -> Taz.config().galatea.safari.zone = SafariConfig.Zone.FOREST);
 		ctx.waitTicks(30);
 		String next = ctx.computeOnClient(mc -> String.valueOf(SafariWay.zone()));
-		check("safari way: a biome done but the Macaw moves on, to your hotspot (" + next + ")", next.equals("ICY"));
+		check("safari way: a picked biome done but the Macaw moves on (" + next + ")", next.equals("ICY"));
+		ctx.runOnClient(mc -> Taz.config().galatea.safari.zone = SafariConfig.Zone.AUTO);
 
 		// Hypixel draws the strings off their entity's position with the display's transformation: half a block up here.
 		String lifted = ",transformation:{translation:[0f,0.5f,0f],left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],scale:[1f,1f,1f]}";
@@ -990,7 +995,27 @@ public class GalateaGameTest implements FabricClientGameTest {
 		double length = ctx.computeOnClient(mc -> SafariWay.walk() == null ? -1 : SafariWay.walk().length());
 		check("safari way: a floor drop close by is grabbed on the way, straight there (" + goal + " at " + end + ", " + length + "m)",
 				goal.equals("Floor drop") && end.distanceTo(new Vec3(x + 0.5, y + 0.6, z + 0.5)) < 0.05 && length > 0 && length < 12);
+
+		// A wall in the way: the path goes round it over the blocks, not through it like a tracer.
+		cmd("fill " + (x - 3) + " " + y + " " + (z - 3) + " " + (x - 3) + " " + (y + 2) + " " + (z + 6) + " stone");
+		ctx.waitTicks(15);
+		String around = ctx.computeOnClient(mc -> {
+			SafariMap.Walk w = SafariWay.walk();
+			if (w == null) return "none";
+			boolean through = false;
+			for (int i = 1; i < w.points().size(); i++) {
+				Vec3 a = w.points().get(i - 1), b = w.points().get(i);
+				for (double f = 0; f <= 1; f += 0.05) {
+					BlockPos at = BlockPos.containing(a.lerp(b, f).add(0, 0.2, 0));
+					if (mc.level.getBlockState(at).is(net.minecraft.world.level.block.Blocks.STONE)) through = true;
+				}
+			}
+			return Math.round(w.length()) + "m, " + w.points().size() + " points" + (through ? ", through the wall" : "");
+		});
+		check("safari way: round a wall, not through it (" + around + ")", !around.contains("through") && !around.equals("none")
+				&& Integer.parseInt(around.substring(0, around.indexOf('m'))) > 8);
 		ctx.takeScreenshot("galatea-safari-way");
+		cmd("fill " + (x - 3) + " " + y + " " + (z - 3) + " " + (x - 3) + " " + (y + 2) + " " + (z + 6) + " air");
 
 		cmd("tp @p " + (x + 0.5) + " " + (y + 1) + " " + (z - 2.5) + " facing " + (x + 0.5) + " " + y + " " + (z + 0.5));
 		ctx.runOnClient(mc -> mc.gui.getChat().clearMessages(false));
