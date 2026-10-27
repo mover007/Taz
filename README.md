@@ -278,7 +278,7 @@ Secret Routes uses Odin's dungeon room table (`assets/taz/dungeons/rooms.json`),
 
 The code is in git (`main`), with a commit per change, so the history shows how the mod was built. `.gitattributes` keeps `gradlew` working on every OS.
 
-The version (`mod_version` in `gradle.properties`) goes up with every change: new features raise the middle number (1.1.0 to 1.2.0), fixes the last one (1.1.0 to 1.1.1).
+The version (`mod_version` in `gradle.properties`) goes up with every change: new features raise the middle number (1.1.0 to 1.2.0), fixes the last one (1.1.0 to 1.1.1). Each version is tagged in git (`v1.1.0`), so its source is easy to find.
 
 ## Build and test
 
