@@ -16,12 +16,15 @@ import java.util.Map;
  * <pre>
  * Critter Safari  12/37  ~41m left
  * Capsules 38  Hotspot Icy
+ * Next: Hideonfloor - catch it 23m
+ * Shyworm up 0:14 - don't let it see you
  * Forest (you're here)  3 left
  *  Macaw - feed the Birdfeeder a Bag of Seeds
  *  Hideonfloor - blends into the floor; runs when hit
- * Cavern 4 | Haunted done | Icy 9
+ * Cavern 4 | Icy 9
  * Bag of Seeds: feed it to the Birdfeeder in the Forest
  * </pre>
+ * Done biomes and quest items whose critters are all caught are left out.
  * At the entrance in Torrhus Canyon: what you need to get in.
  */
 public final class SafariGuide extends TextHud {
@@ -63,6 +66,7 @@ public final class SafariGuide extends TextHud {
 		if (!info.isEmpty()) lines.add(info);
 		String way = SafariWay.hudLine();
 		if (way != null) lines.add(way);
+		if (SafariConfig.get().countdowns) lines.addAll(SafariHelper.countdowns());
 
 		Biome here = SafariHelper.biome();
 		if (here != null) {
@@ -78,16 +82,18 @@ public final class SafariGuide extends TextHud {
 		} else {
 			lines.add("§7Walk into a biome to see its critters.");
 		}
+		// What's caught takes no room: done biomes and quest items for caught critters are left out.
 		StringBuilder others = new StringBuilder();
 		for (Biome b : Biome.values()) {
-			if (b == here) continue;
 			int left = SafariHelper.left(b);
+			if (b == here || left == 0) continue;
 			if (!others.isEmpty()) others.append(" §8| ");
-			others.append("§7").append(b.label).append(' ').append(left == 0 ? "§fdone" : "§f" + left);
+			others.append("§7").append(b.label).append(" §f").append(left);
 		}
-		lines.add(others.toString());
+		if (!others.isEmpty()) lines.add(others.toString());
 		for (Map.Entry<String, Integer> e : SafariHelper.questItems().entrySet()) {
 			QuestItem q = Critters.quest(e.getKey());
+			if (q.brings().stream().map(Critters::named).noneMatch(c -> c != null && SafariHelper.toDo(c))) continue;
 			lines.add("§f" + q.name() + (e.getValue() > 1 ? " x" + e.getValue() : "") + "§7: " + q.use());
 		}
 		return lines;
@@ -110,10 +116,11 @@ public final class SafariGuide extends TextHud {
 				"§c§lCritter Safari §f12§7/37 §8| §7~§f41m §7left",
 				"§7Capsules §f38  §7Hotspot §fIcy",
 				"§7Next: §fHoneybug §7- punch the bee nest §f23m",
+				"§eShyworm up §f0:14 §7- don't let it see you",
 				"§c§lForest §7(you're here) §f2 left",
 				" §fMacaw §7- feed the Birdfeeder a Bag of Seeds",
 				" §fHideonfloor §7- blends into the floor; runs when hit",
-				"§7Cavern §f4 §8| §7Haunted §fdone §8| §7Icy §f9",
+				"§7Cavern §f4 §8| §7Icy §f9",
 				"§fBag of Seeds§7: feed it to the Birdfeeder in the Forest (the best bait for Macaws)");
 	}
 }

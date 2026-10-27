@@ -12,6 +12,7 @@ import com.taz.hud.TazTheme;
 import com.taz.render.WorldRenderer;
 import com.taz.util.Alert;
 import com.taz.util.Items;
+import com.taz.util.Party;
 import com.taz.util.TazChat;
 import com.taz.xpassist.npc.SkyblockLocation;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
@@ -59,6 +60,10 @@ public final class SafariHelper {
 	public record Sighting(Critter critter, Entity label, Entity body, boolean sparkling) {
 	}
 
+	/** A critter you still need that went out of view: where and when it was last seen (by its name tag's id). */
+	public record Seen(int id, Critter critter, Vec3 pos, long at, boolean sparkling) {
+	}
+
 	public static final int RED = 0xFF2E2E;
 	public static final int GOLD = 0xFFC830;
 	/** The Safari closes about an hour after it opens, whatever's left. */
@@ -69,9 +74,20 @@ public final class SafariHelper {
 
 	private static final Pattern LOOT_SHARE = Pattern.compile("^LOOT SHARE! .* from (\\w{1,16}) (?:catching|finding) .+!$");
 	private static final Pattern HOTSPOT = Pattern.compile("^HOTSPOT! Your Hunting Hotspot is the (\\w+) Biome!$");
-	/** "The Scrappy started eating the Wholesale Wheat." ... "The Scrappy ate the Lush Lily Pads and came out of its shell!" */
-	private static final Pattern SCRAPPY_ATE = Pattern.compile(
-			"^The Scrappy (?:started eating|reaches its paw out for more|ate|happily eats) (?:the )?(.+?)(?: and came out of its shell!|\\.)$");
+	/**
+	 * "The Scrappy cautiously started eating the Lush Lily Pad.", "The Scrappy reaches out its paw for more Lush Lily
+	 * Pad." ... "The Scrappy ate the Lush Lily Pad and came out of its shell!"
+	 */
+	private static final Pattern SCRAPPY_ATE = Pattern.compile("^The Scrappy (?:(?:cautiously )?started eating|reaches (?:out its paw|its paw out) "
+			+ "for more|ate|happily eats) (?:the )?(.+?)(?: and came out of its shell!|\\.)$");
+	/** A critter last seen this long ago is too far off by now to be worth going to. */
+	private static final long SEEN_MS = 90_000;
+	/** Closer than this to where a critter was last seen, and it isn't there, it's gone. */
+	private static final double SEEN_GONE = 6;
+	/** A Shyworm stays up about 20 seconds; the Wumpa wakes 15-25 seconds after its footsteps (the game logs). */
+	private static final long SHYWORM_UP_MS = 20_000, WUMPA_WAKES_MS = 20_000;
+	/** The end-of-run summary: "+268 Safari Essence", "+318,977 Hunting Exp", "+43 Shards". */
+	private static final Pattern REWARD = Pattern.compile("^\\+([\\d,]+) (Shards|Safari Essence|Hunting Exp)$");
 	/** A Scrappy that's come out of its shell can be caught for this long. */
 	private static final long SCRAPPY_OUT_MS = 120_000;
 	private static final Pattern BIRDFEEDER = Pattern.compile("^\\S+ ([A-Za-z ]+?)s? (?:were|was) attracted to the Birdfeeder!$");
@@ -105,6 +121,17 @@ public final class SafariHelper {
 	private static String scrappyFood;
 	private static final Set<String> SCRAPPY_REFUSED = new LinkedHashSet<>();
 	private static long scrappyOutAt;
+	/** Name tags of needed critters by id: where each was last seen. The ones not in view now are {@link #lost}. */
+	private static final Map<Integer, Seen> LAST_SEEN = new LinkedHashMap<>();
+	private static List<Seen> lost = List.of();
+	/** Critters seen this run, and the ones you caught yourself (for the report). */
+	private static final Set<Critter> SEEN_RUN = new HashSet<>(), MINE_RUN = new HashSet<>();
+	/** When things the HUD counts down (or up) started, 0 when they aren't going on. */
+	private static long shywormAt, wumpaStepsAt, wumpaAwakeAt, hideyhoAt, doomspiralAt;
+	/** The run report: what the reward summary said, when you left, and whether it's been said. */
+	private static final Map<String, String> REWARDS = new LinkedHashMap<>();
+	private static boolean inSummary, reported;
+	private static long leftAt;
 	/** The Ritual's candles you've lit (4 bring the Doomspiral), and the gems on their podiums (all 3 bring the Gemzies). */
 	private static int candlesLit;
 	private static final Set<String> GEMS_PLACED = new LinkedHashSet<>();
@@ -203,8 +230,15 @@ public final class SafariHelper {
 		SafariSpots.BEDS.tick(mc, where == Where.INSIDE && cfg.showWay);
 		SafariSpots.LILY_PADS.tick(mc, where == Where.INSIDE && cfg.showWay);
 		SafariSpots.WHEAT.tick(mc, where == Where.INSIDE && cfg.showWay);
+		CritterdexSync.tick(mc);
 		if (++ticks % 5 != 0) return;
+		Where was = where;
 		where = locate(mc);
+		// The report comes with Hypixel's reward summary when you leave; if that never shows, a little after you've gone.
+		long now = System.currentTimeMillis();
+		if (where == Where.INSIDE) leftAt = 0;
+		else if (was == Where.INSIDE && runLevel != null && !reported) leftAt = now;
+		if (leftAt > 0 && now - leftAt > 30_000) report();
 		if (where == Where.ENTRANCE) {
 			biome = null;
 			sightings = List.of();
@@ -256,6 +290,14 @@ public final class SafariHelper {
 		scrappyOutAt = 0;
 		candlesLit = 0;
 		GEMS_PLACED.clear();
+		LAST_SEEN.clear();
+		lost = List.of();
+		SEEN_RUN.clear();
+		MINE_RUN.clear();
+		shywormAt = wumpaStepsAt = wumpaAwakeAt = hideyhoAt = doomspiralAt = 0;
+		REWARDS.clear();
+		inSummary = reported = false;
+		leftAt = 0;
 		SafariSpots.LILY_PADS.reset();
 		SafariSpots.WHEAT.reset();
 		capsules = -1;
@@ -316,18 +358,37 @@ public final class SafariHelper {
 				continue;
 			}
 			// A capture puts a stand with the critter's name next to one called CAPTURING: that one's already caught.
-			if (capturing.stream().anyMatch(p -> p.distanceToSqr(label.position()) < 2.5 * 2.5)) continue;
+			if (capturing.stream().anyMatch(p -> p.distanceToSqr(label.position()) < 2.5 * 2.5)) {
+				LAST_SEEN.remove(label.getId());
+				continue;
+			}
 			found.add(new Sighting(c, label, body(mc, label), sparkling));
 		}
 		sightings = found;
 		GLOW.clear();
+		long now = System.currentTimeMillis();
+		Set<Integer> inView = new HashSet<>();
 		for (Sighting s : found) {
+			SEEN_RUN.add(s.critter());
 			if (!needed(s, cfg)) continue;
+			Entity body = s.body() != null ? s.body() : s.label();
+			inView.add(s.label().getId());
+			LAST_SEEN.put(s.label().getId(), new Seen(s.label().getId(), s.critter(), body.position(), now, s.sparkling()));
 			if (s.body() != null) GLOW.put(s.body().getId(), s.sparkling() ? GOLD : RED);
-			if (s.sparkling() && cfg.alerts && SPARKLING_SEEN.add(s.label().getId())) {
-				Alert.show("§6§lSPARKLING!", "§fA Sparkling " + s.critter().name() + " §7- 10x shards and a Rainbow Feather", cfg.sound);
+			if (s.sparkling() && SPARKLING_SEEN.add(s.label().getId())) {
+				if (cfg.alerts) Alert.show("§6§lSPARKLING!", "§fA Sparkling " + s.critter().name() + " §7- 10x shards and a Rainbow Feather", cfg.sound);
+				if (cfg.callouts && Party.inParty()) {
+					BlockPos p = body.blockPosition();
+					TazChat.party("Sparkling " + s.critter().name() + " in the " + s.critter().biome().label + " biome at " + p.getX() + ", "
+							+ p.getY() + ", " + p.getZ());
+				}
 			}
 		}
+		// Out of view: kept a while where it was last seen, unless it's been caught or you're there and it isn't.
+		Vec3 me = mc.player.position();
+		LAST_SEEN.values().removeIf(s -> !inView.contains(s.id()) && (now - s.at() > SEEN_MS || !s.sparkling() && !toDo(s.critter())
+				|| s.pos().distanceToSqr(me) < SEEN_GONE * SEEN_GONE));
+		lost = LAST_SEEN.values().stream().filter(s -> !inView.contains(s.id())).toList();
 	}
 
 	/** A name tag's text, or null. Hypixel's NPC players (version 2 ids) count; real players don't. */
@@ -515,6 +576,31 @@ public final class SafariHelper {
 		if (!cfg.enabled) return;
 		Minecraft mc = Minecraft.getInstance();
 		Matcher m;
+		String text = line.trim();
+		if (text.equals("SAFARI REWARD SUMMARY")) {
+			inSummary = true;
+			REWARDS.clear();
+			return;
+		}
+		if (inSummary) {
+			if ((m = REWARD.matcher(text)).matches()) REWARDS.put(m.group(2), m.group(1));
+			// Hunting Exp comes last; a rule line ends it whatever came.
+			if (text.endsWith("Hunting Exp") || text.startsWith("▬")) {
+				inSummary = false;
+				report();
+			}
+			return;
+		}
+		long now = System.currentTimeMillis();
+		if (line.startsWith("The Shyworm surfaced nearby")) shywormAt = now;
+		else if (line.startsWith("The Shyworm hid back") || line.startsWith("The Shyworm fled")) shywormAt = 0;
+		else if (line.startsWith("The Wumpa has awoken")) {
+			wumpaStepsAt = 0;
+			wumpaAwakeAt = now;
+		} else if (line.startsWith("[MOB] Hideyho: ")) {
+			if (line.endsWith("No peeking!")) hideyhoAt = now;
+			else if (line.contains("You found me") || line.contains("you found me")) hideyhoAt = 0;
+		}
 		if (line.startsWith("CAPTURE! ")) {
 			Critter c = Critters.findIn(line);
 			if (c != null) caught(mc, c, true);
@@ -568,11 +654,13 @@ public final class SafariHelper {
 			if (cfg.alerts) Alert.show("§c§lGEMZIES!", "§f3 Gemzies are flying in the Cavern gem room", cfg.sound);
 		} else if (line.startsWith("You hear the sound of massive footsteps")) {
 			SafariWay.onWumpaWaking();
-			if (cfg.alerts) Alert.show("§c§lWUMPA!", "§fIt wakes up in about 30 seconds", cfg.sound);
+			wumpaStepsAt = now;
+			if (cfg.alerts) Alert.show("§c§lWUMPA!", "§fIt wakes up in about 20 seconds", cfg.sound);
 			if (cfg.tips) TazChat.info("The Wumpa is waking up in the Polaris cave. Lure it into the obsidian pillar to stun it, then throw "
 					+ "capsules at it.");
 		} else if (line.startsWith("Your ritual summoned a Doomspiral")) {
 			candlesLit = 4;
+			doomspiralAt = now;
 			if (cfg.alerts) Alert.show("§c§lDOOMSPIRAL!", "§fThrow capsules at it", cfg.sound);
 			if (cfg.tips) TazChat.info("The Doomspiral is up! Throw capsules at it, and break any sculk sensors that appear.");
 		}
@@ -582,6 +670,16 @@ public final class SafariHelper {
 		SafariConfig cfg = SafariConfig.get();
 		if (mc.level != null && mc.level != runLevel) reset();
 		boolean newThisRun = CAUGHT_RUN.add(c);
+		if (mine) MINE_RUN.add(c);
+		switch (c.name()) {
+			case "Shyworm" -> shywormAt = 0;
+			case "Wumpa" -> wumpaStepsAt = wumpaAwakeAt = 0;
+			case "Hideyho" -> hideyhoAt = 0;
+			case "Doomspiral" -> doomspiralAt = 0;
+			case "Scrappy" -> scrappyOutAt = 0;
+			default -> {
+			}
+		}
 		boolean first = mine && !cfg.caught.contains(c.name());
 		if (first) {
 			cfg.caught.add(c.name());
@@ -678,6 +776,92 @@ public final class SafariHelper {
 		}
 	}
 
+	/** Needed critters that went out of view, where they were last seen. */
+	public static List<Seen> lastSeen() {
+		return lost;
+	}
+
+	/** "25s" or "1m 10s" since a time. */
+	public static String ago(long at) {
+		long s = Math.max(0, System.currentTimeMillis() - at) / 1000;
+		return s < 60 ? s + "s" : s / 60 + "m " + s % 60 + "s";
+	}
+
+	private static String clock(long ms) {
+		long s = Math.max(0, ms + 999) / 1000;
+		return s / 60 + ":" + String.format(Locale.ROOT, "%02d", s % 60);
+	}
+
+	/** The HUD's countdowns (and count-ups) for what's going on right now. */
+	public static List<String> countdowns() {
+		List<String> out = new ArrayList<>();
+		long now = System.currentTimeMillis();
+		if (shywormAt > 0 && now - shywormAt < SHYWORM_UP_MS + 5000) {
+			out.add("§eShyworm up §f" + clock(SHYWORM_UP_MS - (now - shywormAt)) + " §7- don't let it see you");
+		}
+		if (wumpaStepsAt > 0 && now - wumpaStepsAt < 60_000) {
+			long left = WUMPA_WAKES_MS - (now - wumpaStepsAt);
+			out.add("§eWumpa wakes " + (left > 0 ? "in ~§f" + clock(left) : "§fany second") + " §7- in the Polaris cave");
+		}
+		if (wumpaAwakeAt > 0 && now - wumpaAwakeAt < 180_000) {
+			out.add("§eWumpa awake §f" + clock(now - wumpaAwakeAt) + " §7- lure it into the obsidian pillar");
+		}
+		if (hideyhoAt > 0 && now - hideyhoAt < 300_000) out.add("§eHideyho hiding §f" + clock(now - hideyhoAt) + " §7- the faster, the more shards");
+		if (scrappyOut()) out.add("§eScrappy out of its shell §f" + clock(now - scrappyOutAt) + " §7- catch it!");
+		if (doomspiralAt > 0 && now - doomspiralAt < 180_000) out.add("§eDoomspiral up §f" + clock(now - doomspiralAt) + " §7- at the Ritual");
+		return out;
+	}
+
+	/**
+	 * The end-of-run report in chat: what you and your party caught, the rewards Hypixel summed up, your best run, and
+	 * each biome's misses with why (the quest items it needed, seen but not caught, or never found).
+	 */
+	static void report() {
+		if (reported || runLevel == null) return;
+		reported = true;
+		long took = (leftAt > 0 ? leftAt : System.currentTimeMillis()) - runStart;
+		leftAt = 0;
+		SafariConfig cfg = SafariConfig.get();
+		if (!cfg.report) return;
+		int party = CAUGHT_RUN.size(), mine = MINE_RUN.size(), all = Critters.ALL.size();
+		TazChat.info("Safari report: " + (party > mine ? "you caught " + mine + ", your party " + party + "/" + all : "you caught " + mine + "/" + all)
+				+ " in " + took / 60_000 + "m " + took / 1000 % 60 + "s.");
+		if (!REWARDS.isEmpty()) {
+			List<String> got = new ArrayList<>();
+			if (REWARDS.containsKey("Safari Essence")) got.add("+" + REWARDS.get("Safari Essence") + " Safari Essence");
+			if (REWARDS.containsKey("Hunting Exp")) got.add("+" + REWARDS.get("Hunting Exp") + " Hunting XP");
+			if (REWARDS.containsKey("Shards")) got.add("+" + REWARDS.get("Shards") + " shards");
+			TazChat.info(String.join(", ", got) + ".");
+		}
+		if (party > cfg.bestCaught) {
+			if (cfg.bestCaught > 0) TazChat.info("A new best: " + party + " critters (it was " + cfg.bestCaught + ").");
+			cfg.bestCaught = party;
+			Taz.saveIfChanged();
+		} else {
+			TazChat.info("Your best run: " + cfg.bestCaught + " critters.");
+		}
+		boolean missedAny = false;
+		for (Biome b : Biome.values()) {
+			List<String> missed = new ArrayList<>();
+			for (Critter c : Critters.in(b)) {
+				if (CAUGHT_RUN.contains(c)) continue;
+				missed.add(c.name() + " (" + whyMissed(c) + ")");
+			}
+			if (missed.isEmpty()) continue;
+			missedAny = true;
+			TazChat.info("Missed in the " + b.label + ": " + String.join(", ", missed) + ".");
+		}
+		if (!missedAny) TazChat.info("Every critter caught!");
+	}
+
+	private static String whyMissed(Critter c) {
+		if (c.name().equals("Wumpa") && Critters.in(Biome.ICY).stream().anyMatch(o -> o != c && !CAUGHT_RUN.contains(o))) return "it wakes once the rest of Icy is caught";
+		List<String> toFind = stillToFind(c.name());
+		String seen = SEEN_RUN.contains(c) ? "seen, " : "";
+		if (!toFind.isEmpty()) return seen + "needed " + String.join(", ", toFind);
+		return seen.isEmpty() ? "not found" : "seen, not caught";
+	}
+
 	/** The guide's line for Scrappy: what it eats this run, as far as Taz knows. */
 	public static String scrappyHint() {
 		if (scrappyOut()) return "it's out of its shell: catch it!";
@@ -766,6 +950,16 @@ public final class SafariHelper {
 					boolean fresh = !cfg.caught.contains(s.critter().name());
 					String text = (s.sparkling() ? "Sparkling " : "") + s.critter().name() + (fresh ? " ✦ new" : "") + "  " + dist + "m";
 					batch.label(at, text, color, true);
+				}
+			}
+			if (cfg.lastSeen) {
+				for (Seen s : lost) {
+					int color = (s.sparkling() ? GOLD : 0xFF8A8A) | 0xB0000000;
+					Vec3 p = s.pos();
+					batch.outline(new AABB(p.x - 0.4, p.y, p.z - 0.4, p.x + 0.4, p.y + 0.9, p.z + 0.4), color, 1.5f, true);
+					int dist = (int) Math.round(Math.sqrt(p.distanceToSqr(batch.camera)));
+					batch.label(p.add(0, 1.6, 0), (s.sparkling() ? "Sparkling " : "") + s.critter().name() + " - last seen " + ago(s.at()) + " ago  "
+							+ dist + "m", color, true);
 				}
 			}
 			SafariFinds.render(batch, cfg);

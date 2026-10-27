@@ -14,6 +14,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -23,18 +24,27 @@ import java.util.Set;
  * "Show the way": a route through the whole run, one biome at a time, walked along the Safari map ({@link SafariMap})
  * like SkyHanni's navigation. In the biome being worked it goes, nearest first within each step:
  * <ol>
- * <li>to a critter of that biome you still need that's in view (its name tag is loaded); other biomes' critters wait
- * for their own turn;
+ * <li>to a critter of that biome you still need that's in view (its name tag is loaded), or where one went out of view
+ * ({@link SafariHelper#lastSeen}); other biomes' critters wait for their own turn;
  * <li>to anything you can do now ({@link SafariSpots}): a bee nest, a Hideonwall perch, a wall to break, a bed, a
  * mound, a critter's spot, or the Ritual, Gem Podiums or Birdfeeder when you carry what they need;
  * <li>round the biome to find the critters that roam it, and to floor drops when a critter needs a quest item you
  * don't have.
  * </ol>
- * When the biome has nothing left (the Macaw doesn't count: it may not come at all), the route moves on to the next.
+ * Once it has picked one, it sticks with it until it's done or gone, however you move about; only a search gives way,
+ * as soon as there's something real to go to. When the biome has nothing left (the Macaw doesn't count: it may not come
+ * at all), the route moves on to the next.
  */
 public final class SafariWay {
-	/** Somewhere to go: what for, where, and how near counts as having been there (0: it goes when it's done). */
-	public record Goal(String name, String why, Vec3 pos, double reach) {
+	/**
+	 * Somewhere to go: what for, where, and how near counts as having been there (0: it goes when it's done). The key
+	 * says it's the same goal from one look to the next (a critter moves); a provisional one (searching) gives way as
+	 * soon as there's something real to go to.
+	 */
+	public record Goal(String name, String why, Vec3 pos, double reach, String key, boolean provisional) {
+		Goal(String name, String why, Vec3 pos, double reach) {
+			this(name, why, pos, reach, name + "@" + pos, false);
+		}
 	}
 
 	private static final double ARRIVED = 4, SEARCHED = 10, DROP_CHECKED = 6;
@@ -45,6 +55,8 @@ public final class SafariWay {
 	/** The "Your biome" setting the route was worked out with: changing it starts the choice over. */
 	private static SafariConfig.Zone zoneSetting;
 	private static Goal goal;
+	/** What the way was going to before a detour for a floor drop close by. */
+	private static Goal resume;
 	private static SafariMap.Walk walk;
 	private static List<Goal> marks = List.of();
 	/** Spots you've been to this run. */
@@ -63,12 +75,36 @@ public final class SafariWay {
 		}
 		if (++ticks % 2 != 0) return;
 		zone = pickZone(mc, cfg);
+		Goal last = goal;
 		goal = null;
 		walk = null;
 		marks = List.of();
 		if (zone == null) return;
 		List<List<Goal>> plan = plan(mc, zone);
 		marks = plan.get(1);
+		// Once the way has picked something it sticks with it until it's done or gone, however you move about; only a
+		// search gives way, to the first real thing to go to.
+		Goal kept = find(plan, last);
+		if (kept == null && resume != null) kept = find(plan, resume);
+		if (kept == null || last == null || !kept.key().equals(last.key())) resume = null;
+		if (kept != null && kept.provisional() && plan.stream().flatMap(List::stream).anyMatch(g -> !g.provisional())) kept = null;
+		// A floor drop close by is grabbed on the way, then it's back to what you were going to.
+		if (kept != null && !kept.name().equals("Floor drop")) {
+			Goal drop = plan.get(1).stream().filter(g -> g.name().equals("Floor drop"))
+					.min(Comparator.comparingDouble(g -> g.pos().distanceToSqr(mc.player.position()))).orElse(null);
+			if (drop != null) {
+				resume = kept;
+				kept = drop;
+			}
+		}
+		if (kept != null) {
+			SafariMap.Walk w = SafariMap.path(mc.level, mc.player.position(), List.of(kept.pos()));
+			if (w != null) {
+				goal = kept;
+				walk = w;
+				return;
+			}
+		}
 		for (List<Goal> step : plan) {
 			SafariMap.Walk w = SafariMap.path(mc.level, mc.player.position(), step.stream().map(Goal::pos).toList());
 			if (w == null) continue;
@@ -119,16 +155,24 @@ public final class SafariWay {
 			if (!SafariHelper.toDo(s.critter()) && !s.sparkling()) continue;
 			Entity body = s.body() != null ? s.body() : s.label();
 			if (s.critter().biome() != z) continue;
+			String key = critterKey(s.label().getId());
 			// A Scrappy's armour stops capsules until it's had its food 4 times; one in view without the food means
 			// going for it first.
 			if (s.critter().name().equals("Scrappy") && !SafariHelper.scrappyOut()) {
 				String food = SafariHelper.scrappyFoodCarried();
-				if (food != null) now.add(new Goal("Scrappy", "feed it " + food + " (4 times), then throw", body.position(), 0));
+				if (food != null) now.add(new Goal("Scrappy", "feed it " + food + " (4 times), then throw", body.position(), 0, key, false));
 				else now.addAll(scrappyFood("for the Scrappy you found"));
 				continue;
 			}
 			now.add(new Goal(s.critter().name(), SafariHelper.scrappyOut() && s.critter().name().equals("Scrappy")
-					? "it's out of its shell: catch it!" : SafariSpots.howToCatch(s.critter().name()), body.position(), 0));
+					? "it's out of its shell: catch it!" : SafariSpots.howToCatch(s.critter().name()), body.position(), 0, key, false));
+		}
+		// Ones that went out of view: where they were last seen (the same goal as when they were in view).
+		if (SafariConfig.get().lastSeen) {
+			for (SafariHelper.Seen s : SafariHelper.lastSeen()) {
+				if (s.critter().biome() != z || !SafariHelper.toDo(s.critter()) && !s.sparkling()) continue;
+				now.add(new Goal(s.critter().name(), "last seen here " + SafariHelper.ago(s.at()) + " ago", s.pos(), 0, critterKey(s.id()), false));
+			}
 		}
 		Set<String> roaming = new LinkedHashSet<>(), missing = new LinkedHashSet<>();
 		for (Critter c : Critters.in(z)) {
@@ -156,7 +200,8 @@ public final class SafariWay {
 		}
 		if (!roaming.isEmpty()) {
 			String names = String.join(", ", roaming.stream().limit(3).toList()) + (roaming.size() > 3 ? "..." : "");
-			List<Goal> points = SafariSpots.searchPoints(z).stream().map(p -> new Goal("Search the " + z.label, names, p, SEARCHED)).toList();
+			List<Goal> points = SafariSpots.searchPoints(z).stream()
+					.map(p -> new Goal("Search the " + z.label, names, p, SEARCHED, "search@" + p, true)).toList();
 			// Walked it all and still some to find: round again.
 			if (points.stream().allMatch(g -> VISITED.contains(g.pos()))) points.forEach(g -> VISITED.remove(g.pos()));
 			search.addAll(points);
@@ -166,7 +211,7 @@ public final class SafariWay {
 			for (Vec3 p : SafariFinds.drops()) {
 				if (SafariMap.zoneAt(p) == z) search.add(new Goal("Floor drop", why, p, 0));
 			}
-			for (Vec3 p : SafariSpots.dropSpots(z)) search.add(new Goal("Floor drop spot", why, p, DROP_CHECKED));
+			for (Vec3 p : SafariSpots.dropSpots(z)) search.add(new Goal("Floor drop spot", why, p, DROP_CHECKED, "dropspot@" + p, true));
 		}
 		return List.of(fresh(now, me), fresh(tasks, me), fresh(search, me));
 	}
@@ -196,6 +241,17 @@ public final class SafariWay {
 		};
 	}
 
+	/** The same goal as one picked before (by its key) in the plan as it is now, or null when it's done or gone. */
+	private static Goal find(List<List<Goal>> plan, Goal goal) {
+		if (goal == null) return null;
+		return plan.stream().flatMap(List::stream).filter(g -> g.key().equals(goal.key())).findFirst().orElse(null);
+	}
+
+	/** A critter's goal, the same whether it's in view or was last seen (by its name tag). */
+	private static String critterKey(int labelId) {
+		return "critter#" + labelId;
+	}
+
 	/** The Doomspiral once all 4 candles are lit, the Gemzies once all 3 gems are placed: they're out, go catch them. */
 	private static boolean summoned(String critter) {
 		return critter.equals("Doomspiral") ? SafariHelper.candlesLit() >= 4 : critter.equals("Gemzie") && SafariHelper.gemsPlaced().size() == 3;
@@ -221,6 +277,7 @@ public final class SafariWay {
 
 	public static void clear() {
 		goal = null;
+		resume = null;
 		walk = null;
 		marks = List.of();
 	}

@@ -22,9 +22,12 @@ public final class Party {
 	private static final Pattern LEFT = Pattern.compile("^" + RANK + "(\\w{1,16}) (?:has left the party\\.|has been removed from the party\\.|was removed from your party because they disconnected\\.)$");
 	private static final Pattern INVITED = Pattern.compile("^" + RANK + "(\\w{1,16}) invited " + RANK + "\\w{1,16} to the party! They have 60 seconds to accept\\.$");
 	private static final Pattern GONE = Pattern.compile("^(?:You left the party\\.|The party was disbanded because all invites expired and the party was empty\\.|"
-			+ RANK + "\\w{1,16} has disbanded the party!|You have been kicked from the party by .+|You are not currently in a party\\.)$");
+			+ RANK + "\\w{1,16} has disbanded the party!|You have been kicked from the party by .+|You are not currently in a party\\.|"
+			+ "You are not in a party right now\\.)$");
 	private static final Set<String> MEMBERS = new LinkedHashSet<>();
 	private static String leader;
+	/** Party chat has been seen since the party last ended, so there is one even if its members aren't known. */
+	private static boolean chatSeen;
 
 	private Party() {
 	}
@@ -36,6 +39,7 @@ public final class Party {
 
 	public static void onChat(String line) {
 		Matcher m;
+		if (line.startsWith("Party > ")) chatSeen = true;
 		if ((m = LEADER.matcher(line)).find()) leader = m.group(1);
 		if (line.startsWith("Party Members (")) MEMBERS.clear();
 		if ((m = LIST.matcher(line)).matches()) {
@@ -60,7 +64,13 @@ public final class Party {
 		} else if (GONE.matcher(line).matches()) {
 			leader = null;
 			MEMBERS.clear();
+			chatSeen = false;
 		}
+	}
+
+	/** You're in a party as far as chat has shown (members known, or party chat seen), so party messages won't bounce. */
+	public static boolean inParty() {
+		return MEMBERS.size() > 1 || chatSeen;
 	}
 
 	/** The leader's name, or null when Taz doesn't know. */
@@ -86,5 +96,6 @@ public final class Party {
 	public static void reset() {
 		leader = null;
 		MEMBERS.clear();
+		chatSeen = false;
 	}
 }

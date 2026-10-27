@@ -11,6 +11,7 @@ import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorAccordion;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorBoolean;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorButton;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorDropdown;
+import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorInfoText;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigEditorSlider;
 import io.github.notenoughupdates.moulconfig.annotations.ConfigOption;
 import io.github.notenoughupdates.moulconfig.annotations.SearchTag;
@@ -94,6 +95,13 @@ public final class SafariConfig {
 	@ConfigEditorBoolean
 	public boolean nameTags = true;
 
+	@Expose
+	@ConfigAccordionId(id = 0)
+	@ConfigOption(name = "Last seen", desc = "When a critter you need goes out of view, a faint box stays where it was last seen (for "
+			+ "90 seconds, or until you get there), and the route can take you back to it.")
+	@ConfigEditorBoolean
+	public boolean lastSeen = true;
+
 	@ConfigOption(name = "Route", desc = "The path through the run, biome by biome.")
 	@ConfigEditorAccordion(id = 1)
 	public boolean section1 = false;
@@ -163,6 +171,20 @@ public final class SafariConfig {
 	@ConfigEditorBoolean
 	public boolean tips = true;
 
+	@Expose
+	@ConfigAccordionId(id = 3)
+	@ConfigOption(name = "Countdowns", desc = "Timers on the guide HUD while something's going on: a Shyworm up (about 20 seconds), the "
+			+ "Wumpa waking, Hideyho hiding (the faster you find him, the more shards), a Scrappy out of its shell and the Doomspiral.")
+	@ConfigEditorBoolean
+	public boolean countdowns = true;
+
+	@Expose
+	@ConfigAccordionId(id = 3)
+	@ConfigOption(name = "Run report", desc = "When you leave, a report in chat: what you and your party caught, the rewards, your best "
+			+ "run, and what you missed in each biome and why (the quest items it needed, seen but not caught, or never found).")
+	@ConfigEditorBoolean
+	public boolean report = true;
+
 	@ConfigOption(name = "Alerts", desc = "Titles for the moments you shouldn't miss.")
 	@ConfigEditorAccordion(id = 4)
 	public boolean section4 = false;
@@ -179,9 +201,22 @@ public final class SafariConfig {
 	@ConfigEditorDropdown
 	public Alert.Sound sound = Alert.Sound.PLING;
 
+	@Expose
+	@ConfigAccordionId(id = 4)
+	@ConfigOption(name = "Sparkling callouts", desc = "Say in party chat when you find a Sparkling critter, with its biome and where it "
+			+ "is, so a teammate can come for it. Only while you're in a party.")
+	@ConfigEditorBoolean
+	public boolean callouts = false;
+
 	@ConfigOption(name = "Your catches", desc = "The critters Taz remembers you catching.")
 	@ConfigEditorAccordion(id = 5)
 	public boolean section5 = false;
+
+	@ConfigAccordionId(id = 5)
+	@ConfigOption(name = "Critterdex sync", desc = "Open your Critterdex and Taz counts every critter it shows as caught, so \"never "
+			+ "caught by me\" and the \"new\" tags match your real collection.")
+	@ConfigEditorInfoText
+	public transient String critterdex = "";
 
 	@ConfigAccordionId(id = 5)
 	@ConfigOption(name = "Forget my catches", desc = "Count every critter as never caught (click twice).")
@@ -196,6 +231,10 @@ public final class SafariConfig {
 	/** Every critter you've caught yourself since Taz started counting (your own CAPTURE! lines). */
 	@Expose
 	public List<String> caught = new ArrayList<>();
+
+	/** The most critters caught in one run (you and your party), for the run report. */
+	@Expose
+	public int bestCaught = 0;
 
 	public static SafariConfig get() {
 		return Taz.config().safari;

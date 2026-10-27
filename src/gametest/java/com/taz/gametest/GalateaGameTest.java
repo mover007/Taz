@@ -735,6 +735,9 @@ public class GalateaGameTest implements FabricClientGameTest {
 			SafariHelper.testWhere = SafariHelper.Where.INSIDE;
 			SafariHelper.testBiome = Critters.Biome.FOREST;
 			SafariHelper.reset();
+			Taz.config().safari.callouts = true;
+			com.taz.util.Party.reset();
+			com.taz.util.TazChat.PARTY_RECENT.clear();
 		});
 		int x = start.getX() + 5, y = start.getY(), z = start.getZ();
 		String mob = " {NoAI:1b,PersistenceRequired:1b,Silent:1b,Tags:[\"taztest\"]}";
@@ -772,6 +775,18 @@ public class GalateaGameTest implements FabricClientGameTest {
 				&& glows.contains("parrot=" + gold) && glows.contains("armor_stand=" + red) && glows.contains("item_display=" + red)
 				&& glows.contains("silverfish=no"));
 		check("safari: Sparkling alert (" + Alert.lastTitle + ")", Alert.lastTitle != null && Alert.lastTitle.contains("SPARKLING"));
+		check("safari: no Sparkling callout when you're not in a party", com.taz.util.TazChat.PARTY_RECENT.isEmpty());
+		tell("Party > [MVP+] Bob: hi");
+		label(x, y + 1.0, z + 15, "SPARKLING Treefrog");
+		ctx.waitTicks(10);
+		String callout = String.valueOf(com.taz.util.TazChat.PARTY_RECENT);
+		check("safari: in a party, a Sparkling one is called out with where it is (" + callout + ")",
+				callout.equals("[Sparkling Treefrog in the Forest biome at " + x + ", " + y + ", " + (z + 15) + "]")
+						|| callout.startsWith("[Sparkling Treefrog in the Forest biome at " + x + ", "));
+		ctx.runOnClient(mc -> {
+			com.taz.util.TazChat.clearParty();
+			com.taz.util.Party.reset();
+		});
 		check("safari: welcome and biome tips", said("Welcome to the Critter Safari")
 				&& said("Forest Biome: 9 critters"));
 		lines = hudLines(SafariGuide.class);
@@ -811,7 +826,23 @@ public class GalateaGameTest implements FabricClientGameTest {
 		lines = hudLines(SafariGuide.class);
 		check("safari: HUD shows capsules, hotspot and quest items (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Capsules 4")
 				&& l.contains("Hotspot Icy")) && lines.stream().anyMatch(l -> l.startsWith("Bag of Seeds: feed it to the Birdfeeder")));
+
+		tell("The Shyworm surfaced nearby! Don't let it see you!");
+		tell("You hear the sound of massive footsteps echoing through the Icy Biome... What could it be?");
+		tell("[MOB] Hideyho: No peeking!");
+		ctx.waitTicks(5);
+		lines = hudLines(SafariGuide.class);
+		check("safari: countdowns on the HUD (" + lines + ")", lines.stream().anyMatch(l -> l.matches("Shyworm up 0:(1\\d|20) - don't let it see you"))
+				&& lines.stream().anyMatch(l -> l.matches("Wumpa wakes in ~0:(1\\d|20) - in the Polaris cave"))
+				&& lines.stream().anyMatch(l -> l.startsWith("Hideyho hiding 0:0")));
 		ctx.takeScreenshot("galatea-safari");
+		tell("The Shyworm hid back into the ground.");
+		tell("The Wumpa has awoken.");
+		tell("[MOB] Hideyho: Aah! You found me!");
+		ctx.waitTicks(5);
+		lines = hudLines(SafariGuide.class);
+		check("safari: ...gone when they end, the Wumpa awake (" + lines + ")", lines.stream().noneMatch(l -> l.startsWith("Shyworm up")
+				|| l.startsWith("Wumpa wakes") || l.startsWith("Hideyho")) && lines.stream().anyMatch(l -> l.startsWith("Wumpa awake 0:0")));
 
 		for (String c : List.of("Bluebird", "Honeybug", "Woodchucker", "Fluffling", "Hideonfloor", "Parakeet")) {
 			tell("CAPTURE! You caught a " + c + " and gained a " + c + " Shard!");
@@ -819,6 +850,9 @@ public class GalateaGameTest implements FabricClientGameTest {
 		check("safari: Forest done except the Macaw", said("Forest is done except the Macaw"));
 		tell("CAPTURE! You caught a Macaw and gained 2x Macaw Shard!");
 		check("safari: biome done, go to your hotspot next", said("Forest Biome is done! Next: the Icy Biome (9 left)."));
+		ctx.waitTicks(3);
+		lines = hudLines(SafariGuide.class);
+		check("safari: a quest item for caught critters leaves the HUD (" + lines + ")", lines.stream().noneMatch(l -> l.startsWith("Bag of Seeds")));
 		ctx.waitTicks(6);
 		glows = glows();
 		check("safari: a Sparkling one glows even when caught (" + glows + ")", glows.contains("parrot=" + gold) && glows.contains("item_display=no"));
@@ -826,7 +860,36 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> SafariHelper.testBiome = null);
 		ctx.waitTicks(6);
 		lines = hudLines(SafariGuide.class);
-		check("safari: no biome known (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Walk into a biome")));
+		check("safari: no biome known, done biomes left out (" + lines + ")", lines.stream().anyMatch(l -> l.contains("Walk into a biome"))
+				&& lines.contains("Cavern 9 | Haunted 10 | Icy 9"));
+
+		ctx.runOnClient(mc -> Taz.config().safari.bestCaught = 0);
+		tell("  SAFARI REWARD SUMMARY");
+		tell("");
+		tell("    +43 Shards");
+		tell("    +268 Safari Essence");
+		tell("    +318,977 Hunting Exp");
+		check("safari: run report (" + com.taz.util.TazChat.RECENT + ")", said("Safari report: you caught 8, your party 9/37 in ")
+				&& said("+268 Safari Essence, +318,977 Hunting XP, +43 shards.") && said("Cavernfish (seen, not caught)")
+				&& said("Gemzie (needed Purple Gem, Lime Gem, Orange Gem)") && said("Wumpa (it wakes once the rest of Icy is caught)")
+				&& said("Litterbug (not found)") && ctx.computeOnClient(mc -> Taz.config().safari.bestCaught) == 9);
+
+		// The Critterdex shows caught critters as themselves, the rest as "???".
+		ctx.setScreen(() -> {
+			net.minecraft.world.entity.player.Inventory inv = net.minecraft.client.Minecraft.getInstance().player.getInventory();
+			net.minecraft.world.SimpleContainer dex = new net.minecraft.world.SimpleContainer(54);
+			dex.setItem(10, menuItem("Polaris", null));
+			dex.setItem(11, menuItem("???", null));
+			dex.setItem(12, menuItem("Snoozle", "Not caught yet"));
+			return new net.minecraft.client.gui.screens.inventory.ContainerScreen(net.minecraft.world.inventory.ChestMenu.sixRows(1, inv, dex), inv,
+					net.minecraft.network.chat.Component.literal("Critterdex"));
+		});
+		ctx.waitTicks(25);
+		ctx.setScreen(() -> null);
+		ctx.waitTicks(12);
+		String dexCaught = ctx.computeOnClient(mc -> Taz.config().safari.caught.toString());
+		check("safari: Critterdex sync (" + dexCaught + ")", dexCaught.contains("Polaris") && !dexCaught.contains("Snoozle")
+				&& said("Critterdex synced: Polaris now counts as caught"));
 
 		cmd("kill @e[tag=taztest]");
 		cmd("clear @p paper");
@@ -835,10 +898,22 @@ public class GalateaGameTest implements FabricClientGameTest {
 			SafariHelper.testWhere = null;
 			SafariHelper.testBiome = null;
 			Taz.config().safari.caught.clear();
+			Taz.config().safari.callouts = false;
+			Taz.config().safari.bestCaught = 0;
 			Taz.config().safari.enabled = false;
 		});
 		cmd("tp @p " + start.getX() + " " + y + " " + z);
 		ctx.waitTicks(5);
+	}
+
+	private static net.minecraft.world.item.ItemStack menuItem(String name, String lore) {
+		net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.PAPER);
+		stack.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, net.minecraft.network.chat.Component.literal(name));
+		if (lore != null) {
+			stack.set(net.minecraft.core.component.DataComponents.LORE,
+					new net.minecraft.world.item.component.ItemLore(List.of(net.minecraft.network.chat.Component.literal(lore))));
+		}
+		return stack;
 	}
 
 	private void label(double x, double y, double z, String name) {
@@ -897,6 +972,16 @@ public class GalateaGameTest implements FabricClientGameTest {
 		check("safari way: a critter you still need in view comes first (" + goal + ")", goal.equals("Foxtrot"));
 		cmd("kill @e[type=fox]");
 		cmd("kill @e[type=armor_stand]");
+		ctx.waitTicks(15);
+		goal = goalWithWhy();
+		String lost = ctx.computeOnClient(mc -> SafariHelper.lastSeen().stream().map(s -> s.critter().name() + "@" + BlockPos.containing(s.pos())).toList().toString());
+		check("safari way: gone out of view, it goes to where it was last seen (" + goal + ", " + lost + ")",
+				goal.startsWith("Foxtrot - last seen here ") && lost.equals("[Foxtrot@" + new BlockPos(x + 6, y, z - 8) + "]"));
+		cmd("tp @p " + (x + 6) + " " + (y + 1) + " " + (z - 6));
+		ctx.waitTicks(15);
+		goal = goalName();
+		check("safari way: ...and once you're there and it isn't, it's forgotten (" + goal + ")",
+				!goal.equals("Foxtrot") && ctx.computeOnClient(mc -> SafariHelper.lastSeen().isEmpty()));
 		cmd("summon silverfish " + (x - 3) + " " + y + " " + (z - 1) + " {NoAI:1b,PersistenceRequired:1b,Silent:1b}");
 		label(x - 2.5, y + 0.8, z - 0.5, "Cavernfish"); // a Cavern critter right next to you
 		ctx.waitTicks(15);
@@ -905,6 +990,8 @@ public class GalateaGameTest implements FabricClientGameTest {
 				&& ctx.computeOnClient(mc -> SafariHelper.sightings().stream().anyMatch(s -> s.critter().name().equals("Cavernfish"))));
 		cmd("kill @e[type=silverfish]");
 		cmd("kill @e[type=armor_stand]");
+		cmd("tp @p " + (x - 3) + " " + (y + 1) + " " + (z - 1)); // where it was: so it isn't left as last seen
+		ctx.waitTicks(10);
 
 		cmd("give @p paper[custom_name=\"Yogi Berry\"]");
 		ctx.waitTicks(30);
@@ -912,6 +999,16 @@ public class GalateaGameTest implements FabricClientGameTest {
 		check("safari way: with bird bait, the Birdfeeder (" + goal + ")", goal.equals("Bluebird - feed the Birdfeeder your bait"));
 		List<String> lines = hudLines(SafariGuide.class);
 		check("safari way: HUD says what's next (" + lines + ")", lines.stream().anyMatch(l -> l.startsWith("Next: Bluebird - feed the Birdfeeder")));
+		// Once it's picked something, a critter coming into view on the way doesn't pull it off.
+		cmd("summon fox " + (x + 2) + " " + y + " " + (z - 2) + " {NoAI:1b,PersistenceRequired:1b,Silent:1b}");
+		label(x + 2.5, y + 1.0, z - 1.5, "Woodchucker");
+		ctx.waitTicks(15);
+		goal = goalName();
+		check("safari way: sticks with what it picked (" + goal + ")", goal.equals("Bluebird")
+				&& ctx.computeOnClient(mc -> SafariHelper.sightings().stream().anyMatch(s -> s.critter().name().equals("Woodchucker"))));
+		cmd("kill @e[type=fox]");
+		cmd("kill @e[type=armor_stand]");
+		ctx.runOnClient(mc -> SafariWay.clear());
 
 		ctx.runOnClient(mc -> Taz.config().safari.zone = SafariConfig.Zone.CAVERN);
 		ctx.waitTicks(15);
@@ -921,9 +1018,12 @@ public class GalateaGameTest implements FabricClientGameTest {
 				&& lines.stream().anyMatch(l -> l.startsWith("Next: (Cavern)")));
 
 		// A Scrappy's armour stops capsules until it's had its food 4 times; the food is one of three, picked each Safari.
+		// (What the way picks fresh: it would stick with the Shyworm's spot otherwise.)
 		cmd("summon silverfish " + (x + 5) + " " + y + " " + (z - 6) + " {NoAI:1b,PersistenceRequired:1b,Silent:1b}");
 		label(x + 5.5, y + 0.8, z - 5.5, "Scrappy");
-		ctx.waitTicks(15);
+		ctx.waitTicks(10);
+		ctx.runOnClient(mc -> SafariWay.clear());
+		ctx.waitTicks(5);
 		goal = goalName();
 		check("safari way: a Scrappy in view but no food: get food first (" + goal + ")",
 				List.of("Wholesale Wheat", "Flavor-packed Fish", "Lush Lily Pad").contains(goal));

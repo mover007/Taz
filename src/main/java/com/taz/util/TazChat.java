@@ -22,6 +22,8 @@ public final class TazChat {
 	public static final String PREFIX = "[TAZ] ";
 	/** Test hook: the last lines said with {@link #info}. */
 	public static final java.util.Deque<String> RECENT = new java.util.concurrent.ConcurrentLinkedDeque<>();
+	/** Test hook: the last messages given to {@link #party}. */
+	public static final java.util.Deque<String> PARTY_RECENT = new java.util.concurrent.ConcurrentLinkedDeque<>();
 	private static final long CONFIRM_MS = 5000;
 	/** Nothing else may have been sent this recently (ms) when a party message goes out. */
 	private static final long GAP_MS = 700;
@@ -59,6 +61,8 @@ public final class TazChat {
 	/** Says something in party chat ("[TAZ] ..."), straight away when nothing else was just sent; returns what it says. */
 	public static String party(String message) {
 		String said = PREFIX + message;
+		PARTY_RECENT.addLast(message);
+		while (PARTY_RECENT.size() > 20) PARTY_RECENT.pollFirst();
 		OUTBOX.add(said);
 		flush();
 		return said;
