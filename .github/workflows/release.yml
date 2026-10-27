@@ -1,0 +1,62 @@
+name: Release
+
+# Pushing a version tag (v1.2.0) builds Taz and publishes a GitHub release with the jar to download.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release, like v1.2.0'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        run: |
+          chmod +x gradlew
+          ./gradlew build
+
+      - name: Write the release notes
+        run: |
+          VERSION="${TAG#v}"
+          PREVIOUS=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+          {
+            echo "## Changes"
+            echo
+            git log --no-merges --pretty='- %s' ${PREVIOUS:+$PREVIOUS..}"$TAG" | grep -Ev '^- (Version|Release|Merge|Note version)' || true
+            echo
+            echo "## Install"
+            echo
+            echo "1. Minecraft 26.1.2 with Fabric Loader, Fabric API and Fabric Language Kotlin."
+            echo "2. Put \`taz-$VERSION.jar\` in your \`mods\` folder and remove any older \`taz-*.jar\`."
+            echo "3. Type \`/taz\` in game. Every feature starts off."
+          } > notes.md
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Taz ${{ env.VERSION }}
+          body_path: notes.md
+          files: build/libs/taz-${{ env.VERSION }}.jar
