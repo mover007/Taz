@@ -590,12 +590,45 @@ public class GalateaGameTest implements FabricClientGameTest {
 			Taz.config().foraging.route.enabled = true;
 			Taz.config().foraging.route.mode = RouteConfig.Mode.NORMAL;
 			for (TreeRoutes.Route r : new java.util.ArrayList<>(TreeRoutes.all())) TreeRoutes.delete(r);
+		});
+		String builtIn = ctx.computeOnClient(mc -> TreeRoutes.all().stream().map(r -> r.name + "/" + r.island + "/" + r.points.size() + "/" + r.builtIn).toList()
+				+ " in use " + TreeRoutes.activeOn("foraging_3").name);
+		check("route: Taz comes with the Helix route, used by default, and it can't be deleted (" + builtIn + ")",
+				builtIn.equals("[Helix route/foraging_3/37/true] in use Helix route"));
+		ctx.runOnClient(mc -> {
 			mc.keyboardHandler.setClipboard(USER_ROUTE);
 			RouteAssist.importFromClipboard();
 		});
 		TreeRoutes.Route imported = ctx.computeOnClient(mc -> TreeRoutes.all().isEmpty() ? null : TreeRoutes.all().get(0));
-		check("route: your Skyblocker export imported", imported != null && imported.name.equals("Tree route") && imported.points.size() == 37);
+		check("route: your export of it is the Helix route, not a second copy", imported != null && imported.name.equals("Helix route")
+				&& imported.points.size() == 37 && ctx.computeOnClient(mc -> TreeRoutes.all().size()) == 1 && said("That's Taz's Helix route"));
 		check("route: island set to Torrhus Canyon (" + imported.island + ")", "foraging_3".equals(imported.island));
+		// Your saved copy from before (named "Tree route", with its best lap) folds into it, and stays the one in use.
+		ctx.runOnClient(mc -> {
+			try {
+				String data = USER_ROUTE.substring(TreeRoutes.PREFIX.length());
+				String groups = new String(new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(java.util.Base64.getDecoder().decode(data)))
+						.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+				com.google.gson.JsonArray routes = com.google.gson.JsonParser.parseString(groups).getAsJsonArray();
+				routes.get(0).getAsJsonObject().addProperty("name", "Tree route");
+				routes.get(0).getAsJsonObject().addProperty("bestLapMs", 75701);
+				com.google.gson.JsonObject file = new com.google.gson.JsonObject();
+				file.add("routes", routes);
+				com.google.gson.JsonObject active = new com.google.gson.JsonObject();
+				active.addProperty("foraging_3", "Tree route");
+				file.add("active", active);
+				java.nio.file.Files.writeString(Taz.CONFIG_DIR.resolve("foraging").resolve("routes.json"), file.toString());
+				TreeRoutes.reload();
+			} catch (Exception e) {
+				throw new AssertionError(e);
+			}
+		});
+		String merged = ctx.computeOnClient(mc -> TreeRoutes.all().stream().map(r -> r.name + "/" + r.bestLapMs).toList() + " in use "
+				+ TreeRoutes.activeOn("foraging_3").name);
+		check("route: your old copy folds into the Helix route with its best lap (" + merged + ")", merged.equals("[Helix route/75701] in use Helix route"));
+		ctx.runOnClient(mc -> {
+			for (TreeRoutes.Route r : new java.util.ArrayList<>(TreeRoutes.all())) TreeRoutes.delete(r);
+		});
 		check("route: kinds (1 = tree, E1 = etherwarp, TP1 = teleport)", imported.points.get(0).kind() == TreeRoutes.Kind.TREE
 				&& imported.points.get(1).kind() == TreeRoutes.Kind.WARP && imported.points.get(26).kind() == TreeRoutes.Kind.TELEPORT);
 		String exported = ctx.computeOnClient(mc -> {

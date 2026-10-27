@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -70,12 +71,17 @@ public final class TreeRoutes {
 		/** Best lap and the time to each point on it (ms from the lap start), or 0 / empty. */
 		public long bestLapMs;
 		public long[] bestSplits = new long[0];
+		/** One of Taz's own routes (the Helix route): always there, and the default on its island. */
+		public boolean builtIn;
 
 		Route(String name, String island) {
 			this.name = name;
 			this.island = island;
 		}
 	}
+
+	/** Taz's own routes, in assets/taz/foraging/routes/. */
+	private static final List<String> BUILT_IN = List.of("helix.json");
 
 	private static final List<Route> ROUTES = new ArrayList<>();
 	/** island -> name of the route in use there. */
@@ -90,15 +96,32 @@ public final class TreeRoutes {
 		return ROUTES;
 	}
 
-	/** The route in use on the island you're on, or null. */
+	/** The route in use on the island you're on (one made for this island first), or null. */
 	public static Route active() {
-		Route first = null;
+		Route exact = activeOn(Islands.current());
+		if (exact != null) return exact;
 		for (Route r : all()) {
-			if (!Islands.here(r.island)) continue;
-			if (first == null) first = r;
-			if (r.name.equals(ACTIVE.get(r.island))) return r;
+			if (Islands.here(r.island)) return activeOn(r.island);
 		}
-		return first;
+		return null;
+	}
+
+	/** The route in use on an island: the one you chose, else Taz's own, else the first. */
+	public static Route activeOn(String island) {
+		Route fallback = null;
+		for (Route r : all()) {
+			if (!r.island.equals(island)) continue;
+			if (r.name.equals(ACTIVE.get(island))) return r;
+			if (fallback == null || r.builtIn && !fallback.builtIn) fallback = r;
+		}
+		return fallback;
+	}
+
+	/** Reads the routes file again (tests). */
+	public static void reload() {
+		ROUTES.clear();
+		ACTIVE.clear();
+		load();
 	}
 
 	/** Use the next route on this island; returns it, or null when there's none. */
@@ -112,9 +135,12 @@ public final class TreeRoutes {
 		return next;
 	}
 
-	public static void delete(Route r) {
+	/** Removes one of your routes; Taz's own can't be (false). */
+	public static boolean delete(Route r) {
+		if (r.builtIn) return false;
 		all().remove(r);
 		save();
+		return true;
 	}
 
 	// ---- Skyblocker format
@@ -161,9 +187,18 @@ public final class TreeRoutes {
 		return out;
 	}
 
-	/** Adds or replaces (same name and island) the routes; best times stay if the points didn't change. */
+	/**
+	 * Adds or replaces (same name and island) the routes; best times stay if the points didn't change. A copy of one of
+	 * Taz's own routes just selects that one.
+	 */
 	public static void add(List<Route> routes) {
 		for (Route r : routes) {
+			Route own = all().stream().filter(o -> o.builtIn && o.island.equals(r.island) && o.points.equals(r.points)).findFirst().orElse(null);
+			if (own != null) {
+				ACTIVE.put(own.island, own.name);
+				continue;
+			}
+			if (all().stream().anyMatch(o -> o.builtIn && o.name.equals(r.name) && o.island.equals(r.island))) r.name += " (yours)";
 			Route old = all().stream().filter(o -> o.name.equals(r.name) && o.island.equals(r.island)).findFirst().orElse(null);
 			if (old != null) {
 				if (old.points.equals(r.points)) {
@@ -215,6 +250,7 @@ public final class TreeRoutes {
 		o.add("waypoints", points);
 		o.addProperty("ordered", true);
 		if (withTimes) {
+			if (r.builtIn) o.addProperty("builtIn", true);
 			o.addProperty("bestLapMs", r.bestLapMs);
 			JsonArray splits = new JsonArray();
 			for (long s : r.bestSplits) splits.add(s);
@@ -235,6 +271,7 @@ public final class TreeRoutes {
 			for (int i = 0; i < saved.size() && i < ROUTES.size(); i++) {
 				JsonObject o = saved.get(i).getAsJsonObject();
 				Route r = ROUTES.get(i);
+				r.builtIn = o.has("builtIn") && o.get("builtIn").getAsBoolean();
 				r.bestLapMs = o.has("bestLapMs") ? o.get("bestLapMs").getAsLong() : 0;
 				if (o.has("bestSplits")) {
 					JsonArray s = o.getAsJsonArray("bestSplits");
@@ -247,7 +284,45 @@ public final class TreeRoutes {
 			}
 		} catch (Exception e) {
 			Taz.LOGGER.warn("Could not read {}", FILE, e);
+		} finally {
+			addBuiltIn();
 		}
+	}
+
+	/**
+	 * Taz's own routes go first. A saved route with the same points (your import of it, or its best times from last
+	 * time) is folded into it, so its best lap carries over; one of yours that only shares its name is kept, renamed.
+	 */
+	private static void addBuiltIn() {
+		List<Route> own = new ArrayList<>();
+		for (String file : BUILT_IN) {
+			try (InputStream in = TreeRoutes.class.getResourceAsStream("/assets/taz/foraging/routes/" + file)) {
+				for (Route r : parse(new String(in.readAllBytes(), StandardCharsets.UTF_8), Islands.UNKNOWN)) {
+					r.builtIn = true;
+					own.add(r);
+				}
+			} catch (Exception e) {
+				Taz.LOGGER.warn("Could not read Taz's tree route {}", file, e);
+			}
+		}
+		for (Route r : own) {
+			for (Route saved : new ArrayList<>(ROUTES)) {
+				if (!saved.island.equals(r.island)) continue;
+				if (saved.points.equals(r.points)) {
+					if (saved.bestLapMs > 0 && (r.bestLapMs == 0 || saved.bestLapMs < r.bestLapMs)) {
+						r.bestLapMs = saved.bestLapMs;
+						r.bestSplits = saved.bestSplits;
+					}
+					ROUTES.remove(saved);
+					if (saved.name.equals(ACTIVE.get(r.island))) ACTIVE.put(r.island, r.name);
+				} else if (saved.builtIn) {
+					ROUTES.remove(saved); // an older version of Taz's route: its times don't fit the new one
+				} else if (saved.name.equals(r.name)) {
+					saved.name += " (yours)";
+				}
+			}
+		}
+		ROUTES.addAll(0, own);
 	}
 
 	public static void save() {

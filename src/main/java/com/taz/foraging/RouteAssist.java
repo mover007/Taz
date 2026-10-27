@@ -69,6 +69,11 @@ public final class RouteAssist extends TextHud {
 			List<TreeRoutes.Route> routes = TreeRoutes.parse(text, Islands.current());
 			TreeRoutes.add(routes);
 			for (TreeRoutes.Route r : routes) {
+				TreeRoutes.Route own = TreeRoutes.all().contains(r) ? null : TreeRoutes.activeOn(r.island);
+				if (own != null && own.builtIn) {
+					TazChat.info("That's Taz's " + own.name + ", which is built in: using it.");
+					continue;
+				}
 				TazChat.info("Imported \"" + r.name + "\" (" + r.points.size() + " points) for " + (Islands.UNKNOWN.equals(r.island)
 						? "any island (import it while standing on the island to tie it to that island)" : Islands.name(r.island)) + ".");
 			}
@@ -115,7 +120,10 @@ public final class RouteAssist extends TextHud {
 			TazChat.info("No route for this island.");
 			return;
 		}
-		TreeRoutes.delete(r);
+		if (!TreeRoutes.delete(r)) {
+			TazChat.info("\"" + r.name + "\" comes with Taz and can't be deleted. Choose another route instead.");
+			return;
+		}
 		TazChat.info("Deleted \"" + r.name + "\".");
 		restart();
 	}

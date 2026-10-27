@@ -33,8 +33,8 @@ public final class RouteConfig {
 	}
 
 	@Expose
-	@ConfigOption(name = "Enabled", desc = "Your tree route (imported from Skyblocker: copy its export, then Import below). A route only shows on "
-			+ "the island it's for. Guide mode shows just the next tree and the warps that get you there, and moves on by itself "
+	@ConfigOption(name = "Enabled", desc = "A tree route to follow. Taz comes with the Helix route for Torrhus Canyon; import your own "
+			+ "from Skyblocker (copy its export, then Import below). A route only shows on the island it's for. Guide mode shows just the next tree and the warps that get you there, and moves on by itself "
 			+ "when the tree is done.")
 	@ConfigEditorBoolean
 	@SearchTag("tree route waypoints skyblocker import export training etherwarp lap splits")
@@ -71,7 +71,8 @@ public final class RouteConfig {
 	@ConfigEditorButton(buttonText = "List")
 	public transient Runnable list = RouteAssist::listRoutes;
 
-	@ConfigOption(name = "Delete this route", desc = "Remove this island's route (click twice).")
+	@ConfigOption(name = "Delete this route", desc = "Remove the route in use on this island (click twice). The Helix route comes "
+			+ "with Taz and stays.")
 	@ConfigEditorButton(buttonText = "Delete")
 	public transient Runnable delete = () -> {
 		if (TazChat.confirm("deleteroute", "delete this island's route")) RouteAssist.deleteRoute();
