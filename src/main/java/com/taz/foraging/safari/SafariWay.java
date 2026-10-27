@@ -23,7 +23,8 @@ import java.util.Set;
  * "Show the way": a route through the whole run, one biome at a time, walked along the Safari map ({@link SafariMap})
  * like SkyHanni's navigation. In the biome being worked it goes, nearest first within each step:
  * <ol>
- * <li>to a critter you still need that's in view (its name tag is loaded);
+ * <li>to a critter of that biome you still need that's in view (its name tag is loaded); other biomes' critters wait
+ * for their own turn;
  * <li>to anything you can do now ({@link SafariSpots}): a bee nest, a Hideonwall perch, a wall to break, a bed, a
  * mound, a critter's spot, or the Ritual, Gem Podiums or Birdfeeder when you carry what they need;
  * <li>round the biome to find the critters that roam it, and to floor drops when a critter needs a quest item you
@@ -39,8 +40,6 @@ public final class SafariWay {
 	private static final double ARRIVED = 4, SEARCHED = 10, DROP_CHECKED = 6;
 	/** Floor drops this close are worth grabbing on the way, needed or not. */
 	private static final double DROP_NEARBY = 16;
-	/** A critter of another biome this close is worth catching on the way. */
-	private static final double OTHER_BIOME_NEARBY = 24;
 
 	private static Biome zone;
 	/** The "Your biome" setting the route was worked out with: changing it starts the choice over. */
@@ -115,7 +114,7 @@ public final class SafariWay {
 		for (SafariHelper.Sighting s : SafariHelper.sightings()) {
 			if (!SafariHelper.toDo(s.critter()) && !s.sparkling()) continue;
 			Entity body = s.body() != null ? s.body() : s.label();
-			if (s.critter().biome() != z && body.position().distanceTo(me) > OTHER_BIOME_NEARBY) continue;
+			if (s.critter().biome() != z) continue;
 			// A Scrappy's armour stops capsules until it's had its food 4 times; one in view without the food means
 			// going for it first.
 			if (s.critter().name().equals("Scrappy") && !SafariHelper.scrappyOut()) {

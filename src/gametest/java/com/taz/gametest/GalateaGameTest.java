@@ -897,6 +897,14 @@ public class GalateaGameTest implements FabricClientGameTest {
 		check("safari way: a critter you still need in view comes first (" + goal + ")", goal.equals("Foxtrot"));
 		cmd("kill @e[type=fox]");
 		cmd("kill @e[type=armor_stand]");
+		cmd("summon silverfish " + (x - 3) + " " + y + " " + (z - 1) + " {NoAI:1b,PersistenceRequired:1b,Silent:1b}");
+		label(x - 2.5, y + 0.8, z - 0.5, "Cavernfish"); // a Cavern critter right next to you
+		ctx.waitTicks(15);
+		goal = goalName();
+		check("safari way: working the Forest, a Cavern critter close by isn't gone for (" + goal + ")", !goal.equals("Cavernfish")
+				&& ctx.computeOnClient(mc -> SafariHelper.sightings().stream().anyMatch(s -> s.critter().name().equals("Cavernfish"))));
+		cmd("kill @e[type=silverfish]");
+		cmd("kill @e[type=armor_stand]");
 
 		cmd("give @p paper[custom_name=\"Yogi Berry\"]");
 		ctx.waitTicks(30);
