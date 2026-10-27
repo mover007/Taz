@@ -128,8 +128,7 @@ public final class SafariSpots {
 		if (blocks == null) return List.of(FISH_POND);
 		List<Vec3> out = new ArrayList<>();
 		for (BlockPos p : blocks.all()) {
-			Vec3 v = Vec3.atBottomCenterOf(p);
-			if (testFoodAnywhere || SafariMap.zoneAt(v) == Biome.CAVERN) out.add(v);
+			if (testFoodAnywhere || biomeOf(p) == Biome.CAVERN) out.add(Vec3.atBottomCenterOf(p));
 		}
 		return out.isEmpty() ? List.of(FISH_POND) : out;
 	}
@@ -205,10 +204,20 @@ public final class SafariSpots {
 		return SafariMap.matching(n -> n.tagged("floor_drops") && SafariMap.zoneOf(n) == biome).stream().map(SafariMap.Node::pos).toList();
 	}
 
+	/** The haunted house's 4 beds (there are beds elsewhere in the Safari too, but they don't bring Gazers). */
 	private static List<Vec3> beds() {
 		List<Vec3> out = new ArrayList<>();
-		for (BlockPos p : BEDS.all()) out.add(Vec3.atBottomCenterOf(p));
+		for (BlockPos p : BEDS.all()) {
+			if (biomeOf(p) == Biome.HAUNTED) out.add(Vec3.atBottomCenterOf(p));
+		}
 		return out.isEmpty() ? named("Luigis Mansion 64") : out;
+	}
+
+	/** The biome a block is in: Hypixel's own biome there, else the map's (the test world has no Hypixel biomes). */
+	private static Biome biomeOf(BlockPos p) {
+		Minecraft mc = Minecraft.getInstance();
+		Biome b = mc.level != null && mc.level.isLoaded(p) ? SafariHelper.biomeAt(mc.level, p) : null;
+		return b != null ? b : SafariMap.zoneAt(Vec3.atBottomCenterOf(p));
 	}
 
 	private static List<Vec3> blocks(int[][] spots) {

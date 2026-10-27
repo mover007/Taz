@@ -72,7 +72,7 @@ public final class SafariGuide extends TextHud {
 			for (Critter c : Critters.in(here)) {
 				if (!SafariHelper.toDo(c)) continue;
 				if (++shown > MAX_CRITTERS) break;
-				lines.add(" §f" + c.name() + " §7- " + (c.name().equals("Scrappy") ? SafariHelper.scrappyHint() : c.hint()));
+				lines.add(" §f" + c.name() + " §7- " + (c.name().equals("Scrappy") ? SafariHelper.scrappyHint() : SafariHelper.progressHint(c)));
 			}
 			if (left == 0) lines.add("§7" + SafariHelper.nextStep());
 		} else {

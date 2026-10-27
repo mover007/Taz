@@ -17,6 +17,7 @@ import com.taz.xpassist.npc.SkyblockLocation;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
@@ -26,6 +27,7 @@ import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -73,6 +75,11 @@ public final class SafariHelper {
 	/** A Scrappy that's come out of its shell can be caught for this long. */
 	private static final long SCRAPPY_OUT_MS = 120_000;
 	private static final Pattern BIRDFEEDER = Pattern.compile("^\\S+ ([A-Za-z ]+?)s? (?:were|was) attracted to the Birdfeeder!$");
+	/** One Soothing Incense lights one of the Ritual's 4 candles; what follows says which (the wiki). */
+	private static final Pattern CANDLE = Pattern.compile("^You used the Soothing Incense to light the candle! (.*)$");
+	private static final List<String> CANDLE_LINES = List.of("You begin to feel uneasy.", "Something is off about this place...",
+			"Are you sure you wish to continue?", "The ground beneath your feet starts to shift...");
+	private static final Pattern GEM_PLACED = Pattern.compile("^You placed the (Purple Gem|Lime Gem|Orange Gem) on its podium!$");
 
 	/** Test hooks: where you are, and which biome. */
 	public static Where testWhere;
@@ -98,6 +105,9 @@ public final class SafariHelper {
 	private static String scrappyFood;
 	private static final Set<String> SCRAPPY_REFUSED = new LinkedHashSet<>();
 	private static long scrappyOutAt;
+	/** The Ritual's candles you've lit (4 bring the Doomspiral), and the gems on their podiums (all 3 bring the Gemzies). */
+	private static int candlesLit;
+	private static final Set<String> GEMS_PLACED = new LinkedHashSet<>();
 	private static int capsules = -1;
 	private static boolean hadCapsules;
 	/** Quest items in your inventory, by name, and how many. */
@@ -151,7 +161,12 @@ public final class SafariHelper {
 
 	/** Hypixel's own biomes in the Safari world: hypixel:forest, cavern, haunted, icy and icy_caves. */
 	private static Biome biomeAt(Minecraft mc) {
-		return mc.level.getBiome(mc.player.blockPosition()).unwrapKey().map(k -> {
+		return biomeAt(mc.level, mc.player.blockPosition());
+	}
+
+	/** Hypixel's biome at a block, or null where it isn't one of the Safari's. */
+	public static Biome biomeAt(Level level, BlockPos pos) {
+		return level.getBiome(pos).unwrapKey().map(k -> {
 			Identifier id = k.identifier();
 			if (!id.getNamespace().equals("hypixel")) return null;
 			return switch (id.getPath()) {
@@ -239,6 +254,8 @@ public final class SafariHelper {
 		scrappyFood = null;
 		SCRAPPY_REFUSED.clear();
 		scrappyOutAt = 0;
+		candlesLit = 0;
+		GEMS_PLACED.clear();
 		SafariSpots.LILY_PADS.reset();
 		SafariSpots.WHEAT.reset();
 		capsules = -1;
@@ -276,7 +293,8 @@ public final class SafariHelper {
 		Map<Entity, String> labels = new LinkedHashMap<>();
 		for (Entity e : mc.level.entitiesForRendering()) {
 			String name = labelName(mc, e);
-			if (name == null) continue;
+			// "Wumpa zZz": the Wumpa asleep, which can't be caught until it wakes.
+			if (name == null || name.endsWith(" zZz")) continue;
 			if (name.equals("CAPTURING")) capturing.add(e.position());
 			else labels.put(e, name);
 		}
@@ -540,7 +558,13 @@ public final class SafariHelper {
 				scrappyOutAt = System.currentTimeMillis();
 				if (cfg.tips) TazChat.info("It's out of its shell: throw capsules at it now!");
 			}
+		} else if ((m = CANDLE.matcher(line)).matches()) {
+			int n = CANDLE_LINES.indexOf(m.group(1).trim()) + 1;
+			candlesLit = Math.min(4, n > 0 ? Math.max(candlesLit, n) : candlesLit + 1);
+		} else if ((m = GEM_PLACED.matcher(line)).matches()) {
+			GEMS_PLACED.add(m.group(1));
 		} else if (line.startsWith("A rumbling sound can be heard")) {
+			GEMS_PLACED.addAll(SafariSpots.NEEDS.get("gem"));
 			if (cfg.alerts) Alert.show("§c§lGEMZIES!", "§f3 Gemzies are flying in the Cavern gem room", cfg.sound);
 		} else if (line.startsWith("You hear the sound of massive footsteps")) {
 			SafariWay.onWumpaWaking();
@@ -548,6 +572,7 @@ public final class SafariHelper {
 			if (cfg.tips) TazChat.info("The Wumpa is waking up in the Polaris cave. Lure it into the obsidian pillar to stun it, then throw "
 					+ "capsules at it.");
 		} else if (line.startsWith("Your ritual summoned a Doomspiral")) {
+			candlesLit = 4;
 			if (cfg.alerts) Alert.show("§c§lDOOMSPIRAL!", "§fThrow capsules at it", cfg.sound);
 			if (cfg.tips) TazChat.info("The Doomspiral is up! Throw capsules at it, and break any sculk sensors that appear.");
 		}
@@ -596,6 +621,61 @@ public final class SafariHelper {
 	/** Whether a Scrappy just came out of its shell, so it can be caught. */
 	public static boolean scrappyOut() {
 		return scrappyOutAt > 0 && System.currentTimeMillis() - scrappyOutAt < SCRAPPY_OUT_MS;
+	}
+
+	/** The Ritual's candles you've lit this run: all 4 bring the Doomspiral. */
+	public static int candlesLit() {
+		return candlesLit;
+	}
+
+	/** The gems on their podiums this run: all 3 bring the Gemzies. */
+	public static Set<String> gemsPlaced() {
+		return GEMS_PLACED;
+	}
+
+	/**
+	 * The quest items still to find before you can do a critter's task: empty when you have what it takes. The
+	 * Doomspiral takes a Soothing Incense for each of the Ritual's 4 candles, the Gemzies all 3 gems; the rest one of
+	 * their items (any bird bait, the Scrappy's food, a Shining Coin, an Icebreaker).
+	 */
+	public static List<String> stillToFind(String critter) {
+		return switch (critter) {
+			case "Doomspiral" -> {
+				int more = 4 - candlesLit - quest.getOrDefault("Soothing Incense", 0);
+				yield more <= 0 ? List.of() : List.of(more + " more Soothing Incense");
+			}
+			case "Gemzie" -> SafariSpots.NEEDS.get("gem").stream().filter(g -> !GEMS_PLACED.contains(g) && !quest.containsKey(g)).toList();
+			case "Scrappy" -> scrappyFoodCarried() != null ? List.of() : List.of(String.join(" or ", scrappyFoods()));
+			default -> {
+				SafariSpots.Task t = SafariSpots.task(critter);
+				if (t == null || t.needs() == null) yield List.of();
+				List<String> items = SafariSpots.NEEDS.get(t.needs());
+				yield items.stream().anyMatch(quest::containsKey) ? List.of()
+						: List.of(t.needs().equals("bait") ? "bird bait" : String.join(" or ", items));
+			}
+		};
+	}
+
+	/** The guide's line for the Doomspiral and Gemzies: how far along you are, when you've started. */
+	public static String progressHint(Critter c) {
+		switch (c.name()) {
+			case "Doomspiral" -> {
+				if (candlesLit >= 4) return "summoned at the Ritual: catch it!";
+				int have = quest.getOrDefault("Soothing Incense", 0), more = 4 - candlesLit - have;
+				if (candlesLit == 0 && have == 0) return c.hint();
+				return c.hint() + " (" + (candlesLit > 0 ? candlesLit + " lit, " : "") + have + "/" + (4 - candlesLit) + " incense"
+						+ (more > 0 ? ": find " + more + " more)" : ": go light them)");
+			}
+			case "Gemzie" -> {
+				if (GEMS_PLACED.size() == 3) return "flying in the gem room: catch them!";
+				List<String> toFind = stillToFind(c.name());
+				if (toFind.size() == 3) return c.hint();
+				return c.hint() + (toFind.isEmpty() ? " (you have them all: go place them)" : " (find " + String.join(", ", toFind) + ")");
+			}
+			default -> {
+				return c.hint();
+			}
+		}
 	}
 
 	/** The guide's line for Scrappy: what it eats this run, as far as Taz knows. */

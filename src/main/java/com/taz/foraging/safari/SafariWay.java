@@ -137,16 +137,18 @@ public final class SafariWay {
 			if (SafariSpots.ROAMING.contains(c.name())) roaming.add(c.name());
 			Task t = SafariSpots.task(c.name());
 			if (t == null || c.name().equals("Wumpa") && !wumpaReady()) continue;
-			if (t.needs() != null && !has(t.needs())) {
+			// Not until you have it all (4 Soothing Incense for the 4 candles, all 3 gems): floor drops first.
+			List<String> toFind = SafariHelper.stillToFind(c.name());
+			if (!toFind.isEmpty()) {
 				// Stays the goal until you have the food: wait at the pond for fish to come down if need be.
 				if (c.name().equals("Scrappy")) tasks.addAll(scrappyFood("for a Scrappy"));
-				else if (!optional) missing.add(String.join(" or ", SafariSpots.NEEDS.get(t.needs())).replace("Purple Gem or Lime Gem or Orange Gem", "a gem")
-						.replace("Yogi Berry or Wriggleworm or Bag of Seeds", "bird bait"));
+				else if (!optional) missing.addAll(toFind);
 				continue;
 			}
 			double reach = t.needs() != null && !c.name().equals("Troodon") ? 0 : ARRIVED;
+			String what = summoned(c.name()) ? SafariHelper.progressHint(c) : t.what();
 			for (Vec3 p : t.spots()) {
-				if (stillThere(mc.level, c.name(), p)) tasks.add(new Goal(c.name(), t.what(), p, reach));
+				if (stillThere(mc.level, c.name(), p)) tasks.add(new Goal(c.name(), what, p, reach));
 			}
 		}
 		for (Vec3 p : SafariFinds.drops()) {
@@ -194,9 +196,9 @@ public final class SafariWay {
 		};
 	}
 
-	private static boolean has(String need) {
-		if (need.equals("food")) return SafariHelper.scrappyFoodCarried() != null;
-		return SafariSpots.NEEDS.get(need).stream().anyMatch(SafariHelper.questItems()::containsKey);
+	/** The Doomspiral once all 4 candles are lit, the Gemzies once all 3 gems are placed: they're out, go catch them. */
+	private static boolean summoned(String critter) {
+		return critter.equals("Doomspiral") ? SafariHelper.candlesLit() >= 4 : critter.equals("Gemzie") && SafariHelper.gemsPlaced().size() == 3;
 	}
 
 	/** Where to get the food this run's Scrappies may eat (the ones not refused yet). */

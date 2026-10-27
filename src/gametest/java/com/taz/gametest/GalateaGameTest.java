@@ -971,7 +971,54 @@ public class GalateaGameTest implements FabricClientGameTest {
 		ctx.waitTicks(30);
 		String next = ctx.computeOnClient(mc -> String.valueOf(SafariWay.zone()));
 		check("safari way: a picked biome done but the Macaw moves on (" + next + ")", next.equals("ICY"));
-		ctx.runOnClient(mc -> Taz.config().safari.zone = SafariConfig.Zone.AUTO);
+
+		// The Doomspiral takes a Soothing Incense for each of the Ritual's 4 candles: with fewer, floor drops first.
+		for (Critters.Critter c : Critters.in(Critters.Biome.HAUNTED)) {
+			if (!c.name().equals("Doomspiral")) tell("CAPTURE! You caught a " + c.name() + " and gained a " + c.name() + " Shard!");
+		}
+		ctx.runOnClient(mc -> {
+			Taz.config().safari.zone = SafariConfig.Zone.HAUNTED;
+			SafariHelper.testBiome = Critters.Biome.HAUNTED;
+		});
+		cmd("give @p paper[custom_name=\"Soothing Incense\"]");
+		ctx.waitTicks(30);
+		goal = goalWithWhy();
+		lines = hudLines(SafariGuide.class);
+		check("safari way: 1 Soothing Incense of 4: floor drops, not the Ritual (" + goal + ", " + lines + ")",
+				goal.equals("Floor drop spot - for 3 more Soothing Incense")
+				&& lines.contains(" Doomspiral - light 4 ritual candles with Soothing Incense (1/4 incense: find 3 more)"));
+		cmd("give @p paper[custom_name=\"Soothing Incense\"] 3");
+		ctx.waitTicks(30);
+		goal = goalWithWhy();
+		check("safari way: with all 4, the Ritual (" + goal + ")", goal.equals("Doomspiral - light a candle with your Soothing Incense"));
+		tell("You used the Soothing Incense to light the candle! You begin to feel uneasy.");
+		tell("You used the Soothing Incense to light the candle! Something is off about this place...");
+		cmd("clear @p paper 2");
+		ctx.waitTicks(30);
+		goal = goalWithWhy();
+		lines = hudLines(SafariGuide.class);
+		check("safari way: candles lit count towards the 4 (" + goal + ", " + lines + ")",
+				goal.equals("Doomspiral - light a candle with your Soothing Incense")
+				&& lines.contains(" Doomspiral - light 4 ritual candles with Soothing Incense (2 lit, 2/2 incense: go light them)"));
+		tell("Your ritual summoned a Doomspiral into this world. Stay still.");
+		ctx.waitTicks(15);
+		goal = goalWithWhy();
+		check("safari way: summoned: catch it at the Ritual (" + goal + ")", goal.equals("Doomspiral - summoned at the Ritual: catch it!"));
+		// Gemzies take all 3 gems, one on each podium.
+		cmd("clear @p paper");
+		cmd("give @p paper[custom_name=\"Purple Gem\"]");
+		ctx.waitTicks(30);
+		String gems = ctx.computeOnClient(mc -> SafariHelper.stillToFind("Gemzie").toString());
+		tell("You placed the Purple Gem on its podium!");
+		cmd("clear @p paper");
+		ctx.waitTicks(30);
+		gems += " " + ctx.computeOnClient(mc -> SafariHelper.stillToFind("Gemzie").toString());
+		check("safari way: Gemzies need all 3 gems, placed ones count (" + gems + ")",
+				gems.equals("[Lime Gem, Orange Gem] [Lime Gem, Orange Gem]"));
+		ctx.runOnClient(mc -> {
+			Taz.config().safari.zone = SafariConfig.Zone.AUTO;
+			SafariHelper.testBiome = Critters.Biome.FOREST;
+		});
 
 		// Hypixel draws the strings off their entity's position with the display's transformation: half a block up here.
 		String lifted = ",transformation:{translation:[0f,0.5f,0f],left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],scale:[1f,1f,1f]}";
@@ -1040,6 +1087,17 @@ public class GalateaGameTest implements FabricClientGameTest {
 		Vec3 water = ctx.computeOnClient(mc -> SafariSpots.task("Gimmiegold").spots().get(0));
 		check("safari way: ...and once it's loaded, the middle of its water (" + water + ")", water.equals(new Vec3(5.5, 60.5, -54.5)));
 		cmd("fill 3 59 -56 7 61 -54 air");
+
+		// Gazers come from the haunted house's beds: a bed anywhere else (here, one by the Birdfeeder) isn't gone to.
+		BlockPos mansionBed = new BlockPos(-4, 70, -46), forestBed = new BlockPos(-2, 90, 44);
+		setblock(mansionBed, "red_bed[part=head]");
+		setblock(forestBed, "red_bed[part=head]");
+		ctx.waitTicks(20);
+		String beds = ctx.computeOnClient(mc -> SafariSpots.BEDS.count() + " beds, Gazer to " + SafariSpots.task("Gazer").spots());
+		check("safari way: Gazers: only the haunted house's beds (" + beds + ")",
+				beds.equals("2 beds, Gazer to [" + Vec3.atBottomCenterOf(mansionBed) + "]"));
+		setblock(mansionBed, "air");
+		setblock(forestBed, "air");
 
 		cmd("kill @e[type=item_display]");
 		ctx.runOnClient(mc -> {
