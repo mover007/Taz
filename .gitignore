@@ -28,9 +28,9 @@ bin/
 
 *.DS_Store
 
-# fabric
+# fabric (the dev run folder only, not packages named run)
 
-run/
+/run/
 
 # java
 
