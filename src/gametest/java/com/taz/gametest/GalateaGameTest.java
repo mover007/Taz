@@ -28,6 +28,7 @@ import com.taz.foraging.safari.SafariFinds;
 import com.taz.foraging.safari.SafariGuide;
 import com.taz.foraging.safari.SafariHelper;
 import com.taz.foraging.safari.SafariMap;
+import com.taz.foraging.safari.SafariSpots;
 import com.taz.foraging.safari.SafariWay;
 import com.taz.hud.MovableHud;
 import com.taz.hud.TazHud;
@@ -911,20 +912,43 @@ public class GalateaGameTest implements FabricClientGameTest {
 		check("safari way: a picked biome is done first (" + cavern + ", " + lines + ")", cavern.equals("CAVERN CAVERN")
 				&& lines.stream().anyMatch(l -> l.startsWith("Next: (Cavern)")));
 
-		// A Scrappy's armour stops capsules until it's fed: without food the way goes for food, with it to the Scrappy.
+		// A Scrappy's armour stops capsules until it's had its food 4 times; the food is one of three, picked each Safari.
 		cmd("summon silverfish " + (x + 5) + " " + y + " " + (z - 6) + " {NoAI:1b,PersistenceRequired:1b,Silent:1b}");
 		label(x + 5.5, y + 0.8, z - 5.5, "Scrappy");
 		ctx.waitTicks(15);
 		goal = goalName();
-		check("safari way: a Scrappy in view but no food: get food first (" + goal + ")", goal.equals("Scrappy food"));
-		cmd("give @p paper[custom_name=\"Wholesale Wheat\"] 3");
+		check("safari way: a Scrappy in view but no food: get food first (" + goal + ")",
+				List.of("Wholesale Wheat", "Flavor-packed Fish", "Lush Lily Pad").contains(goal));
+		ctx.runOnClient(mc -> SafariSpots.testFoodAnywhere = true);
+		setblock(new BlockPos(x - 3, y, z - 3), "lily_pad");
+		ctx.waitTicks(20);
+		check("safari way: lily pads found for Scrappy food", ctx.computeOnClient(mc -> SafariSpots.LILY_PADS.count()) == 1);
+		cmd("item replace entity @p weapon.mainhand with paper[custom_name=\"Lush Lily Pad\"] 7");
 		ctx.waitTicks(30);
-		goal = ctx.computeOnClient(mc -> SafariWay.goal() == null ? "none" : SafariWay.goal().name() + " - " + SafariWay.goal().why());
-		check("safari way: with food, go feed the Scrappy (" + goal + ")", goal.equals("Scrappy - feed it 3 Wheat, Fish or Lily Pads, then throw"));
+		goal = goalWithWhy();
+		check("safari way: with Lily Pads, go feed the Scrappy (" + goal + ")", goal.equals("Scrappy - feed it Lush Lily Pad (4 times), then throw"));
+		tell("This particular Scrappy doesn't seem to care for this type of food...");
+		ctx.waitTicks(15);
+		goal = goalName();
+		check("safari way: refused Lily Pads: the other foods (" + goal + ")", said("Not Lush Lily Pad. Try Wholesale Wheat or Flavor-packed Fish.")
+				&& List.of("Wholesale Wheat", "Flavor-packed Fish").contains(goal));
+		cmd("give @p paper[custom_name=\"Wholesale Wheat\"] 4");
+		ctx.waitTicks(30);
+		goal = goalWithWhy();
+		check("safari way: with Wheat, feed that (" + goal + ")", goal.equals("Scrappy - feed it Wholesale Wheat (4 times), then throw"));
+		tell("The Scrappy started eating the Wholesale Wheat.");
+		check("safari way: the food it eats is learnt", said("This run's Scrappies eat Wholesale Wheat"));
+		tell("The Scrappy ate the Wholesale Wheat and came out of its shell!");
+		ctx.waitTicks(15);
+		goal = goalWithWhy();
+		check("safari way: out of its shell, catch it (" + goal + ")", goal.equals("Scrappy - it's out of its shell: catch it!")
+				&& said("It's out of its shell"));
 		tell("Your Critter Capsule can't get through Scrappy's armor!");
 		check("safari way: the armour message explained", said("A Scrappy has to be fed before a capsule works"));
 		cmd("kill @e[type=silverfish]");
 		cmd("kill @e[type=armor_stand]");
+		setblock(new BlockPos(x - 3, y, z - 3), "air");
+		ctx.runOnClient(mc -> SafariSpots.testFoodAnywhere = false);
 		ctx.runOnClient(mc -> Taz.config().galatea.safari.zone = SafariConfig.Zone.AUTO);
 
 		cmd("clear @p paper");
@@ -982,6 +1006,10 @@ public class GalateaGameTest implements FabricClientGameTest {
 		});
 		cmd("tp @p " + start.getX() + " " + y + " " + start.getZ());
 		ctx.waitTicks(5);
+	}
+
+	private String goalWithWhy() {
+		return ctx.computeOnClient(mc -> SafariWay.goal() == null ? "none" : SafariWay.goal().name() + " - " + SafariWay.goal().why());
 	}
 
 	private String goalName() {

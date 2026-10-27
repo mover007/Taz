@@ -34,6 +34,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -66,6 +67,11 @@ public final class SafariHelper {
 
 	private static final Pattern LOOT_SHARE = Pattern.compile("^LOOT SHARE! .* from (\\w{1,16}) (?:catching|finding) .+!$");
 	private static final Pattern HOTSPOT = Pattern.compile("^HOTSPOT! Your Hunting Hotspot is the (\\w+) Biome!$");
+	/** "The Scrappy started eating the Wholesale Wheat." ... "The Scrappy ate the Lush Lily Pads and came out of its shell!" */
+	private static final Pattern SCRAPPY_ATE = Pattern.compile(
+			"^The Scrappy (?:started eating|reaches its paw out for more|ate|happily eats) (?:the )?(.+?)(?: and came out of its shell!|\\.)$");
+	/** A Scrappy that's come out of its shell can be caught for this long. */
+	private static final long SCRAPPY_OUT_MS = 120_000;
 	private static final Pattern BIRDFEEDER = Pattern.compile("^\\S+ ([A-Za-z ]+?)s? (?:were|was) attracted to the Birdfeeder!$");
 
 	/** Test hooks: where you are, and which biome. */
@@ -88,6 +94,10 @@ public final class SafariHelper {
 	private static final Set<Biome> BIOMES_TOLD = EnumSet.noneOf(Biome.class);
 	private static Biome hotspot;
 	private static boolean welcomed, toldTen, toldTwo, toldLow, toldOut, toldEntrance, toldScrappy;
+	/** The food this run's Scrappies eat, once one has (Hypixel picks one of the three each Safari), and those refused. */
+	private static String scrappyFood;
+	private static final Set<String> SCRAPPY_REFUSED = new LinkedHashSet<>();
+	private static long scrappyOutAt;
 	private static int capsules = -1;
 	private static boolean hadCapsules;
 	/** Quest items in your inventory, by name, and how many. */
@@ -176,6 +186,8 @@ public final class SafariHelper {
 			return;
 		}
 		SafariSpots.BEDS.tick(mc, where == Where.INSIDE && cfg.showWay);
+		SafariSpots.LILY_PADS.tick(mc, where == Where.INSIDE && cfg.showWay);
+		SafariSpots.WHEAT.tick(mc, where == Where.INSIDE && cfg.showWay);
 		if (++ticks % 5 != 0) return;
 		where = locate(mc);
 		if (where == Where.ENTRANCE) {
@@ -224,6 +236,11 @@ public final class SafariHelper {
 		SafariSpots.BEDS.reset();
 		hotspot = null;
 		welcomed = toldTen = toldTwo = toldLow = toldOut = toldScrappy = false;
+		scrappyFood = null;
+		SCRAPPY_REFUSED.clear();
+		scrappyOutAt = 0;
+		SafariSpots.LILY_PADS.reset();
+		SafariSpots.WHEAT.reset();
 		capsules = -1;
 		hadCapsules = false;
 		quest = new LinkedHashMap<>();
@@ -498,8 +515,28 @@ public final class SafariHelper {
 		} else if (line.startsWith("Your Critter Capsule can't get through Scrappy's armor")) {
 			if (cfg.tips && !toldScrappy) {
 				toldScrappy = true;
-				TazChat.info("A Scrappy has to be fed before a capsule works: give it 3 Wholesale Wheat, Flavor-packed Fish or Lush Lily "
-						+ "Pads (punch the fish, break the lily pads, around -111, 81, 36 in the Cavern), then throw.");
+				TazChat.info("A Scrappy has to be fed before a capsule works: right-click it 4 times with its food, then throw. Each "
+						+ "Safari its food is one of Wholesale Wheat, Flavor-packed Fish (punch the fish in the Cavern pond at -110, 81, 38) "
+						+ "or Lush Lily Pads (break lily pads in the Cavern). Taz learns which as you try.");
+			}
+		} else if (line.startsWith("This particular Scrappy doesn't seem to care for this type of food")) {
+			QuestItem held = Critters.quest(TextUtil.cleanChat(mc.player.getMainHandItem().getHoverName().getString()));
+			if (held != null && SafariSpots.NEEDS.get("food").contains(held.name())) {
+				if (held.name().equals(scrappyFood)) scrappyFood = null;
+				if (SCRAPPY_REFUSED.add(held.name()) && cfg.tips) {
+					TazChat.info("Not " + held.name() + ". Try " + String.join(" or ", scrappyFoods()) + ".");
+				}
+			}
+		} else if ((m = SCRAPPY_ATE.matcher(line)).matches()) {
+			QuestItem food = Critters.quest(m.group(1));
+			if (food != null && !food.name().equals(scrappyFood)) {
+				scrappyFood = food.name();
+				SCRAPPY_REFUSED.remove(food.name());
+				if (cfg.tips) TazChat.info("This run's Scrappies eat " + food.name() + ": 4 of it and one comes out of its shell, then throw.");
+			}
+			if (line.endsWith("came out of its shell!")) {
+				scrappyOutAt = System.currentTimeMillis();
+				if (cfg.tips) TazChat.info("It's out of its shell: throw capsules at it now!");
 			}
 		} else if (line.startsWith("A rumbling sound can be heard")) {
 			if (cfg.alerts) Alert.show("§c§lGEMZIES!", "§f3 Gemzies are flying in the Cavern gem room", cfg.sound);
@@ -538,6 +575,33 @@ public final class SafariHelper {
 			TazChat.info("The Forest is done except the Macaw: it only comes to the Birdfeeder (best with a Bag of Seeds), and not "
 					+ "every run.");
 		}
+	}
+
+	/** The foods a Scrappy may want: the one it's known to eat, or the three less the ones refused. */
+	public static List<String> scrappyFoods() {
+		if (scrappyFood != null) return List.of(scrappyFood);
+		List<String> left = new ArrayList<>(SafariSpots.NEEDS.get("food"));
+		left.removeAll(SCRAPPY_REFUSED);
+		return left.isEmpty() ? SafariSpots.NEEDS.get("food") : left;
+	}
+
+	/** A food you carry that a Scrappy may want, or null. */
+	public static String scrappyFoodCarried() {
+		for (String food : scrappyFoods()) if (quest.containsKey(food)) return food;
+		return null;
+	}
+
+	/** Whether a Scrappy just came out of its shell, so it can be caught. */
+	public static boolean scrappyOut() {
+		return scrappyOutAt > 0 && System.currentTimeMillis() - scrappyOutAt < SCRAPPY_OUT_MS;
+	}
+
+	/** The guide's line for Scrappy: what it eats this run, as far as Taz knows. */
+	public static String scrappyHint() {
+		if (scrappyOut()) return "it's out of its shell: catch it!";
+		if (scrappyFood != null) return "feed it " + scrappyFood + " 4 times, then throw";
+		if (!SCRAPPY_REFUSED.isEmpty()) return "feed it " + String.join(" or ", scrappyFoods()) + " 4 times";
+		return "feed it its food 4 times (Wheat, Fish or Lily Pads)";
 	}
 
 	/** "Next: the Cavern Biome (4 left)." */

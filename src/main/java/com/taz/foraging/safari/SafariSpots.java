@@ -5,6 +5,7 @@ import com.taz.foraging.safari.Critters.Biome;
 import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.phys.Vec3;
 
@@ -47,9 +48,16 @@ public final class SafariSpots {
 	public static final int[][] SNOOZLE_WALLS = {{-126, 39, 74}, {-114, 39, 87}, {-70, 39, 68}, {-96, 40, 17}, {-95, 40, 42}};
 	public static final int[][] TROODON_WALLS = {{-104, 80, -95}, {-131, 78, -61}, {-109, 89, -27}};
 	private static final Vec3 CAVERNFISH_POND = new Vec3(-75.5, 71, 68.5);
-	private static final Vec3 SCRAPPY_FOOD = new Vec3(-110.5, 81, 36.5);
+	/** The Cavern pond with the fish (the wiki), up the ladder by the Cavern entrance. */
+	private static final Vec3 FISH_POND = new Vec3(-109.5, 81, 38.5);
 	private static final Vec3 POLARIS_CAVE = new Vec3(-123.5, 81, -88.5);
 	private static final Vec3 SHUDDERSQUID_POOL = new Vec3(-123.5, 92, -28.5);
+
+	/** Lily pads and wheat in the loaded chunks: broken in the Cavern, they're Scrappy food. */
+	public static final BlockFinder LILY_PADS = new BlockFinder(s -> s.is(Blocks.LILY_PAD));
+	public static final BlockFinder WHEAT = new BlockFinder(s -> s.is(Blocks.WHEAT));
+	/** Test hook: lily pads and wheat count wherever they are. */
+	public static boolean testFoodAnywhere;
 
 	/** The heads of the beds in the loaded chunks (Gazers come when you try to sleep in one). */
 	public static final BlockFinder BEDS = new BlockFinder(s -> s.is(BlockTags.BEDS) && s.getValue(BedBlock.PART) == BedPart.HEAD);
@@ -76,7 +84,7 @@ public final class SafariSpots {
 			case "Polaris" -> new Task("the Polaris cave", List.of(POLARIS_CAVE), null);
 			case "Shuddersquid" -> new Task("the hidden pool behind the waterfall", List.of(SHUDDERSQUID_POOL), null);
 			case "Wumpa" -> new Task("it wakes in the Polaris cave", List.of(POLARIS_CAVE), null);
-			case "Scrappy" -> new Task("feed it Wheat, Fish or Lily Pads", List.of(), "food");
+			case "Scrappy" -> new Task("feed it its food 4 times", List.of(), "food");
 			case "Bluebird", "Parakeet", "Macaw" -> new Task("feed the Birdfeeder your bait", named("Birdfeeder"), "bait");
 			case "Doomspiral" -> new Task("light a candle with your Soothing Incense", named("Ritual"), "incense");
 			case "Gemzie" -> new Task("put your gem on its pedestal", named("Gem Podiums"), "gem");
@@ -88,7 +96,7 @@ public final class SafariSpots {
 	/** What to do when you've found one: most just take capsules; some want something first. */
 	public static String howToCatch(String critter) {
 		return switch (critter) {
-			case "Scrappy" -> "feed it 3 Wheat, Fish or Lily Pads, then throw";
+			case "Scrappy" -> "feed it its food 4 times, then throw";
 			case "Bloodbat" -> "1 throw wakes it, the next catches it";
 			case "Duplico" -> "right-click it to make it run, then throw";
 			case "Chuckwalla" -> "hit it, then crawl after it into its hole";
@@ -99,9 +107,28 @@ public final class SafariSpots {
 		};
 	}
 
-	/** Where Scrappy food grows (punch the fish, break the lily pads). */
-	public static Vec3 scrappyFood() {
-		return SCRAPPY_FOOD;
+	/** Where a Scrappy food comes from: the fish pond, the Cavern's lily pads and wheat (the pond area if none are found). */
+	public static List<Vec3> foodSources(String food) {
+		BlockFinder blocks = switch (food) {
+			case "Lush Lily Pad" -> LILY_PADS;
+			case "Wholesale Wheat" -> WHEAT;
+			default -> null;
+		};
+		if (blocks == null) return List.of(FISH_POND);
+		List<Vec3> out = new ArrayList<>();
+		for (BlockPos p : blocks.all()) {
+			Vec3 v = Vec3.atBottomCenterOf(p);
+			if (testFoodAnywhere || SafariMap.zoneAt(v) == Biome.CAVERN) out.add(v);
+		}
+		return out.isEmpty() ? List.of(FISH_POND) : out;
+	}
+
+	public static String howToHarvest(String food) {
+		return switch (food) {
+			case "Lush Lily Pad" -> "break the lily pads";
+			case "Wholesale Wheat" -> "break the wheat";
+			default -> "punch the fish in the pond";
+		};
 	}
 
 	/** The points the way walks to search a biome for roaming critters, spread about {@value #SEARCH_SPACING} apart. */

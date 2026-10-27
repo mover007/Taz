@@ -63,7 +63,7 @@ public final class Critters {
 	public record QuestItem(String name, String use, String place, List<String> brings) {
 	}
 
-	private static final String SCRAPPY = "feed it to a Scrappy in the Cavern (3 to catch one)";
+	private static final String SCRAPPY = "feed it to a Scrappy in the Cavern (each Safari they eat one of the 3 foods; 4 bring one out)";
 	private static final List<String> BIRDS = List.of("Bluebird", "Parakeet", "Macaw");
 	private static final List<String> GEMZIE = List.of("Gemzie");
 
@@ -90,7 +90,7 @@ public final class Critters {
 			new Critter("Driftling", Biome.CAVERN, Rarity.UNCOMMON, "drifts along a path on the wind"),
 			new Critter("Chuckwalla", Biome.CAVERN, Rarity.RARE, "hit it, then crawl after it into its hole"),
 			new Critter("Rockmite", Biome.CAVERN, Rarity.RARE, "punch the small rock mounds"),
-			new Critter("Scrappy", Biome.CAVERN, Rarity.RARE, "feed it 3 Wheat, Fish or Lily Pads"),
+			new Critter("Scrappy", Biome.CAVERN, Rarity.RARE, "feed it its food 4 times (Wheat, Fish or Lily Pads)"),
 			new Critter("Snoozle", Biome.CAVERN, Rarity.RARE, "break the cracked walls near the TNT"),
 			new Critter("Gemzie", Biome.CAVERN, Rarity.EPIC, "put the 3 gems on their pedestals"),
 
