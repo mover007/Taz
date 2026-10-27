@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * The cheapest way to your next few levels as a route: stops grouped by island, everything to buy at
- * each stop, then what to do with it. Click a stop to track that NPC and get its shopping list in chat.
+ * The cheapest way to your next few levels as a route: stops grouped by island, everything to buy at each stop, then
+ * what to do with it.
  */
 public class PlanScreen extends Screen {
 	private static final int ROW_HEIGHT = 12;

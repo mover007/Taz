@@ -3,13 +3,8 @@ package com.taz.dungeons.util;
 import java.util.ArrayDeque;
 
 /**
- * Measures server TPS from the time packet Hypixel sends every 20 ticks. Arrival times are
- * taken on the network thread, so client FPS doesn't skew them.
- *
- * Dungeon progress (mob spawns, boss phases, dialogue, even how fast players' actions are
- * processed) runs on server ticks, so the predictor measures runs in ticks (game time) and
- * converts the remaining ticks back to real time at the current TPS. A laggy server then
- * pushes the ETA out instead of the prediction freezing or jumping.
+ * Measures server TPS from the time packet Hypixel sends every 20 ticks. Arrival times are taken on the network thread,
+ * so client FPS doesn't skew them.
  */
 public final class LagMonitor {
 	private static final long WINDOW_NANOS = 10_000_000_000L; // TPS averaged over the last ~10s

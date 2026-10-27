@@ -11,9 +11,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Checks recipe requirements against your profile: collection tiers ("Requires: Mycelium I"),
- * slayer levels ("Requires: Zombie Slayer 6") and Crimson Isle reputation ("MAGE:500").
- * Anything we can't check counts as unlocked, so nothing is hidden by mistake.
+ * Checks recipe requirements against your profile: collection tiers ("Requires: Mycelium I"), slayer levels ("Requires:
+ * Zombie Slayer 6") and Crimson Isle reputation ("MAGE:500").
  */
 final class Unlocks {
 	private static final Pattern COLLECTION = Pattern.compile("^(.+?) ([IVXLC]+)$");

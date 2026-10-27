@@ -78,9 +78,8 @@ import java.nio.file.Path;
 import java.util.function.Supplier;
 
 /**
- * Taz: one mod for all of mTaz's SkyBlock features. Each feature lives in its own package
- * (dungeons, foraging, xpassist) and has a category in the settings GUI (/taz), which is
- * MoulConfig, the same GUI SkyHanni uses. Settings are in config/taz/config.json.
+ * Taz: one mod for all of mTaz's SkyBlock features. Each feature lives in its own package (dungeons, foraging,
+ * xpassist) and has a category in the settings GUI (/taz), which is MoulConfig, the same GUI SkyHanni uses.
  */
 public final class Taz implements ClientModInitializer {
 	public static final String MOD_ID = "taz";
@@ -269,11 +268,7 @@ public final class Taz implements ClientModInitializer {
 		if (started) SkyblockXpAssist.onSettingsSaved();
 	}
 
-	/**
-	 * Auto-save: writes config.json when any setting changed since the last save. Runs every second (also while
-	 * the settings GUI is open), on leaving a server and on quitting, so nothing is ever lost. Features only
-	 * react to the new settings when the GUI closes, so typing an API key doesn't start a download per letter.
-	 */
+	/** Auto-save: writes config.json when any setting changed since the last save. */
 	public static void saveIfChanged() {
 		if (config == null) return;
 		String json = serialize();

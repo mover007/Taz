@@ -17,14 +17,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Skill Issue: a friendly joke when someone in your dungeon dies (and an excuse when it's you), from what Hypixel says about it
- * (" ☠ mTaz was killed by Storm and became a ghost.", " ☠ You died and became a ghost.", "... disconnected / died to a
- * mob / died to a trap / was crushed ..."), where the run is, and their class from the tab list.
- *
- * Where the run is comes from its own chat, so it works without the Run Predictor: clear until the blood door opens,
- * blood until the Watcher's "You have proven yourself", then each boss from its first line (Maxor, Storm, Goldor for
- * terminals until "The Core entrance is opening!", Necron, the dragons from the relics), and Sadan, Livid, Thorn, The
- * Professor, Scarf and Bonzo on the other floors.
+ * Skill Issue: a friendly joke when someone in your dungeon dies (and an excuse when it's you), from what Hypixel says
+ * about it (" ☠ mTaz was killed by Storm and became a ghost.", " ☠ You died and became a ghost.", "... disconnected /
+ * died to a mob / died to a trap / was crushed ..."), where the run is, and their class from the tab list.
  */
 public final class SkillIssue {
 	private static final Pattern DEATH = Pattern.compile("^☠ (You|\\w{1,16}) (.+?) and became a ghost\\.");

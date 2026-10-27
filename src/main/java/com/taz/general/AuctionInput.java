@@ -23,9 +23,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Auction Price Input: when you set an auction's price, a proper text box instead of Hypixel's sign. Type "10m", "2.5k" or
- * "1b"; Undercut mode prices it that much under the lowest BIN. Enter also presses Create and Confirm in the auction menus.
- * From NoammAddons' Auction Price Input.
+ * Auction Price Input: when you set an auction's price, a proper text box instead of Hypixel's sign. From NoammAddons'
+ * Auction Price Input.
  */
 public final class AuctionInput {
 	private static final Set<String> CREATE = Set.of("Create BIN Auction", "Create Auction");

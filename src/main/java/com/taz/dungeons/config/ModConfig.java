@@ -22,19 +22,14 @@ import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * The "Run Predictor" category of the Taz settings GUI (/taz). Saved inside config/taz/config.json;
- * run history, triggers and logs live in config/taz/dungeons/. Defaults are the "Simple" preset:
- * elapsed time, then the end time once you enter the boss portal.
- */
+/** The "Run Predictor" category of the Taz settings GUI (/taz). */
 public final class ModConfig {
 	public static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 	public static final Path DIR = Taz.CONFIG_DIR.resolve("dungeons");
 
 	/**
-	 * Patch 0.27.2 (6 Oct 2026) sped up boss/Watcher dialogue, cutscenes, secret pickups,
-	 * terminals and the F7/M7 phase transitions. Runs recorded before this date don't
-	 * describe current timings, so they're left out of predictions.
+	 * Patch 0.27.2 (6 Oct 2026) sped up boss/Watcher dialogue, cutscenes, secret pickups, terminals and the F7/M7 phase
+	 * transitions.
 	 */
 	public static final String DEFAULT_HISTORY_CUTOFF = "2026-10-06";
 

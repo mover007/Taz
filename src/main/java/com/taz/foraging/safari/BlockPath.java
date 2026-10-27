@@ -16,8 +16,7 @@ import java.util.PriorityQueue;
 
 /**
  * A walking path over the blocks themselves, for where the Safari map's walkways stop: A* over the places you can
- * stand, walking (diagonals too), stepping up a block, dropping up to three, swimming and climbing. Only loaded blocks
- * count, and it gives up past a few thousand steps, so a target nobody can walk to (a critter in the air) has none.
+ * stand, walking (diagonals too), stepping up a block, dropping up to three, swimming and climbing.
  */
 public final class BlockPath {
 	/** How near the target you have to get: you stand next to a bee nest, not in it. */

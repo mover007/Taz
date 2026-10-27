@@ -12,10 +12,7 @@ import net.minecraft.core.BlockPos;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
-/**
- * /taz is Taz's only command: it opens the settings GUI, where every setting and action is.
- * The subcommands are what the clickable chat buttons run ([Track], [Stop], [Bazaar], [AH], [Recipe], [Open list], [Waypoint], [Warp]).
- */
+/** /taz is Taz's only command: it opens the settings GUI, where every setting and action is. */
 public final class TazCommand {
 	private TazCommand() {
 	}

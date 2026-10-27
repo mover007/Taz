@@ -31,8 +31,7 @@ import java.util.regex.Pattern;
 
 /**
  * Storage Overlay: /storage shows every ender chest page and backpack at once, with what's in each (remembered from the
- * last time you opened it), so you can find an item without opening them one by one. Hover an item for its tooltip; click
- * a page to open it. From NoammAddons' Storage Overlay.
+ * last time you opened it), so you can find an item without opening them one by one. From NoammAddons' Storage Overlay.
  */
 public final class StorageOverlay {
 	private static final Pattern ENDER = Pattern.compile("^Ender Chest (?:✦ )?\\(([1-9])/[1-9]\\)$");

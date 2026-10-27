@@ -21,9 +21,8 @@ import java.util.function.Predicate;
 
 /**
  * The Critter Safari's map: SkyHanni's island graph for it (SkyHanni-REPO, MIT, bundled as
- * assets/taz/foraging/safari/safari-graph.json with its licence). About 1,400 points along the walkable ways, each joined
- * to its neighbours, some of them named: "Ritual", "Gem Podiums", "Birdfeeder", "Hideonwall", "Floor drop",
- * "Icy Biome". Taz walks it like SkyHanni's navigation does: the shortest way along the joins to the nearest target.
+ * assets/taz/foraging/safari/safari-graph.json with its licence). Taz walks it like SkyHanni's navigation does: the
+ * shortest way along the joins to the nearest target.
  */
 public final class SafariMap {
 	public record Node(int index, Vec3 pos, String name, List<String> tags, int[] next, double[] cost) {
@@ -103,8 +102,8 @@ public final class SafariMap {
 	}
 
 	/**
-	 * Which biome each point is in, as SkyHanni works it out: the area marker ("Forest Biome", "no_area") nearest it
-	 * along the paths. The biomes fold round each other, so the nearest marker as the crow flies is wrong in places.
+	 * Which biome each point is in, as SkyHanni works it out: the area marker ("Forest Biome", "no_area") nearest it along
+	 * the paths.
 	 */
 	private static Biome[] assignZones(List<Node> all) {
 		Biome[] out = new Biome[all.size()];
@@ -156,9 +155,8 @@ public final class SafariMap {
 	private static final double BLOCK_RANGE = 32;
 
 	/**
-	 * The way to the nearest target, walked all the way: over the blocks for targets close by; along the map's
-	 * walkways for the rest, with the last stretch from the walkway to the target over the blocks too. A straight line
-	 * only for what nobody can walk to (a critter in the air), or blocks that aren't loaded.
+	 * The way to the nearest target, walked all the way: over the blocks for targets close by; along the map's walkways
+	 * for the rest, with the last stretch from the walkway to the target over the blocks too.
 	 */
 	public static Walk path(Level level, Vec3 from, List<Vec3> targets) {
 		List<Integer> near = new ArrayList<>();
@@ -181,10 +179,7 @@ public final class SafariMap {
 		return new Walk(joined, walk.target(), walk.length() - join.distanceTo(target) + end.length());
 	}
 
-	/**
-	 * The shortest walk from {@code from} along the map to whichever target is nearest that way, by the map alone. Each
-	 * target is a position; the walk goes to the map point nearest it, then straight to it. Null when none can be reached.
-	 */
+	/** The shortest walk from {@code from} along the map to whichever target is nearest that way, by the map alone. */
 	public static Walk path(Vec3 from, List<Vec3> targets) {
 		List<Node> all = nodes();
 		if (all.isEmpty() || targets.isEmpty()) return null;

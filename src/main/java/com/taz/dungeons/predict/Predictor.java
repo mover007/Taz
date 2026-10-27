@@ -14,29 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Predicts the final run time from your own past runs on the same floor.
- *
- * Everything is measured in game time (server ticks x 50 ms) and converted back to real
- * time at the current TPS, so lag is handled: a laggy boss pushes the ETA out, and a laggy
- * past run doesn't skew future predictions.
- *
- * Before the boss: the boss opens once blood is cleared AND the party is done clearing
- * (rooms and secrets). Blood is predicted from how long it usually takes once the door
- * opens, the Watcher's spawn lines, and "That will be enough for now." when Hypixel says
- * it. The finish is learned from how long your past runs took from the same clear % and
- * secrets % to the portal (or, without that data, your usual blood-clear-to-portal gap).
- * Then the usual boss length is added.
- *
- * From the boss onward (or any milestone on floors without that split): the time left after
- * this milestone in past runs, counting only runs where the current phase lasted at least as
- * long as it has so far (so a slow phase doesn't predict a negative time left).
- *
- * Newer runs and runs with the same teammates count more (strongly before the boss, mildly
- * in it; tuned by replaying 49 real M6 runs). Built-in defaults fill in until there's
- * history, with a small weight so your own runs take over almost immediately. Past runs are
- * also rebuilt from your chat logs on startup (see LogImporter).
- */
+/** Predicts the final run time from your own past runs on the same floor. */
 public final class Predictor {
 	public static final int MIN_RUNS_FOR_CONFIDENCE = 3;
 	/** Set by the backtester: ignore the live server TPS. */
@@ -48,12 +26,7 @@ public final class Predictor {
 	/** Before the boss, pace and party change between sessions, so lean hard on the latest runs. */
 	private static final int CLEAR_WINDOW = 20;
 	private static final double CLEAR_DECAY = 0.85;
-	/**
-	 * Boss phases, tuned per floor by replaying 300 M6 + 123 M7 runs. F7/M7 bosses swing a lot
-	 * with the party and its form that day, so recent runs dominate; steadier floors (M6's boss
-	 * is +/-3s) do better with a longer, flatter history. Best possible uses a long window so
-	 * one lucky streak doesn't dominate.
-	 */
+	/** Boss phases, tuned per floor by replaying 300 M6 + 123 M7 runs. */
 	private static int bossWindow(Floor f) {
 		return f.number() == 7 ? 60 : 90;
 	}
@@ -197,9 +170,7 @@ public final class Predictor {
 				? clearPhase(floor, t, h, hb, nowGame)
 				: fromMilestone(floor, t, hb, j, nowGame, tjGame);
 
-		// Remaining game time -> real time at the run's own average slowdown so far (real time / server time). A short
-		// TPS window can't be trusted: warping into the boss stops the time packets for a moment, which read as
-		// heavy lag and once turned a 4:48 run's portal estimate into 10:05.
+		// Remaining game time -> real time at the run's own average slowdown so far (real time / server time).
 		double lag = ModConfig.on(Feature.LAG_ADJUST) && !replayMode && nowGame > 10_000
 				? clamp((double) nowReal / nowGame, 1.0, MAX_LAG_FACTOR)
 				: 1.0;
@@ -305,12 +276,8 @@ public final class Predictor {
 	}
 
 	/**
-	 * Before the boss: boss entry is when blood is cleared AND the party is done clearing (rooms
-	 * and secrets), then the boss itself. The second part is the big unknown: parties often
-	 * spend 20-35s after the clear hits 97% collecting secrets, so it's learned from your runs:
-	 *   - with clear % and secrets % timelines: how long past runs took from this same
-	 *     clear/secrets state to the portal
-	 *   - otherwise: your usual gap between blood clear and boss entry
+	 * Before the boss: boss entry is when blood is cleared AND the party is done clearing (rooms and secrets), then the
+	 * boss itself.
 	 */
 	private static Estimate clearPhase(Floor floor, RunView t, History h, History hb, long nowGame) {
 		double dRush = defaultOf(floor, Milestone.START);
@@ -427,9 +394,8 @@ public final class Predictor {
 	}
 
 	/**
-	 * When past runs have clear/secrets timelines: for each, how long it took from first having
-	 * this run's current clear % and secrets % to entering boss. A run that never got this far
-	 * before its boss would already be in boss, so it counts as just the walk. Needs 2+ runs.
+	 * When past runs have clear/secrets timelines: for each, how long it took from first having this run's current clear %
+	 * and secrets % to entering boss.
 	 */
 	private static Double stateAnalog(RunView t, History h, long nowGame) {
 		int c = t.clearPct();
@@ -450,10 +416,8 @@ public final class Predictor {
 	}
 
 	/**
-	 * Fastest realistic finish from here: the fastest 5% of what actually happened in comparable
-	 * past runs from the same point (same weighting as the end time, over a longer window).
-	 * Replaying a week of runs, this is beaten in ~2% of M6 and ~6% of M7 runs, while "sum of
-	 * best-ever phases" was 5s (M6) / 41s (M7) faster than reality on a typical run.
+	 * Fastest realistic finish from here: the fastest 5% of what actually happened in comparable past runs from the same
+	 * point (same weighting as the end time, over a longer window).
 	 */
 	private static double bestRemaining(Floor floor, RunView t, History h, int j, long nowGame, long tjGame) {
 		List<double[]> samples = remainingSamples(floor, t, h, j, nowGame, tjGame);

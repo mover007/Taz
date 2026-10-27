@@ -22,9 +22,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerMixin {
 	/**
-	 * Reads every system chat line straight from the packet, on the main thread, before any
-	 * other mod can hide, rewrite or re-send it. SkyBlock mods commonly hide boss and Watcher
-	 * dialogue, which kept those lines from reaching Fabric's chat events.
+	 * Reads every system chat line straight from the packet, on the main thread, before any other mod can hide, rewrite or
+	 * re-send it.
 	 */
 	@Inject(
 			method = "handleSystemChat",

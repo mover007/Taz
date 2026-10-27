@@ -22,8 +22,7 @@ import java.util.Set;
  * Where each critter is found, and what you need first. Bee nests, Hideonwall perches and the Snoozle and Troodon walls
  * are critterMod's (MrCloudy2, MIT, checked against its runs); the critters' own spots, Hideyho's hiding places, the
  * Ritual, Gem Podiums, Birdfeeder, mansion and floor-drop spots are SkyHanni's Safari map; the Cavernfish pond,
- * Scrappy's food, the Polaris cave and the Shuddersquid pool are from the forum guide. Beds (for Gazers) are found in
- * the world. Critters with no fixed spot roam their biome, so the way searches it.
+ * Scrappy's food, the Polaris cave and the Shuddersquid pool are from the forum guide.
  */
 public final class SafariSpots {
 	/** What a critter takes: a spot to go to (or none: it roams), what to do there, and what you need first. */

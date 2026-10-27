@@ -4,10 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Command Shortcuts: your own short commands, like /dn for /warp dhub. Taz swaps the shortcut for the full command as
- * you send it (anything you type after the shortcut is kept). From NoammAddons' Command Shortcuts.
- */
+/** Command Shortcuts: your own short commands, like /dn for /warp dhub. From NoammAddons' Command Shortcuts. */
 public final class CommandShortcuts {
 	private CommandShortcuts() {
 	}

@@ -24,11 +24,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Chat Commands: party (and private, co-op, guild) members can type "!" commands that Taz answers or runs for you: !warp,
- * !allinvite, !pt, !kick, !f7 and friends (when you lead the party), !coords, !cf, !8ball, !dice, !ping, !tps, !fps,
- * !location, !holding, !taz (the Taz Discord), !dt (a reminder to stop after this run), !invite in a private message. Answers
- * start with [TAZ].
- * From Odin.
+ * Chat Commands: party (and private, co-op, guild) members can type "!" commands that Taz answers or runs for you:
+ * !warp, !allinvite, !pt, !kick, !f7 and friends (when you lead the party), !coords, !cf, !8ball, !dice, !ping, !tps,
+ * !fps, !location, !holding, !taz (the Taz Discord), !dt (a reminder to stop after this run), !invite in a private
+ * message. From Odin.
  */
 public final class ChatCommands {
 	private static final Pattern MESSAGE = Pattern.compile("^(?:Party > (?:\\[[^]]*?] )?(\\w{1,16})(?: [ቾ⚒])?: ?(.+)$|Guild > (?:\\[[^]]*?] )?(\\w{1,16})"

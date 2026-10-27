@@ -22,9 +22,7 @@ import java.util.Map;
 /**
  * Things to find on the Safari floor. A floor drop is three string item displays in one block (with a happy-villager
  * sparkle over it), as critterMod and Skyblocker read it; a Rockmite mound is an item display wearing the mound's head
- * texture, as Skyblocker reads it. Both get a box and a name through walls, round where their items are drawn (Hypixel
- * moves them off their entity's position with the display's transformation). A drop goes the moment its strings do,
- * or the moment you hit or use something at it.
+ * texture, as Skyblocker reads it.
  */
 public final class SafariFinds {
 	/** The Rockmite mound head (Skyblocker's HeadTextures.ROCKMITE_MOUND). */

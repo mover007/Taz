@@ -307,10 +307,7 @@ public final class ProgressDetector {
 		}
 	}
 
-	/**
-	 * Finds the NEU contact for a name. Exact matches (also against call names) always count; with
-	 * {@code allowWords}, a longer contact name may also appear as whole words inside the text.
-	 */
+	/** Finds the NEU contact for a name. */
 	private static String contactFor(NeuRepo neu, String text, boolean allowWords) {
 		String wanted = TextUtil.normalize(text);
 		String plain = " " + TextUtil.strip(text).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").trim() + " ";

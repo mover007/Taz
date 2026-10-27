@@ -21,9 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Secret Clicked: a box on each secret you click (chest, lever, essence skull), each secret item you pick up and each bat
- * that dies near you, for a few seconds, and a chime (the blaze's hurt sound, like Odin). A chest that says "That chest is
- * locked!" turns its box black. From Odin's Secret Clicked.
+ * Secret Clicked: a box on each secret you click (chest, lever, essence skull), each secret item you pick up and each
+ * bat that dies near you, for a few seconds, and a chime (the blaze's hurt sound, like Odin). From Odin's Secret
+ * Clicked.
  */
 public final class SecretClicked {
 	private static final double BAT_RANGE = 16;

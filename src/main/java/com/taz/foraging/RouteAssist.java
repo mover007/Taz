@@ -19,14 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-/**
- * Tree Route Assist. Normal mode draws the whole route of the island you're on. Training mode guides you one tree at a
- * time: the route is split into legs (the warps and teleports, then a tree), and only the current leg shows, with the
- * tree as the target and the warps numbered on the way. Reaching a warp ticks it off; the next tree comes up once this
- * one is done: your "You helped cut 100% of the Fig Tree." or TIMBER! message, its logs gone, or you leaving it. A tree
- * that isn't grown when you get there (or says it's regenerating) is skipped by itself. Laps are timed, with a split at
- * every tree. With the end stops off, the lap ends at the last tree and starts over at the first.
- */
+/** Tree Route Assist. Normal mode draws the whole route of the island you're on. */
 public final class RouteAssist extends TextHud {
 	private static final double DRAW_RANGE = 160;
 	/** The tree-done messages count when you're this close to the tree. */

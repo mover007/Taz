@@ -22,10 +22,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Small overlay: your level progress, the next few cheapest upgrades, and the NPC tracker. A movable Taz
- * HUD; hiding it in the HUD editor turns off the level and upgrade lines (the tracker still shows).
- */
+/** Small overlay: your level progress, the next few cheapest upgrades, and the NPC tracker. */
 public final class XpHud implements MovableHud {
 	private static final int PADDING = 3;
 	private static final float MIN_SCALE = 0.5F, MAX_SCALE = 3.0F;
@@ -98,10 +95,7 @@ public final class XpHud implements MovableHud {
 		}
 	}
 
-	/**
-	 * The HUD text. With {@code preview} (the HUD editor), sample lines are used when there is nothing to show
-	 * yet, and the level lines show even when hidden so the HUD can be shown again.
-	 */
+	/** The HUD text. */
 	public static List<String> lines(Minecraft minecraft, boolean preview) {
 		ModConfig config = ModConfig.get();
 		List<String> lines = new ArrayList<>();

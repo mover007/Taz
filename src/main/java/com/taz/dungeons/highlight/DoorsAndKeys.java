@@ -22,12 +22,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Doors &amp; Keys: in a dungeon's clear, boxes the wither doors (coal) and the blood door (red terracotta) next to rooms you've
- * been in, white once the party holds a key that opens it, red until then. Boxes the Wither and Blood keys through walls
- * with a line to them, and tells you when one spawns. From Odin's Door Highlight and NoammAddons' Door Keys.
- *
- * <p>Doors sit in the gaps between room tiles: rooms are centred on -185 + 32n, so a door is at -169 + 32i on one axis and
- * -185 + 32j on the other, its middle block at y 69.
+ * Doors &amp; Keys: in a dungeon's clear, boxes the wither doors (coal) and the blood door (red terracotta) next to
+ * rooms you've been in, white once the party holds a key that opens it, red until then. From Odin's Door Highlight and
+ * NoammAddons' Door Keys.
  */
 public final class DoorsAndKeys {
 	private static final Pattern WITHER_KEY = Pattern.compile("^(?:\\[[^]]*?] )?\\w{1,16} has obtained Wither Key!?$|^A Wither Key was picked up!$");

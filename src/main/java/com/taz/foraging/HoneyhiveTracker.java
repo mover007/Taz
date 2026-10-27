@@ -34,19 +34,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Finds the honeyhives you can loot in Torrhus Canyon, near or far.
- *
- * Hives sit in 8 clusters of 2-3 at fixed spots. Their positions ship with Taz (assets/taz/foraging/
- * honeyhives.json) and every hive found in game is added to config/taz/foraging/honeyhives.json, so all
- * known hives are shown from anywhere on the island. A cluster with no known hive yet gets a marker
- * until you walk there once.
- *
- * Hypixel only shows a hive's hologram when you're close: "Honeyhive" over every real hive (cosmetic hives
- * have none), with "Refill in: 59m 46s" under it after you loot it or "Click to loot!" when it's ready.
- * Refill timers are per player, so a hive you haven't looted is ready; each loot is remembered per profile
- * until its hour is up, and the hologram corrects the time whenever you're near.
- */
+/** Finds the honeyhives you can loot in Torrhus Canyon, near or far. Hives sit in 8 clusters of 2-3 at fixed spots. */
 public final class HoneyhiveTracker {
 	public enum State {
 		READY,
@@ -312,10 +300,7 @@ public final class HoneyhiveTracker {
 
 	// ---- positions (shared) and refill times (per profile)
 
-	/**
-	 * Saved file: {"hives": [[x, y, z], ...], "refills": {"<profile>": {"x,y,z": readyAtMs}}}.
-	 * The first version kept {"<profile>": [{x, y, z, readyAt}]}; it's read and rewritten in this form.
-	 */
+	/** Saved file: {"hives": [[x, y, z], ...], "refills": {"<profile>": {"x,y,z": readyAtMs}}}. */
 	private static void loadPositions() {
 		loaded = true;
 		JsonObject bundled = readBundled();

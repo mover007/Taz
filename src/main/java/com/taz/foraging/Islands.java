@@ -7,7 +7,7 @@ import java.util.Map;
 
 /**
  * Island ids, the same ones Skyblocker uses for waypoint groups ("foraging_3" = Torrhus Canyon), so routes keep their
- * island going between the two mods. Worked out from the tab list's "Area:" line.
+ * island going between the two mods.
  */
 public final class Islands {
 	public static final String UNKNOWN = "unknown";

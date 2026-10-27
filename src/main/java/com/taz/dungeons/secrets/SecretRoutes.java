@@ -30,12 +30,10 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * Secret routes in Odin's dungeon waypoint format: a map of room name to waypoints, each with a block position relative
- * to the room (see {@link DungeonRooms}), a colour ("#RRGGBBAA"), a box, an optional title and type. Odin shares them as
- * Base64 of gzipped JSON, or plain JSON. A route starts at its red waypoint; titles starting with a number ("3",
- * "4 item", "5 down") are its steps in order; the rest are hints. See {@link Kind} for the colours.
- *
- * Taz comes with a set of routes (3ppopka's, from Odin). Imported packs are kept in config/taz/dungeons/secret-routes/
- * as Odin files, in import order; for each room the last imported pack that has it wins, then Taz's own.
+ * to the room (see {@link DungeonRooms}), a colour ("#RRGGBBAA"), a box, an optional title and type. Odin shares them
+ * as Base64 of gzipped JSON, or plain JSON. Taz comes with a set of routes (3ppopka's, from Odin). Imported packs are
+ * kept in config/taz/dungeons/secret-routes/ as Odin files, in import order; for each room the last imported pack that
+ * has it wins, then Taz's own.
  */
 public final class SecretRoutes {
 	private static final Path DIR = Taz.CONFIG_DIR.resolve("dungeons").resolve("secret-routes");

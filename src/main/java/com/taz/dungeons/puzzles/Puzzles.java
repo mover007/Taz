@@ -33,12 +33,11 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Puzzle Solvers: shows the answer to each dungeon puzzle (Water Board, Teleport Maze, Ice Fill, Ice Path, Blaze, Creeper
- * Beams, Three Weirdos, Quiz, Boulder, Tic Tac Toe), times how long each took you, and offers an Architect's First Draft
- * when someone fails one. Mostly Odin's solvers (and their solution tables), Ice Path and Tic Tac Toe from NoammAddons.
- *
- * <p>Positions are room-relative the way Odin's are (from the room's blue clay corner, turned to face north); Taz's
- * {@link DungeonRooms.Room#toReal} turns them into the world.
+ * Puzzle Solvers: shows the answer to each dungeon puzzle (Water Board, Teleport Maze, Ice Fill, Ice Path, Blaze,
+ * Creeper Beams, Three Weirdos, Quiz, Boulder, Tic Tac Toe), times how long each took you, and offers an Architect's
+ * First Draft when someone fails one. Mostly Odin's solvers (and their solution tables), Ice Path and Tic Tac Toe from
+ * NoammAddons. Positions are room-relative the way Odin's are (from the room's blue clay corner, turned to face north);
+ * Taz's {@link DungeonRooms.Room#toReal} turns them into the world.
  */
 public final class Puzzles {
 	/** The Taz colours for answers: the one to do now, the next, the one after, the rest, and wrong. */

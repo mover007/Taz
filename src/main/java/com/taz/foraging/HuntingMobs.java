@@ -10,8 +10,7 @@ import net.minecraft.world.item.DyeColor;
 
 /**
  * Galatea's hunting mobs are vanilla mobs in disguise: Hideonleaf is a green shulker, Hideonsun a yellow / orange /
- * brown shulker, Shellwise a turtle, Coralot an axolotl and Blue Jay a blue parrot. They get the vanilla glowing
- * outline (MinecraftMixin, EntityMixin), which shows through walls.
+ * brown shulker, Shellwise a turtle, Coralot an axolotl and Blue Jay a blue parrot.
  */
 public final class HuntingMobs {
 	public static final int HIDEONLEAF = 0x55FF55;

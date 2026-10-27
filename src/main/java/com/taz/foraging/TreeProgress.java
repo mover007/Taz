@@ -19,12 +19,6 @@ import java.util.regex.Pattern;
 /**
  * Hypixel puts "FIG TREE 37%" over a tree being chopped; this shows the closest one in a HUD, says TIMBER! when
  * "TIMBER! You felled the entire Fig Tree!" comes in, and counts trees per hour of chopping.
- * <pre>
- * Tree Progress
- * Fig Tree 37%
- * Felled: Fig 12, Mangrove 3
- * 15 in 22:31 (40/h)
- * </pre>
  */
 public final class TreeProgress extends TextHud {
 	private static final Pattern HOLOGRAM = Pattern.compile("(FIG|MANGROVE|HELIX) TREE\\D*?(\\d{1,3})%");

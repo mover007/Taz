@@ -32,10 +32,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Dungeon Map: Hypixel's own dungeon map (the one in your last hotbar slot) redrawn bigger and clearer: each room in its
- * type's colour, wither and blood doors, a tick, cross or "?" per room (or the room's name and its secrets), and every
- * teammate's face where they are, with their name. It only shows what Hypixel's map shows; room names come from the rooms
- * Taz has recognised around you. From NoammAddons' Dungeon Map (the legit one).
+ * Dungeon Map: Hypixel's own dungeon map (the one in your last hotbar slot) redrawn bigger and clearer: each room in
+ * its type's colour, wither and blood doors, a tick, cross or "?" per room (or the room's name and its secrets), and
+ * every teammate's face where they are, with their name. From NoammAddons' Dungeon Map (the legit one).
  */
 public final class DungeonMap implements MovableHud {
 	enum Type {

@@ -26,13 +26,8 @@ import java.util.Map;
 
 /**
  * Which Catacombs room you're in and how it's turned, worked out the way Odin does it so Odin's room waypoints land on
- * the same blocks.
- *
- * The dungeon is a 6x6 grid of 31-block tiles, centred on -185 + 32n. A tile is recognised by its "core": a hash of
- * the block column at its centre, looked up in Odin's room table (rooms.json, from Odin, BSD 3-Clause). Tiles of the
- * same room join up, and once all of them are found the room's rotation and "clay" corner are worked out: 1x1 rooms
- * from the blue terracotta at one corner of the roof, bigger rooms from their shape on the grid. Waypoints are kept
- * relative to that corner, turned to face north, with heights as they are.
+ * the same blocks. A tile is recognised by its "core": a hash of the block column at its centre, looked up in Odin's
+ * room table (rooms.json, from Odin, BSD 3-Clause).
  */
 public final class DungeonRooms {
 	/** Tests: the flat test world counts as a dungeon. */
@@ -268,7 +263,7 @@ public final class DungeonRooms {
 
 	/**
 	 * The core of the column at x, z: every block from y 140 down to 12, starting at the first one that isn't air or gold,
-	 * with chests and oak planks left out (they differ between runs), hashed. Null when that chunk isn't loaded.
+	 * with chests and oak planks left out (they differ between runs), hashed.
 	 */
 	public static Integer coreAt(ClientLevel level, int x, int z, int[] highestOut) {
 		LevelChunk chunk = level.getChunkSource().getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
@@ -333,11 +328,7 @@ public final class DungeonRooms {
 	public record Layout(Rotation rotation, BlockPos clay) {
 	}
 
-	/**
-	 * A bigger room's rotation and clay corner from its tiles on the grid. Lines of tiles along z face west, along x
-	 * south, 2x2 rooms south; an L faces the way its corner points. An L missing its top-left tile could go either way,
-	 * so the one whose corner has the blue terracotta wins.
-	 */
+	/** A bigger room's rotation and clay corner from its tiles on the grid. */
 	public static Layout layout(Shape shape, List<int[]> tiles, int height, java.util.function.Predicate<BlockPos> isClay) {
 		int tlX = tiles.stream().mapToInt(t -> t[0]).min().orElse(0);
 		int tlZ = tiles.stream().mapToInt(t -> t[1]).min().orElse(0);

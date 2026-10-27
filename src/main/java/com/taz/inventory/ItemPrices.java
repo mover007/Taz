@@ -79,7 +79,7 @@ public final class ItemPrices {
 
 	/**
 	 * The price-file key of an item: its SkyBlock id, "ENCHANTMENT_ULTIMATE_WISE_5" for a one-enchant book,
-	 * "LVL_100_LEGENDARY_GOLDEN_DRAGON" for a pet. Null when it isn't a SkyBlock item.
+	 * "LVL_100_LEGENDARY_GOLDEN_DRAGON" for a pet.
 	 */
 	public static String key(ItemStack stack) {
 		String id = ItemUtil.skyblockId(stack);

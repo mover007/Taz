@@ -43,10 +43,7 @@ public final class EtherRaycast {
 	private EtherRaycast() {
 	}
 
-	/**
-	 * The block your look hits within {@code distance} from {@code feet}. Etherwarp passes through passable blocks (buttons,
-	 * skulls...) and fails on them; otherwise any non-air block counts. Null when nothing is in range.
-	 */
+	/** The block your look hits within {@code distance} from {@code feet}. */
 	public static Hit cast(Vec3 feet, double distance, boolean etherwarp, boolean sneaking) {
 		Minecraft mc = Minecraft.getInstance();
 		Player player = mc.player;

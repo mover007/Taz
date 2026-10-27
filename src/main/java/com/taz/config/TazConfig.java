@@ -6,14 +6,7 @@ import io.github.notenoughupdates.moulconfig.Config;
 import io.github.notenoughupdates.moulconfig.annotations.Category;
 import io.github.notenoughupdates.moulconfig.common.text.StructuredText;
 
-/**
- * Everything in the settings GUI (/taz), saved as config/taz/config.json. Categories are areas of
- * the game; each feature is one collapsed dropdown in its category, with "Enabled" first. A big feature (the Run
- * Predictor, Secret Routes, the Critter Safari ...) is a category of its own, "Enabled" first.
- * To add a feature: give it a config class, then add it as an @Accordion field in the right
- * category class (or a new category here). Every feature starts off (enabled = false). If a saved field moves, bump CURRENT_VERSION and add
- * the move to Migration.upgradeConfigFile.
- */
+/** Everything in the settings GUI (/taz), saved as config/taz/config.json. */
 public final class TazConfig extends Config {
 	public static final int CURRENT_VERSION = 5;
 

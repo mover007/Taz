@@ -16,13 +16,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Counts Forest and Desert Whispers per hour of foraging.
- *
- * Hypixel's tab list shows your totals ("Forest Whispers: 12,345", "Desert Whispers: 1,234"); every increase
- * is whispers gained, from any source, except the refund when you reset your Heart of the Forest. The clock only runs while you forage: hitting a log, a log breaking
- * next to you, or whispers coming in keep it going, and it stops after a few seconds without any of those.
- */
+/** Counts Forest and Desert Whispers per hour of foraging. */
 public final class WhisperTracker {
 	public enum Type {
 		FOREST("Forest", "§3"),

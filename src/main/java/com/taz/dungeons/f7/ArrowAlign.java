@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Arrow Align: on Phase 3's arrow device, how many times to click each frame, from the nine boards Odin knows (red when it
- * needs many, white when it needs few). Your clicks count straight away, so the numbers keep up as you click. From Odin.
+ * Arrow Align: on Phase 3's arrow device, how many times to click each frame, from the nine boards Odin knows (red when
+ * it needs many, white when it needs few). From Odin.
  */
 public final class ArrowAlign {
 	private static final BlockPos CORNER = new BlockPos(-2, 120, 75);

@@ -12,16 +12,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Hypixel's sweep report after each chop:
- * <pre>
- * Sweep Details: 120∮ Sweep
- *   Fig Tree Toughness: 10 12.0 Logs
- *   Axe throw: -50% Sweep 6.0 Logs
- *   Wrong Style: -50% Sweep 3.0 Logs Cut the trunk first!!
- * </pre>
- * shown as a HUD for 30 seconds, with the chat lines hidden and a title for the wrong order.
- */
+/** shown as a HUD for 30 seconds, with the chat lines hidden and a title for the wrong order. */
 public final class SweepDetails extends TextHud {
 	private static final Pattern SWEEP = Pattern.compile("^Sweep Details: ([\\d,.]+).{0,2} Sweep$");
 	private static final Pattern TOUGHNESS = Pattern.compile("^(.+?) Tree Toughness: ([\\d.]+) ([\\d.]+) Logs$");

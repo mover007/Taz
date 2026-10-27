@@ -11,17 +11,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Skill XP per hour from the action bar. Hypixel shows "+12.5 Foraging (52,312/100,000)" (or "(52.3%)"
- * with percent display on) for a few seconds after each gain, and resends the action bar meanwhile, so
- * a gain is counted from the change in your XP when the numbers are shown, and once per new message otherwise.
- * <pre>
- * Foraging (counting)
- * 123,456 XP/h
- * +52,312 in 25:13
- * Level up in 14m 22s (52.3%)
- * </pre>
- */
+/** Skill XP per hour from the action bar. */
 public final class SkillTracker extends TextHud {
 	private static final Pattern GAIN = Pattern.compile("\\+([\\d,]+(?:\\.\\d+)?) (Farming|Mining|Combat|Foraging|Fishing|Enchanting|Alchemy"
 			+ "|Carpentry|Runecrafting|Social|Taming|Hunting) \\(([\\d,.]+)(%|/([\\d,.]+)([kKmMbB]?))\\)");

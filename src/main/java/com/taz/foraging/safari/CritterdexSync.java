@@ -19,9 +19,7 @@ import java.util.regex.Pattern;
 
 /**
  * Reads your Critterdex (the menu "Critterdex") so Taz knows which critters you've really caught, not only the ones it
- * saw you catch. The wiki: a critter you've caught shows as itself, one you haven't as "???". Every critter shown by
- * name is added to your catches; none are taken away, as a scrolled row may hide some. What the menu held is written to
- * the game log the first time, so its layout can be checked.
+ * saw you catch.
  */
 public final class CritterdexSync {
 	/** Lore that says a critter shown by name isn't caught after all. */

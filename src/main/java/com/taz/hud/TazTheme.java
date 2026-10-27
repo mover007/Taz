@@ -7,11 +7,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 
-/**
- * Taz's look: red and black. Headings in bold red, text in warm white, values in light red, quiet text in grey with a red
- * tint, all with a crisp black outline instead of a background box. HUD lines are still written with § colour codes;
- * {@link #styled} turns them into the theme's colours (bold always means a red heading, green good news turns white).
- */
+/** Taz's look: red and black. */
 public final class TazTheme {
 	public static final int RED = 0xFFFF2E2E;
 	public static final int DARK_RED = 0xFFB3121B;

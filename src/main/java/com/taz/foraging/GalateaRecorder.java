@@ -16,10 +16,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Writes each new kind of sidebar, action bar and title line seen on Galatea to the game log
- * ("[Taz] Galatea sidebar: Contest: 1,234 points"), so features can be built from what Hypixel really shows (contest
- * points, the Torrhus Springs pressure meter). Chat is in the log already. Lines that only differ in their numbers
- * count once. About > "Log Galatea HUD text".
+ * Writes each new kind of sidebar, action bar and title line seen on Galatea to the game log ("[Taz] Galatea sidebar:
+ * Contest: 1,234 points"), so features can be built from what Hypixel really shows (contest points, the Torrhus Springs
+ * pressure meter).
  */
 public final class GalateaRecorder {
 	/** Tests: record without the developer flag. */

@@ -22,8 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Boxes, lines and labels in the world, for every Taz feature. Use from LevelRenderEvents.END_MAIN:
- * open a Batch, add shapes, close it. Each shape either shows through walls or is hidden by terrain.
+ * Boxes, lines and labels in the world, for every Taz feature. Use from LevelRenderEvents.END_MAIN: open a Batch, add
+ * shapes, close it.
  */
 public final class WorldRenderer {
 	private static final RenderType BOX_THROUGH = boxType("through_walls_box", CompareOp.ALWAYS_PASS);

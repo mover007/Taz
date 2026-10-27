@@ -19,9 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Your slayer boss: Hypixel puts a "Spawned by: &lt;name&gt;" hologram over every slayer boss, so the boss under
- * the one with your name is yours. Alerts when it spawns, boxes it, and times the kill until
- * "SLAYER QUEST COMPLETE!".
+ * Your slayer boss: Hypixel puts a "Spawned by: &lt;name&gt;" hologram over every slayer boss, so the boss under the
+ * one with your name is yours.
  */
 public final class SlayerHelper {
 	private static final double SEARCH_RANGE = 48;

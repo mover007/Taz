@@ -20,9 +20,8 @@ import java.nio.file.Files;
 import java.util.List;
 
 /**
- * Whisper Counter: fake tab list totals, logs breaking next to the player, hitting a log, the pause after
- * 3 seconds without foraging, spending whispers, switching servers, and moving the HUD in the HUD editor.
- * Times are real seconds (the tracker uses the wall clock), however fast the test runs ticks.
+ * Whisper Counter: fake tab list totals, logs breaking next to the player, hitting a log, the pause after 3 seconds
+ * without foraging, spending whispers, switching servers, and moving the HUD in the HUD editor.
  */
 public class WhisperGameTest implements FabricClientGameTest {
 	private ClientGameTestContext ctx;

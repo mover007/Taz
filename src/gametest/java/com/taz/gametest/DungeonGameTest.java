@@ -34,10 +34,9 @@ import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 
 /**
- * Dungeon features. secrets: Odin's room table and rotation maths, then a fake 1x1 room built on the dungeon grid with a
- * test route imported from an Odin export, walked through in Guide mode. roomtimes: Room Secret Times in that room,
- * without Secret Routes. skillissue: death jokes from the run's chat. "dungeons" runs them all. Runs with
- * -Dtaz.dungeons.anywhere=true, so the flat test world counts as a dungeon.
+ * Dungeon features. secrets: Odin's room table and rotation maths, then a fake 1x1 room built on the dungeon grid with
+ * a test route imported from an Odin export, walked through in Guide mode. roomtimes: Room Secret Times in that room,
+ * without Secret Routes. skillissue: death jokes from the run's chat.
  */
 public class DungeonGameTest implements FabricClientGameTest {
 	/** Tile (2, 3) of the dungeon grid: centre -121, -89. Its roof is at y 80, floor at 60. */

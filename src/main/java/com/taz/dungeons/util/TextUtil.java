@@ -19,9 +19,8 @@ public final class TextUtil {
 	}
 
 	/**
-	 * Cleans a sidebar or tab-list line. Hypixel puts emoji between a team's prefix and
-	 * suffix so every line is unique, so this keeps printable ASCII only. Every value
-	 * we parse from the scoreboard is plain ASCII.
+	 * Cleans a sidebar or tab-list line. Hypixel puts emoji between a team's prefix and suffix so every line is unique, so
+	 * this keeps printable ASCII only.
 	 */
 	public static String cleanScoreboard(String raw) {
 		String stripped = cleanChat(raw);

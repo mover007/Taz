@@ -1,10 +1,7 @@
 package com.taz.dungeons.hud;
 
 import com.taz.hud.TazTheme;
-/**
- * One HUD row: left-aligned label and optional right-aligned value. Colors are ARGB, from Taz's red and black theme:
- * the names say what a colour means (GOLD headings, GREEN good news, RED bad news...), not how it looks.
- */
+/** One HUD row: left-aligned label and optional right-aligned value. */
 public record HudLine(String left, int leftColor, String right, int rightColor) {
 	public static final int WHITE = TazTheme.TEXT;
 	public static final int GRAY = TazTheme.GREY;

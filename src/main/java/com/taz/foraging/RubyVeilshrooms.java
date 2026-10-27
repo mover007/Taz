@@ -26,11 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Ruby Veilshrooms are crimson fungus blocks in the caves at the bottom of Torrhus Springs. The client has the
- * whole cave in its chunks, so they're found from anywhere on the island. Picking one leaves the block empty for
- * 50-55 seconds. Every spot ever seen is kept in config/taz/foraging/veilshrooms.json.
- */
+/** Ruby Veilshrooms are crimson fungus blocks in the caves at the bottom of Torrhus Springs. */
 public final class RubyVeilshrooms extends TextHud {
 	/** Top of Torrhus Springs: dive down from here. */
 	public static final BlockPos SPRINGS = new BlockPos(-646, 161, 200);

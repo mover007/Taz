@@ -2,12 +2,7 @@ package com.taz.dungeons.dungeon;
 
 import java.util.List;
 
-/**
- * Every Catacombs floor with its ordered milestones and a rough default length (seconds)
- * for each segment. The defaults are only used until enough of your own runs are recorded
- * (see Predictor), so they're intentionally rough. They assume a competent party after the
- * 0.27.2 "Dungeon Time Saves" patch (6 Oct 2026). M6 comes from real recorded runs.
- */
+/** Every Catacombs floor with its ordered milestones and a rough default length (seconds) for each segment. */
 public enum Floor {
 	// id, master, boss name (first [BOSS] speaker in the boss room), speed-score time offset (s), secrets needed for full secret score, splits
 	E("E", false, null, 120, 0.30, standard(20, 35, 15, 30, boss(40))),
@@ -32,11 +27,7 @@ public enum Floor {
 
 	public final String id;
 	public final boolean master;
-	/**
-	 * The floor boss as named in "[BOSS] <name>:" chat. Boss entry is its first line. The Watcher
-	 * also spawns old bosses as blood mobs (Scarf, Bonzo, ...) that talk with the same prefix, so
-	 * on F1-F5 the boss only counts once blood is cleared.
-	 */
+	/** The floor boss as named in "[BOSS] <name>:" chat. Boss entry is its first line. */
 	public final String bossName;
 	/**
 	 * Speed score is 100 while (run time - this offset) is under 480s, i.e. the floor's time

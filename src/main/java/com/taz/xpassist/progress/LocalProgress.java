@@ -18,11 +18,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Progress seen in game (menus, chat, action bar), saved per SkyBlock profile in
- * config/taz/xpassist/progress.json. It is merged with the Hypixel API data, so the list
- * updates the moment you do something instead of waiting for the API.
- */
+/** Progress seen in game (menus, chat, action bar), saved per SkyBlock profile in config/taz/xpassist/progress.json. */
 public final class LocalProgress {
 	public static final class Profile {
 		public double skyblockXp = -1;

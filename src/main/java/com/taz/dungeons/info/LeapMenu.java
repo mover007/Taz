@@ -27,9 +27,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Leap Menu: the Spirit Leap menu as four big boxes, one per teammate (their face, name and class, dead ones in dark red),
- * placed by class the way Odin does; click a box or press 1-4. Can also say in party chat who you leaped to. From
- * NoammAddons' Leap Menu.
+ * Leap Menu: the Spirit Leap menu as four big boxes, one per teammate (their face, name and class, dead ones in dark
+ * red), placed by class the way Odin does; click a box or press 1-4. From NoammAddons' Leap Menu.
  */
 public final class LeapMenu {
 	private static final Pattern NAME = Pattern.compile("^(?:\\[[^]]+] )?(\\w{1,16})");

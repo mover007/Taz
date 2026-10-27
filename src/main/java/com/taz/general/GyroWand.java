@@ -12,9 +12,8 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Gyro Wand: while you hold the Gyrokinetic Wand, a ring where its pull would land (10 blocks round the block you look at,
- * up to 25 away), red when it's ready and grey on cooldown. The cooldown starts from the wand's burst of witch particles
- * and counts the Mage's reduction. From Odin's Gyro Wand.
+ * Gyro Wand: while you hold the Gyrokinetic Wand, a ring where its pull would land (10 blocks round the block you look
+ * at, up to 25 away), red when it's ready and grey on cooldown. From Odin's Gyro Wand.
  */
 public final class GyroWand {
 	private static final double RADIUS = 10, RANGE = 25;

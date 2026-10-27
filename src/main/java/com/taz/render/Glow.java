@@ -6,7 +6,7 @@ import net.minecraft.world.entity.Entity;
 
 /**
  * Entities a feature wants outlined with the vanilla glow (drawn through walls), and in which colour: the starred mobs,
- * bonus bats and teammates in dungeons, and the critters you need in the Critter Safari. The glow mixins ask here.
+ * bonus bats and teammates in dungeons, and the critters you need in the Critter Safari.
  */
 public final class Glow {
 	private Glow() {

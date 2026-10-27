@@ -11,22 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * The Critter Safari HUD. Inside:
- * <pre>
- * Critter Safari  12/37  ~41m left
- * Capsules 38  Hotspot Icy
- * Next: Hideonfloor - catch it 23m
- * Shyworm up 0:14 - don't let it see you
- * Forest (you're here)  3 left
- *  Macaw - feed the Birdfeeder a Bag of Seeds
- *  Hideonfloor - blends into the floor; runs when hit
- * Cavern 4 | Icy 9
- * Bag of Seeds: feed it to the Birdfeeder in the Forest
- * </pre>
- * Done biomes and quest items whose critters are all caught are left out.
- * At the entrance in Torrhus Canyon: what you need to get in.
- */
+/** The Critter Safari HUD. */
 public final class SafariGuide extends TextHud {
 	private static final int MAX_CRITTERS = 9;
 

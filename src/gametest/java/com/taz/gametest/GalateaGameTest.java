@@ -55,10 +55,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 /**
- * The Moonglade Marsh / Torrhus Canyon features: Ruby Veilshroom finder, tree progress, sweep details, Sea Lumies
- * and Lushlilac, hunting mob glows, Fairy Souls and the island guide. Parts: veilshrooms, treeprogress, sweep,
- * resources, huntingmobs, fairysouls, guide, safari...; "galatea" runs them all. Runs with -Dtaz.foraging.anywhere=true,
- * so the flat test world counts as both islands.
+ * The Moonglade Marsh / Torrhus Canyon features: Ruby Veilshroom finder, tree progress, sweep details, Sea Lumies and
+ * Lushlilac, hunting mob glows, Fairy Souls and the island guide.
  */
 public class GalateaGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"veilshrooms", "treeprogress", "sweep", "resources", "huntingmobs", "fairysouls", "guide",
@@ -1105,7 +1103,6 @@ public class GalateaGameTest implements FabricClientGameTest {
 				&& lines.stream().anyMatch(l -> l.startsWith("Next: (Cavern)")));
 
 		// A Scrappy's armour stops capsules until it's had its food 4 times; the food is one of three, picked each Safari.
-		// (What the way picks fresh: it would stick with the Shyworm's spot otherwise.)
 		cmd("summon silverfish " + (x + 5) + " " + y + " " + (z - 6) + " {NoAI:1b,PersistenceRequired:1b,Silent:1b}");
 		label(x + 5.5, y + 0.8, z - 5.5, "Scrappy");
 		ctx.waitTicks(10);

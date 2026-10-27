@@ -13,11 +13,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Writes each distinct "[BOSS] ..." / "[NPC] Mort: ..." line to boss-lines.log. When
- * Hypixel rewrites dialogue (as in 0.27.2), this shows the new lines so triggers.json can
- * be updated.
- */
+/** Writes each distinct "[BOSS] ..." / "[NPC] Mort: ..." line to boss-lines.log. */
 public final class BossLineLog {
 	private static final Path FILE = ModConfig.DIR.resolve("boss-lines.log");
 	private static final Set<String> seen = new HashSet<>();

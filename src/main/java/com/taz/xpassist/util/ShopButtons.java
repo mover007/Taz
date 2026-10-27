@@ -10,10 +10,7 @@ import net.minecraft.network.chat.MutableComponent;
 
 import java.util.List;
 
-/**
- * Clickable [Bazaar] / [AH] / [Recipe] buttons for chat. They run /taz bz|ah|recipe, which sends
- * Hypixel's own /bz, /ahs or /viewrecipe for you (a Booster Cookie lets /bz and /ahs work anywhere).
- */
+/** Clickable [Bazaar] / [AH] / [Recipe] buttons for chat. */
 public final class ShopButtons {
 	private ShopButtons() {
 	}

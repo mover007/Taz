@@ -15,9 +15,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Writes config/taz/dungeons/debug-scoreboard.txt on each dungeon visit: once 15s after
- * entering and once 45s into the run. It holds the raw sidebar and tab-list text plus what
- * was parsed from it, so parsing problems can be fixed without asking for screenshots.
+ * Writes config/taz/dungeons/debug-scoreboard.txt on each dungeon visit: once 15s after entering and once 45s into the
+ * run.
  */
 public final class Diagnostics {
 	private static final Path FILE = ModConfig.DIR.resolve("debug-scoreboard.txt");

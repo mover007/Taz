@@ -14,19 +14,8 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Chat lines that mark milestones, loaded from config/taz/dungeons/triggers.json so
- * they can be fixed without a rebuild when Hypixel rewrites dialogue (0.27.2 just
- * shortened all of it).
- *
- * Two kinds of trigger:
- *  - "regex":   matched against the chat line with formatting stripped. Anchor with ^
- *               so party or guild chat can't fake it.
- *  - "speaker": fires on the first "[BOSS] <speaker>: ..." line. It doesn't depend on the
- *               exact dialogue, so it survives dialogue rewrites. "@floorboss" means the
- *               current floor's boss (Sadan on F6/M6, Maxor on F7/M7, ...). Don't use "any
- *               [BOSS]": the Watcher spawns old bosses like Scarf as blood mobs and they talk too.
- * A milestone only counts if the current floor uses it and it comes after the last
- * milestone reached, so extra matches are harmless.
+ * Chat lines that mark milestones, loaded from config/taz/dungeons/triggers.json so they can be fixed without a rebuild
+ * when Hypixel rewrites dialogue (0.27.2 just shortened all of it).
  */
 public final class Triggers {
 	/** Raise when the built-in defaults change. Older files are backed up and replaced. */
@@ -81,9 +70,8 @@ public final class Triggers {
 		d.add(Def.regex(Milestone.BLOOD_CLEAR, "^\\[BOSS] The Watcher: You have proven yourself\\. You may pass\\.$"));
 		d.add(Def.speaker(Milestone.BOSS_ENTER, "@floorboss"));
 
-		// F6 / M6 - Sadan. Several lines per phase change (from the SkyBlock wiki) so this keeps
-		// working if 0.27.2's shorter dialogue removed some. The first one seen wins.
-		// Giants phase: the "Phase Two Starts" lines, then lines that only appear once the Giants are out.
+		// F6 / M6 - Sadan. Several lines per phase change (from the SkyBlock wiki) so this keeps working if 0.27.2's shorter
+		// dialogue removed some.
 		for (String l : new String[]{
 				"ENOUGH!",
 				"My giants! Unleashed!",

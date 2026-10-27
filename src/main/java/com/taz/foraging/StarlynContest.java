@@ -16,23 +16,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Starlyn Contests (Agatha on Moonglade Marsh, Miria on Torrhus Canyon) run back to back, one per SkyBlock day
- * (20 minutes). When you claim, Hypixel sends a block per contest:
- * <pre>
- * STARLYN CONTEST REWARDS CLAIMED
- * » Agatha Contest on Spring 22nd, Year 521
- * REWARDS
- * Agatha's Coupon x15
- * +20x Forest Essence
- * +20,000 Foraging Experience
- * +200 HOTF Exp
- * +1,200 HOTF Exp (Daily Bonus)
- * +5,000 Forest Whispers
- * +71 Bits
- * </pre>
- * and at the end of a contest "[NPC] Miria: You earned a total of 4,999 points!". While one runs, the sidebar shows
- * "Agatha's Contest 14m55s", "RARE with 1.2k" and "Epic requires +1.3k" (or "+1k over Mythic"). A contest ends 30
- * seconds before its SkyBlock day does (at :14:30, :34:30, :54:30); the next starts with the new day.
+ * Starlyn Contests (Agatha on Moonglade Marsh, Miria on Torrhus Canyon) run back to back, one per SkyBlock day (20
+ * minutes).
  */
 public final class StarlynContest extends TextHud {
 	private static final Pattern CONTEST = Pattern.compile("^» (Agatha|Miria) Contest on (.+)$");

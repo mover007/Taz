@@ -25,9 +25,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Blood Camp: when the Watcher starts talking, a countdown to when he moves (20.5 s) and a "Kill Mobs" alert. While his
- * mobs fly out, a box where each will land and how long until it does, so you can kill it the moment it spawns. Timed in
- * server ticks. From Odin's Blood Camp.
+ * Blood Camp: when the Watcher starts talking, a countdown to when he moves (20.5 s) and a "Kill Mobs" alert. From
+ * Odin's Blood Camp.
  */
 public final class BloodCamp extends TextHud {
 	private static final Pattern START = Pattern.compile("^\\[BOSS] The Watcher: (Congratulations, you made it through the Entrance\\.|Ah, you've "

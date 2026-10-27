@@ -10,14 +10,7 @@ import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Everything Taz says starts with [TAZ]: chat lines shown only to you, and what features say in party chat.
- * Also click-twice confirmation for settings buttons that delete things.
- *
- * Party messages go out one at a time. Hypixel quietly drops a message sent in the same moment as another (a mask
- * proc message from another mod, say), so each waits until nothing has been sent for a moment, and one Hypixel
- * doesn't show back in party chat within a couple of seconds is sent once more.
- */
+/** Everything Taz says starts with [TAZ]: chat lines shown only to you, and what features say in party chat. */
 public final class TazChat {
 	public static final String PREFIX = "[TAZ] ";
 	/** Test hook: the last lines said with {@link #info}. */

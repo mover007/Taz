@@ -47,12 +47,10 @@ import java.util.regex.Pattern;
 
 /**
  * The Critter Safari helper. Hypixel labels each critter with a name-tag entity whose name is exactly the critter's
- * ("Foxtrot", "SPARKLING Foxtrot") just above its body (a mob, an armour stand wearing it, or a display entity), so
- * Taz reads the labels (critterMod's way: colours and Hypixel's icon glyphs stripped, the body the nearest mob within 3
- * blocks), then boxes the ones you still need and makes them glow, with its own name tag. Catches come
- * from chat: "CAPTURE! You caught a Foxtrot and gained 2x Foxtrot Shard!" (yours) and "LOOT SHARE! You received a
- * Foxtrot Shard from Steve catching a Foxtrot!" (a party member's). A run is one Safari instance, so it starts over in
- * every new world. Chat patterns and how critters are built from critterMod (MrCloudy2, MIT).
+ * ("Foxtrot", "SPARKLING Foxtrot") just above its body (a mob, an armour stand wearing it, or a display entity), so Taz
+ * reads the labels (critterMod's way: colours and Hypixel's icon glyphs stripped, the body the nearest mob within 3
+ * blocks), then boxes the ones you still need and makes them glow, with its own name tag. Chat patterns and how
+ * critters are built from critterMod (MrCloudy2, MIT).
  */
 public final class SafariHelper {
 	public enum Where { ELSEWHERE, ENTRANCE, INSIDE }
@@ -76,7 +74,7 @@ public final class SafariHelper {
 	private static final Pattern HOTSPOT = Pattern.compile("^HOTSPOT! Your Hunting Hotspot is the (\\w+) Biome!$");
 	/**
 	 * "The Scrappy cautiously started eating the Lush Lily Pad.", "The Scrappy reaches out its paw for more Lush Lily
-	 * Pad." ... "The Scrappy ate the Lush Lily Pad and came out of its shell!"
+	 * Pad." ...
 	 */
 	private static final Pattern SCRAPPY_ATE = Pattern.compile("^The Scrappy (?:(?:cautiously )?started eating|reaches (?:out its paw|its paw out) "
 			+ "for more|ate|happily eats) (?:the )?(.+?)(?: and came out of its shell!|\\.)$");
@@ -419,11 +417,7 @@ public final class SafariHelper {
 		return sb.toString();
 	}
 
-	/**
-	 * The critter under a name tag. As in critterMod: the nearest mob within 3 blocks of the tag. Where there's none, a
-	 * prop that is the critter (one of Hypixel's NPC players, an armour stand wearing it, or a display entity) right
-	 * under the tag: props stand close together, so one a block to the side is another critter's.
-	 */
+	/** The critter under a name tag. As in critterMod: the nearest mob within 3 blocks of the tag. */
 	private static Entity body(Minecraft mc, Entity label) {
 		if (label instanceof LivingEntity && !(label instanceof ArmorStand)) return label;
 		Vec3 p = label.position();
@@ -733,11 +727,7 @@ public final class SafariHelper {
 		return GEMS_PLACED;
 	}
 
-	/**
-	 * The quest items still to find before you can do a critter's task: empty when you have what it takes. The
-	 * Doomspiral takes a Soothing Incense for each of the Ritual's 4 candles, the Gemzies all 3 gems; the rest one of
-	 * their items (any bird bait, the Scrappy's food, a Shining Coin, an Icebreaker).
-	 */
+	/** The quest items still to find before you can do a critter's task: empty when you have what it takes. */
 	public static List<String> stillToFind(String critter) {
 		return switch (critter) {
 			case "Doomspiral" -> {

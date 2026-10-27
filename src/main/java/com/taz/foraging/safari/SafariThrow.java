@@ -23,10 +23,7 @@ import java.util.Optional;
 
 /**
  * Throw preview: while you hold a Critter Capsule in the Safari, the arc a throw would fly and where it ends, green
- * when it would hit a critter you need. Hypixel's capsule isn't a vanilla projectile, so the arc is measured: after you
- * throw, the capsule that appears at your eyes is followed in flight, its speed, drag and gravity are worked out and
- * kept (vanilla snowball physics until the first throw), and each measured throw goes to the game log. It only draws:
- * aiming and throwing stay yours.
+ * when it would hit a critter you need.
  */
 public final class SafariThrow {
 	/** Where a throw would go: the points it passes, and the critter it would hit (or null). */
@@ -124,8 +121,6 @@ public final class SafariThrow {
 
 	/**
 	 * Speed, drag and gravity (a tick) from a capsule's positions, one a tick; null when there's too little clean flight.
-	 * The flight ends where it hits something (it slows sharply), and ticks where it didn't move are skipped (the server
-	 * may move it every other tick).
 	 */
 	public static double[] fit(List<Vec3> points) {
 		List<Integer> at = new ArrayList<>();

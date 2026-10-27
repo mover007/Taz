@@ -22,9 +22,8 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
- * Every block of one kind in the loaded chunks (a Ruby Veilshroom, a Sea Lumie ...): chunks are scanned a few per
- * tick while the feature is on, and kept up to date from block changes. Underground blocks count too, since the
- * client has whole chunks.
+ * Every block of one kind in the loaded chunks (a Ruby Veilshroom, a Sea Lumie ...): chunks are scanned a few per tick
+ * while the feature is on, and kept up to date from block changes.
  */
 public final class BlockFinder {
 	private static final int SCANS_PER_TICK = 4;

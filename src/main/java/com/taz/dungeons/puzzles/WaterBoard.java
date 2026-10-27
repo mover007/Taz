@@ -18,11 +18,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Water Board: which levers to flip and when, from Odin's solutions for each board and set of gates. Each lever says "CLICK
- * ME!" or how long to wait (counted from when you open the water), with a line to the next lever and from it to the one
- * after.
- */
+/** Water Board: which levers to flip and when, from Odin's solutions for each board and set of gates. */
 final class WaterBoard {
 	private enum Lever {
 		COAL(20, 61, 10), GOLD(20, 61, 15), QUARTZ(20, 61, 20), DIAMOND(10, 61, 20), EMERALD(10, 61, 15), CLAY(10, 61, 10), WATER(15, 60, 5);

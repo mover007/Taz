@@ -7,16 +7,7 @@ import com.taz.xpassist.npc.SkyblockLocation;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * The Whisper Counter HUD:
- * <pre>
- * Whispers  (paused)
- * Forest  12,345/h  +3,210
- * Desert   1,234/h  +321
- * Foraging  42:13
- * </pre>
- * Shown on Galatea and Torrhus Canyon, or anywhere once whispers have been counted.
- */
+/** Shown on Galatea and Torrhus Canyon, or anywhere once whispers have been counted. */
 public final class WhisperHud extends TextHud {
 	public static final double DEFAULT_X = 0.80;
 	public static final double DEFAULT_Y = 0.30;

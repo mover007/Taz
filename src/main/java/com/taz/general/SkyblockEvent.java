@@ -1,9 +1,6 @@
 package com.taz.general;
 
-/**
- * SkyBlock's calendar events, worked out from the clock alone. A SkyBlock year is 124 real hours
- * (12 months of 31 days, 20 minutes a day) and year 1 started at 1560275700 (Unix seconds).
- */
+/** SkyBlock's calendar events, worked out from the clock alone. */
 public enum SkyblockEvent {
 	DARK_AUCTION("Dark Auction", "§5", 60, Kind.HOURLY, 0),
 	JACOBS_CONTEST("Jacob's Contest", "§e", 1200, Kind.HOURLY, 1200),

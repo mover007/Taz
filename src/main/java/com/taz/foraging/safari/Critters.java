@@ -67,10 +67,7 @@ public final class Critters {
 	private static final List<String> BIRDS = List.of("Bluebird", "Parakeet", "Macaw");
 	private static final List<String> GEMZIE = List.of("Gemzie");
 
-	/**
-	 * Critters with spots on the Safari map named after them. Only ones you can just walk to: the Doomspiral, Gemzies
-	 * and birds need a quest item, so the way goes there when you carry it.
-	 */
+	/** Critters with spots on the Safari map named after them. */
 	public static final Set<String> ON_MAP = Set.of("Hideonwall", "Areita", "Litterbug", "Flitter", "Shyworm", "Chuckwalla");
 
 	public static final List<Critter> ALL = List.of(

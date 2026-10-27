@@ -17,9 +17,8 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * The puzzle solvers, in a test room built in mid-air (the same column each time, renamed to the puzzle being tested, facing
- * east from its clay). Parts: quiz, weirdos, blaze, boulder, icefill, beams, water, icepath, maze, tictactoe ("puzzles" runs
- * them all). Runs with -Dtaz.dungeons.anywhere=true.
+ * The puzzle solvers, in a test room built in mid-air (the same column each time, renamed to the puzzle being tested,
+ * facing east from its clay).
  */
 public class PuzzleGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"quiz", "weirdos", "blaze", "boulder", "icefill", "beams", "water", "icepath", "maze", "tictactoe"};

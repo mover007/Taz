@@ -13,8 +13,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Terracotta Timer: in the Floor 6 boss, when a Terracotta dies it leaves a flower pot, and it comes back 15 seconds later
- * (12 in Master Mode). A countdown over each pot, in server ticks. From Odin and NoammAddons.
+ * Terracotta Timer: in the Floor 6 boss, when a Terracotta dies it leaves a flower pot, and it comes back 15 seconds
+ * later (12 in Master Mode). From Odin and NoammAddons.
  */
 public final class TerracottaTimer {
 	/** Pot -> ticks until its Terracotta is back. */

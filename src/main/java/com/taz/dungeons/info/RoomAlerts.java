@@ -13,10 +13,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Room Alerts: a big "Secrets Done!" (and a ping) the moment the room you're in has all its secrets, from Hypixel's
- * count on the action bar ("7/7 Secrets"). Each room once per run. From NoammAddons.
- */
+/** Room Alerts: a big "Secrets Done!" From NoammAddons. */
 public final class RoomAlerts extends TextHud {
 	private static final Pattern SECRET_COUNT = Pattern.compile("(\\d+)/(\\d+) Secrets");
 	private static final Set<String> DONE = new HashSet<>();

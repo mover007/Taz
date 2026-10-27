@@ -31,12 +31,7 @@ import net.minecraft.world.item.component.ItemLore;
 import java.util.List;
 import java.util.stream.Stream;
 
-/**
- * Features ported from Odin and NoammAddons. Parts: performance, blessings, masks, ragnarock, ticktimers, terracotta,
- * scorealerts, springboots, pets, kicktimer, starredmobs, doorskeys, secretclicked, etherwarp, gyro, magebeam, bloodcamp,
- * terminals, doorfix, termsolver, simonsays, arrowalign, dragons ("ported" runs them all). Hypixel sends a ping packet every server tick but
- * singleplayer doesn't, so the tests run the server-tick clock themselves. Runs with -Dtaz.dungeons.anywhere=true.
- */
+/** Features ported from Odin and NoammAddons. */
 public class PortedGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"performance", "blessings", "masks", "ragnarock", "ticktimers", "terracotta", "scorealerts",
 			"springboots", "pets", "kicktimer", "starredmobs", "doorskeys", "secretclicked", "etherwarp", "gyro", "magebeam", "bloodcamp", "terminals",

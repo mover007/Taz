@@ -18,9 +18,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Mask Timers: the Spirit Mask, Bonzo Mask and Phoenix pet that save you from dying. When one does, Taz times your
- * invincibility and its cooldown (a HUD, and the cooldown drawn over the mask in your inventory), alerts you, and can say
- * "[TAZ] Bonzo Procced! (2/3)" in party chat. From Odin's Invincibility Timer; timed in server ticks.
+ * Mask Timers: the Spirit Mask, Bonzo Mask and Phoenix pet that save you from dying. From Odin's Invincibility Timer;
+ * timed in server ticks.
  */
 public final class MaskTimers extends TextHud {
 	public enum Mask {

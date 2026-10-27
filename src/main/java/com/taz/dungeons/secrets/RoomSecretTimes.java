@@ -19,8 +19,7 @@ import java.util.regex.Pattern;
 
 /**
  * Room Secret Times: how long each room's secrets took, from the first one found to the last, read from Hypixel's own
- * count on the action bar ("3/7 Secrets", the room you're in). It doesn't care which route you take or whether you use
- * one: only the room (from {@link DungeonRooms}) and the count. Said in party chat and/or your chat, with your best.
+ * count on the action bar ("3/7 Secrets", the room you're in).
  */
 public final class RoomSecretTimes {
 	private static final Pattern SECRET_COUNT = Pattern.compile("(\\d+)/(\\d+) Secrets");

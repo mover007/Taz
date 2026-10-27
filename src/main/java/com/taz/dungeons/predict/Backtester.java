@@ -16,9 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Replays your recorded runs through the real predictor, each run seeing only the runs before
- * it, and reports how far off the end time was at each point of the boss, plus how often the
- * "best possible" time was beaten. Used by the Backtest button (/taz > Dungeons > Tools).
+ * Replays your recorded runs through the real predictor, each run seeing only the runs before it, and reports how far
+ * off the end time was at each point of the boss, plus how often the "best possible" time was beaten.
  */
 public final class Backtester {
 	private static final int WARMUP_RUNS = 10;

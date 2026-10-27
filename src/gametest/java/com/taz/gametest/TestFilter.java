@@ -4,8 +4,8 @@ import java.util.Arrays;
 import java.util.Locale;
 
 /**
- * Runs only the tests for the feature being worked on: gradlew runClientGameTest -Ptests=honeyhive
- * (comma-separated names, e.g. -Ptests=trees,settings). Without -Ptests every test runs.
+ * Runs only the tests for the feature being worked on: gradlew runClientGameTest -Ptests=honeyhive (comma-separated
+ * names, e.g. -Ptests=trees,settings).
  */
 final class TestFilter {
 	private static final String SELECTED = System.getProperty("taz.tests", "").trim().toLowerCase(Locale.ROOT);

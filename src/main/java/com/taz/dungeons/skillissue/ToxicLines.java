@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  * Skill Issue's toxic tone: "How did you die in terms?" roasts for teammates, and excuses that blame the team for your
- * own deaths. Gamer trash talk only, no swearing, so Hypixel's chat filter lets them through.
+ * own deaths.
  */
 final class ToxicLines {
 	static final Pool ROASTS;

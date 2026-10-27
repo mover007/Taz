@@ -17,10 +17,10 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Starred Mobs: in a dungeon's clear, the starred mobs (their nameplate says "✯ ... ❤"; the mob is the entity just before
- * the nameplate, three before for a Withermancer, or the one under it), the mini-bosses (Shadow Assassin, Lost Adventurer,
- * Diamond Guy, King Midas) and the bonus bats glow through walls. Optionally hides the nameplates of mobs that aren't
- * starred, and makes your teammates glow in their class colour. From Odin's Highlight and NoammAddons' Star Mob ESP.
+ * Starred Mobs: in a dungeon's clear, the starred mobs (their nameplate says "✯ ... ❤"; the mob is the entity just
+ * before the nameplate, three before for a Withermancer, or the one under it), the mini-bosses (Shadow Assassin, Lost
+ * Adventurer, Diamond Guy, King Midas) and the bonus bats glow through walls. From Odin's Highlight and NoammAddons'
+ * Star Mob ESP.
  */
 public final class StarredMobs {
 	private static final List<String> MOB_NAMES = List.of("Lurker", "Dreadlord", "Souleater", "Zombie", "Skeleton", "Skeletor", "Sniper",

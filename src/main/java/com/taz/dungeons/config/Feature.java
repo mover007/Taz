@@ -1,9 +1,6 @@
 package com.taz.dungeons.config;
 
-/**
- * Every dungeon on/off setting, read with ModConfig.on(f). The names and descriptions shown in
- * the settings GUI are on ModConfig's fields; this holds each one's "Simple" preset value.
- */
+/** Every dungeon on/off setting, read with ModConfig.on(f). */
 public enum Feature {
 	// ---- Timer HUD
 	HUD_TITLE(true),

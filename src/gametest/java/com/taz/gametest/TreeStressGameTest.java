@@ -8,10 +8,7 @@ import net.minecraft.core.BlockPos;
 
 import java.util.Random;
 
-/**
- * A dense forest with logs being chopped and growing back every tick, like a busy Galatea lobby.
- * Prints how long the tree tracker's update takes, so its cost on the game can be compared.
- */
+/** A dense forest with logs being chopped and growing back every tick, like a busy Galatea lobby. */
 public class TreeStressGameTest implements FabricClientGameTest {
 	private static final int SPACING = 10;
 	private static final int HALF = 7; // 15 x 15 trees

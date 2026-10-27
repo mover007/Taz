@@ -44,17 +44,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Secret Routes: the route for the dungeon room you're in, from Odin waypoint packs. Normal mode draws every waypoint of
- * the room; Guide mode follows the route: first the red start, then the steps (waypoints titled with a number, in order),
- * showing only the next one and the one after.
- *
- * Every waypoint goes away once it's done, steps and hints alike: a secret when it's taken (a chest's lid opens, a lever
- * flips, an essence skull or item goes, a bat dies near it, or the room's secret count goes up next to it), a block to
- * mine or blow up when it breaks, a spot when you arrive on it (or on one of the next two, for a step someone else
- * did). A spot that says "bat" or "item" waits for that secret. Each room is timed from its first secret to its last
- * step, against your best; progress lasts the whole run.
- */
+/** Secret Routes: the route for the dungeon room you're in, from Odin waypoint packs. */
 public final class SecretTrainer extends TextHud {
 	/** The red start of a room's route, before step 1. */
 	public static final int START = -1;

@@ -22,9 +22,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Pet Display: your active pet and its held item, from "You summoned your ...", Autopet's "equipped your [Lvl 100] ...",
- * level-ups and the Pets menu (the pet whose lore says "Click to despawn!"); kept across restarts. Also a title when
- * Autopet swaps your pet. From NoammAddons.
+ * Pet Display: your active pet and its held item, from "You summoned your ...", Autopet's "equipped your [Lvl 100]
+ * ...", level-ups and the Pets menu (the pet whose lore says "Click to despawn!"); kept across restarts. From
+ * NoammAddons.
  */
 public final class PetDisplay extends TextHud {
 	private static final Pattern SUMMON = Pattern.compile("^§aYou (summoned|despawned) your (.+?)(?: ✦)?§a!$");

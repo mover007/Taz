@@ -14,9 +14,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Blaze: the blazes in the order to kill them (lowest health first upstairs, highest first downstairs): the next one red,
- * then pale red, dark red, the rest faint, with a line from each to the next. Can hide the blazes themselves so only the
- * boxes show. From Odin.
+ * Blaze: the blazes in the order to kill them (lowest health first upstairs, highest first downstairs): the next one
+ * red, then pale red, dark red, the rest faint, with a line from each to the next. From Odin.
  */
 final class Blaze {
 	private record Tag(int id, int maxHealth) {

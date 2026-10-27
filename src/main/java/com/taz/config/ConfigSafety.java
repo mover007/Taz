@@ -11,9 +11,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 /**
- * Keeps settings from ever going back to defaults: config.json.last-good is a copy of the last file that
- * loaded fine, and a file that can't be read (the game killed while writing, a bad hand edit) is swapped
- * for that copy before loading. The unreadable file is kept as config.json.broken-&lt;time&gt;.
+ * Keeps settings from ever going back to defaults: config.json.last-good is a copy of the last file that loaded fine,
+ * and a file that can't be read (the game killed while writing, a bad hand edit) is swapped for that copy before
+ * loading.
  */
 public final class ConfigSafety {
 	private ConfigSafety() {

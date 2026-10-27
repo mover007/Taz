@@ -25,10 +25,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Party Finder: when someone joins your dungeon group, their stats in chat (Catacombs and class levels, secrets, magical
- * power and their S+ time on the floor you pick), and Auto Kick for players who don't meet your needs. In the Party
- * Finder menu, each party shows its level requirement and which classes it's missing. Stats come from EliteBot (a public
- * SkyBlock stats service), so no API key is needed. From NoammAddons' Party Finder.
+ * Party Finder: when someone joins your dungeon group, their stats in chat (Catacombs and class levels, secrets,
+ * magical power and their S+ time on the floor you pick), and Auto Kick for players who don't meet your needs. From
+ * NoammAddons' Party Finder.
  */
 public final class PartyFinder {
 	private static final Pattern JOINED = Pattern.compile("^Party Finder > (\\w{1,16}) joined the dungeon group! \\((\\w+) Level (\\d+)\\)$");

@@ -12,10 +12,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Moves every Taz HUD (About > Move HUDs, or the Move HUDs key). Drag to move, scroll to resize,
- * right-click to hide or show, R to reset the one under the mouse, arrow keys to nudge the last one moved.
- */
+/** Moves every Taz HUD (About > Move HUDs, or the Move HUDs key). */
 public final class TazHudEditor extends Screen {
 	private static final int OUTLINE = TazTheme.RED;
 	private static final int OUTLINE_HIDDEN = TazTheme.DARK_GREY;

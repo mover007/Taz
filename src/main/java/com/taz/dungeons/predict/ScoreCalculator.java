@@ -12,19 +12,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Dungeon score. Hypixel shows its own live score on the sidebar ("Cleared: 100% (304)"), and
- * that number is used as-is. The model below projects the FINAL score from the current
- * trend, and tells you what's still missing for S+.
- *
- * Model (SkyBlock wiki formula, rounded the way Hypixel's real end scores imply):
- *   Skill   = 20 + 80 x rooms% - 2 per death - 14 per failed puzzle - 10 per unfinished puzzle at the end
- *   Explore = 60 x rooms% + 40 x min(1, secrets% / floor requirement)
- *   Speed   = 100 under the floor's time limit, then drops (see speedScore)
- *   Bonus   = crypts (max 5) + Mimic 2 (F6+) + Prince 1 + Paul 10
- * The sidebar Cleared % reaches 100% by the end of a completed run even if you enter boss at
- * 93-97%, so the final room share is taken as clear-at-boss / 93%, capped at 100%.
- * Late in the run the model is shifted to match Hypixel's live score; earlier, by how far
- * off it was in your past runs.
+ * Dungeon score. Hypixel shows its own live score on the sidebar ("Cleared: 100% (304)"), and that number is used
+ * as-is.
  */
 public final class ScoreCalculator {
 	public static final int S_PLUS = 300;

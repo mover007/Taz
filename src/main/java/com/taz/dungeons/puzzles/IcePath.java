@@ -13,10 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Ice Path: the shortest set of hits that slides the silverfish to the exit, drawn as lines over the ice (the next slide in
- * red), worked out again whenever it lands somewhere new. From NoammAddons.
- *
- * <p>The ice is a 19 x 19 grid from room-relative (7, 7) to (25, 25) at y 67; the silverfish has to reach grid (7, 18).
+ * Ice Path: the shortest set of hits that slides the silverfish to the exit, drawn as lines over the ice (the next
+ * slide in red), worked out again whenever it lands somewhere new. From NoammAddons.
  */
 final class IcePath {
 	private static final int SIZE = 19, OFFSET = 7;

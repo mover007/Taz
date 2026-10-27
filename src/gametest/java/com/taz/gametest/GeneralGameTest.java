@@ -56,11 +56,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
-/**
- * The General, Inventory, Slayer and Fishing features and settings auto-save. Each part has its own test name
- * (defaults, autosave, alerts, chatfilter, commandkeys, events, darkauction, skills, waypoints, huds, prices, overlays, slayer, fishing);
- * "general" runs them all: gradlew runClientGameTest -Ptests=general
- */
+/** The General, Inventory, Slayer and Fishing features and settings auto-save. */
 public class GeneralGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"defaults", "autosave", "alerts", "chatfilter", "commandkeys", "events", "darkauction", "skills", "waypoints", "huds",
 			"prices", "overlays", "slayer", "fishing"};

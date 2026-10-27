@@ -273,9 +273,8 @@ public final class XpCalculator {
 	}
 
 	/**
-	 * Donating an upgraded item also counts every lower tier as donated (Overflux counts Mana Flux and
-	 * Radiant), and you get their XP. For each upgrade tree, repeatedly pick the donation with the best
-	 * coins per XP, crediting it with the lower tiers it covers, so nothing is counted twice.
+	 * Donating an upgraded item also counts every lower tier as donated (Overflux counts Mana Flux and Radiant), and you
+	 * get their XP.
 	 */
 	private void addMuseumChains(Map<String, XpTask> nodes, Map<String, String> parentOf) {
 		Map<String, List<String>> children = new HashMap<>();

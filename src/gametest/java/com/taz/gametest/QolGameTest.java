@@ -21,11 +21,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 import java.util.stream.Stream;
 
-/**
- * Quality-of-life features from Odin and NoammAddons. Parts: chatcommands, chattweaks, shortcuts, slotbinds, loadouts,
- * autorequeue, renderopt, tweaks, helditem, blockoverlay, soundvolumes, leapmenu, partyfinder, auctioninput, runextras, dungeonmap,
- * mapinfo, darkmode, storage, predictor ("qol" runs them all).
- */
+/** Quality-of-life features from Odin and NoammAddons. */
 public class QolGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"chatcommands", "chattweaks", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
 			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras", "dungeonmap", "mapinfo", "darkmode",

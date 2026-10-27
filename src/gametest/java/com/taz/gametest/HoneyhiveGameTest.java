@@ -10,9 +10,8 @@ import net.minecraft.core.BlockPos;
 import java.nio.file.Files;
 
 /**
- * Fake Torrhus Canyon honeyhives: a ready one ("Click to loot!"), a refilling one ("Refill in: 59m 46s"),
- * a cosmetic one with no hologram, and a ready one whose block isn't a bee nest. Then looting,
- * Queen Bee, walking out of hologram range, and the saved refill times.
+ * Fake Torrhus Canyon honeyhives: a ready one ("Click to loot!"), a refilling one ("Refill in: 59m 46s"), a cosmetic
+ * one with no hologram, and a ready one whose block isn't a bee nest.
  */
 public class HoneyhiveGameTest implements FabricClientGameTest {
 	private ClientGameTestContext ctx;

@@ -22,25 +22,10 @@ import java.util.Set;
 
 /**
  * "Show the way": a route through the whole run, one biome at a time, walked along the Safari map ({@link SafariMap})
- * like SkyHanni's navigation. In the biome being worked it goes, nearest first within each step:
- * <ol>
- * <li>to a critter of that biome you still need that's in view (its name tag is loaded), or where one went out of view
- * ({@link SafariHelper#lastSeen}); other biomes' critters wait for their own turn;
- * <li>to anything you can do now ({@link SafariSpots}): a bee nest, a Hideonwall perch, a wall to break, a bed, a
- * mound, a critter's spot, or the Ritual, Gem Podiums or Birdfeeder when you carry what they need;
- * <li>round the biome to find the critters that roam it, and to floor drops when a critter needs a quest item you
- * don't have.
- * </ol>
- * Once it has picked one, it sticks with it until it's done or gone, however you move about; only a search gives way,
- * as soon as there's something real to go to. When the biome has nothing left (the Macaw doesn't count: it may not come
- * at all), the route moves on to the next.
+ * like SkyHanni's navigation.
  */
 public final class SafariWay {
-	/**
-	 * Somewhere to go: what for, where, and how near counts as having been there (0: it goes when it's done). The key
-	 * says it's the same goal from one look to the next (a critter moves); a provisional one (searching) gives way as
-	 * soon as there's something real to go to.
-	 */
+	/** Somewhere to go: what for, where, and how near counts as having been there (0: it goes when it's done). */
 	public record Goal(String name, String why, Vec3 pos, double reach, String key, boolean provisional) {
 		Goal(String name, String why, Vec3 pos, double reach) {
 			this(name, why, pos, reach, name + "@" + pos, false);

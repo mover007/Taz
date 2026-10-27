@@ -18,12 +18,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * Trees the Next Tree Pointer must not send you to. Protected trees (Tree Protection Agency, Torrhus Canyon) fine you
- * 1,000 coins: "You tried to cut the protected Tree and were fined 1,000 Coins by the Tree Protection Agency! ...".
- * The tree you hit is remembered for good (config/taz/foraging/protected-trees.json). "You cannot damage a tree
- * while it is regenerating!" marks a tree as regrowing for 30 seconds.
- */
+/** Trees the Next Tree Pointer must not send you to. */
 public final class ProtectedTrees {
 	static final String FINED = "You tried to cut the protected Tree and were fined";
 	private static final long REGEN_MS = 30_000;

@@ -16,9 +16,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Loads your progress from EliteBot (api.elitebot.dev), a public SkyBlock stats service that
- * mirrors the Hypixel API, so no API key is needed. It has your SkyBlock XP, museum, accessory
- * bag, pets, crafted minions and some consumables, but not Abiphone contacts.
+ * Loads your progress from EliteBot (api.elitebot.dev), a public SkyBlock stats service that mirrors the Hypixel API,
+ * so no API key is needed.
  */
 public final class EliteProfile {
 	private EliteProfile() {

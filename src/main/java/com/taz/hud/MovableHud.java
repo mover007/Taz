@@ -3,10 +3,7 @@ package com.taz.hud;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
-/**
- * A HUD that can be moved, resized and hidden in the Taz HUD editor. Every Taz HUD is one of these and is
- * registered with {@link TazHud#register}, which draws it in game and lists it in the editor.
- */
+/** A HUD that can be moved, resized and hidden in the Taz HUD editor. */
 public interface MovableHud {
 	/** Shown in the editor. */
 	String name();

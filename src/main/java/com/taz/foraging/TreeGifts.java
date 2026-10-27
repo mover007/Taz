@@ -18,24 +18,7 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Hypixel's Tree Gift, as it appears in chat (one packet per line):
- * <pre>
- * KARMA! Your Tree Gift contained double loot!       (sometimes, just before)
- * ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
- * TREE GIFT
- *
- * You helped cut 100% of the Fig Tree.
- * +5 rewards gained! (hover)                           (the rewards are in its hover text)
- *
- * BONUS GIFT
- * Stretching Sticks x2 (10%)
- * A Phanpyre fell from the Tree!
- * ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
- * </pre>
- * Counted in a HUD, optionally shrunk to one line. Also counts honeyhive Honeycomb ("HIVE! You found Honeycomb x30 and
- * Enchanted Honeycomb!") and remembers the HOTF Lottery buff ("New buff: Gain +50 Fig Fortune.").
- */
+/** Counted in a HUD, optionally shrunk to one line. */
 public final class TreeGifts extends TextHud {
 	private static final Pattern BAR = Pattern.compile("^▬{10,}$");
 	private static final Pattern HELPED = Pattern.compile("^You helped cut ([\\d.]+)% of the (\\w+) Tree\\.$");

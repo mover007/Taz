@@ -38,17 +38,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Finds the Fig, Mangrove and Helix trees on Galatea near you and works out which ones are fully grown,
- * for the next-tree pointer.
- *
- * Every log of those trees is a real block, so the tracker keeps the log blocks in the chunks around
- * you, groups touching logs into trees, and watches each tree's logs change: chopping removes logs
- * (and shows a "FIG TREE 42%" hologram), regrowing puts them back over a few seconds. A tree is grown
- * once nothing has changed on it for a few seconds and either it was never touched, it grew back after
- * being chopped, or it is still (almost) as big as when it was last seen grown.
- *
- * Kept cheap for busy lobbies: only chunks within the search radius are read (a few per tick), and when
- * logs change only the trees touching them are regrouped, never every log around you.
+ * Finds the Fig, Mangrove and Helix trees on Galatea near you and works out which ones are fully grown, for the
+ * next-tree pointer.
  */
 public final class TreeTracker {
 	public enum Kind {

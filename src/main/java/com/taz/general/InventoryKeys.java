@@ -19,11 +19,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Keys in menus. Slot Binds: bind an inventory slot to a hotbar slot (press the bind key on one, then the other), then
- * shift + click either to swap them. Loadout Keybinds: in the Loadout menu, number keys pick a loadout and the arrow keys
- * turn the page. Both from Odin.
- */
+/** Keys in menus. Both from Odin. */
 public final class InventoryKeys {
 	private static final Pattern LOADOUT = Pattern.compile("\\((\\d)/(\\d)\\) Loadout");
 	private static final int[] LOADOUT_SLOTS = {14, 15, 16, 23, 24, 25, 32, 33, 34, 41, 42, 43};

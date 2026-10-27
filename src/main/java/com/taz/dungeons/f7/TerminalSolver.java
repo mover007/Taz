@@ -28,8 +28,8 @@ import java.util.regex.Pattern;
 /**
  * Terminal Solver: in Floor 7's terminals, everything but the slots to click goes dark, and those slots light up in red
  * (Red-Green, Colors, Start-With), in order with their numbers (Numbers), with how many left or right clicks each needs
- * (Rubix, red for left and grey for right), or with the column and the button to press when it lines up (Melody). Your
- * clicks are your own. A click sound of your choice replaces Hypixel's. Odin's solvers, with NoammAddons' names.
+ * (Rubix, red for left and grey for right), or with the column and the button to press when it lines up (Melody).
+ * Odin's solvers, with NoammAddons' names.
  */
 public final class TerminalSolver {
 	public enum Type {

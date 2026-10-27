@@ -17,7 +17,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 /**
  * Etherwarp: while you sneak with an Etherwarp item (an Aspect of the Void with Etherwarp merged, or the Etherwarp
  * Conduit, which works without sneaking), a box on the block you'd land on: red when it works, black when it won't (no
- * room to stand, or out of range). Range is 57 blocks plus Tuned Transmission. From Odin's Etherwarp.
+ * room to stand, or out of range). From Odin's Etherwarp.
  */
 public final class EtherwarpGuess {
 	private static ItemStack cachedStack;

@@ -18,8 +18,8 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
- * First start of Taz: copies the data and settings of the separate mods it replaces
- * (Dungeon Run Predictor, Skyblock XP Assist) so nothing is lost. The old folders are left as they were.
+ * First start of Taz: copies the data and settings of the separate mods it replaces (Dungeon Run Predictor, Skyblock XP
+ * Assist) so nothing is lost.
  */
 public final class Migration {
 	private static final Path CONFIG = FabricLoader.getInstance().getConfigDir();
@@ -57,9 +57,8 @@ public final class Migration {
 	}
 
 	/**
-	 * Moves settings in an existing config/taz/config.json to where the current layout keeps them,
-	 * before it is loaded, so nothing resets when the menu is reorganised. The old file is kept as
-	 * config.json.bak-v&lt;version&gt;.
+	 * Moves settings in an existing config/taz/config.json to where the current layout keeps them, before it is loaded, so
+	 * nothing resets when the menu is reorganised.
 	 */
 	public static void upgradeConfigFile(Path file) {
 		JsonObject root = read(file);
@@ -134,10 +133,7 @@ public final class Migration {
 		move(predictor, "hudEditorKey", about, "hudEditorKey");
 	}
 
-	/**
-	 * v4: every feature starts off. The General, Inventory, Slayer and Fishing features came out on (version 3),
-	 * so they're switched off; turn on the ones you want in /taz. Older features keep their setting.
-	 */
+	/** v4: every feature starts off. */
 	public static void upgradeToV4(JsonObject root) {
 		for (String category : new String[]{"general", "inventory", "slayer", "fishing"}) {
 			JsonObject c = object(root, category);
@@ -149,10 +145,7 @@ public final class Migration {
 		}
 	}
 
-	/**
-	 * v5: more categories. Chat, Controls and Visuals came out of General, the inventory screens went to Inventory, the
-	 * trees to Foraging, and the Run Predictor, Secret Routes, Puzzle Solvers, Dungeon Map and Critter Safari got their own.
-	 */
+	/** v5: more categories. */
 	public static void upgradeToV5(JsonObject root) {
 		for (String f : new String[]{"chatFilter", "chatCommands", "chat", "waypoints", "commandShortcuts"}) moveFeature(root, "general", f, "chat", f);
 		for (String f : new String[]{"commandKeys", "slotBinds", "loadoutKeybinds", "autoSprint", "noCursorReset", "camera"}) {
