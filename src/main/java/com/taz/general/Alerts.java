@@ -16,8 +16,8 @@ public final class Alerts {
 	private static final Pattern AUCTION = Pattern.compile("^\\[Auction] (.+?) bought (.+) for ([\\d,]+) coins");
 	/** "[MVP+] Steve has invited you to join their party!" */
 	private static final Pattern INVITE = Pattern.compile("^(?:\\[[A-Z+]+] )?(\\w+) has invited you to join (?:their|[\\w']+) party!");
-	/** "1,234/5,000❤" on the action bar. */
-	private static final Pattern HEALTH = Pattern.compile("([\\d,]+)/([\\d,]+)❤");
+	/** "1,234/5,000❤" on the action bar: Hypixel's resource pack draws the ❤ as a private-use icon (U+E010). */
+	private static final Pattern HEALTH = Pattern.compile("([\\d,]+)/([\\d,]+)(?:❤|\uE010)");
 
 	private static boolean lowHealthShown;
 

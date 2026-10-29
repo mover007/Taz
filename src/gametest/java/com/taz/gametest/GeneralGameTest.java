@@ -273,6 +273,10 @@ public class GeneralGameTest implements FabricClientGameTest {
 		clearAlert();
 		actionBar("900/5,000❤     100/100✎ Mana");
 		check("alerts: low health only once until you heal", Alert.lastTitle == null);
+		// Hypixel's resource pack draws ❤ as an icon now.
+		actionBar("5,000/5,000     100/100");
+		actionBar("1,000/5,000     100/100");
+		check("alerts: low health with Hypixel's heart icon", Alert.lastTitle != null && Alert.lastTitle.contains("LOW HEALTH"));
 	}
 
 	// ---- chat filter
