@@ -144,6 +144,8 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.dungeons.info.BloodCamp());
 		TazHud.register(new com.taz.dungeons.puzzles.Quiz());
 		TazHud.register(new com.taz.dungeons.f7.WitherDragons());
+		TazHud.register(new com.taz.fishing.lotus.FrogTrackerHud());
+		TazHud.register(new com.taz.fishing.lotus.FrogGuideHud());
 		TazHud.register(new com.taz.dungeons.map.DungeonMap());
 		TazHud.register(new com.taz.dungeons.map.MapInfo.Score());
 		TazHud.register(new com.taz.dungeons.map.MapInfo.RoomSecrets());
@@ -191,6 +193,7 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.SimonSays::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.ArrowAlign::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.f7.WitherDragons::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.fishing.lotus.LotusAtoll::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.general.BlockOverlay::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.map.MapInfo::render);
 		LevelRenderEvents.BEFORE_BLOCK_OUTLINE.register((context, outline) -> !com.taz.general.BlockOverlay.replaces());
@@ -430,6 +433,8 @@ public final class Taz implements ClientModInitializer {
 		safely("Chat waypoints", () -> Waypoints.onChat(line));
 		safely("Slayer chat", () -> SlayerHelper.onChat(line));
 		safely("Fishing chat", () -> FishingHelper.onChat(line));
+		safely("Trophy catches", () -> com.taz.fishing.trophy.TrophyBook.onChat(line));
+		safely("Lotus Atoll chat", () -> com.taz.fishing.lotus.LotusAtoll.onChat(line));
 		safely("Tree progress chat", () -> TreeProgress.onChat(line));
 		safely("Sweep details chat", () -> SweepDetails.onChat(line));
 		safely("Fairy souls chat", () -> FairySouls.onChat(line));
@@ -537,6 +542,8 @@ public final class Taz implements ClientModInitializer {
 		safely("Score alerts", () -> com.taz.dungeons.info.ScoreAlerts.tick(mc));
 		safely("Tick timers", () -> com.taz.dungeons.f7.TickTimers.tick(mc));
 		safely("Leap counter", () -> com.taz.dungeons.f7.LeapCounter.tick(mc));
+		safely("Trophies", () -> com.taz.fishing.trophy.TrophyBook.tick(mc));
+		safely("Lotus Atoll", () -> com.taz.fishing.lotus.LotusAtoll.tick(mc));
 		safely("Spring boots", () -> com.taz.general.SpringBoots.tick(mc));
 		safely("Pet display", () -> com.taz.general.PetDisplay.tick(mc));
 		safely("Dungeon party", () -> DungeonParty.tick(mc));

@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class QolGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"chatcommands", "chattweaks", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
 			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras", "dungeonmap", "mapinfo", "darkmode",
-			"storage", "predictor"};
+			"storage", "predictor", "lotus"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -65,6 +65,7 @@ public class QolGameTest implements FabricClientGameTest {
 			if (runs("darkmode")) darkMode();
 			if (runs("storage")) storage();
 			if (runs("predictor")) predictor();
+			if (runs("lotus")) lotus();
 		}
 		System.out.println("[QolGameTest] PASSED");
 	}
@@ -470,10 +471,118 @@ public class QolGameTest implements FabricClientGameTest {
 		}));
 	}
 
+	// ---- Lotus Atoll
+
+	private void lotus() {
+		ctx.runOnClient(mc -> {
+			Taz.config().lotus.enabled = true;
+			Taz.config().lotus.party = false;
+			com.taz.fishing.lotus.TrophyFrogs.resetForTest();
+			com.taz.fishing.lotus.LotusAtoll.resetForTest();
+			com.taz.fishing.lotus.LotusAtoll.testHere = true;
+			com.taz.fishing.lotus.LotusAtoll.testRain = false;
+			com.taz.util.Alert.lastTitle = null;
+			Taz.config().lotus.trackerHud = new com.taz.hud.HudPos(0.0, 0.12);
+			Taz.config().lotus.guideHud = new com.taz.hud.HudPos(0.47, 0.12);
+			Taz.config().lotus.trackerHud.scale = 0.75f;
+			Taz.config().lotus.guideHud.scale = 0.75f;
+		});
+		cmd("fill -3 99 -3 3 99 3 stone");
+		cmd("tp @p 0 100 0");
+		ctx.waitTicks(25);
+		// Real lines from the Atoll, which start with an icon (a Bronze and a first Diamond Common Frog, a Lily-splosion, a Puddle Jumper).
+		tell("  TROPHY FROG! You caught Common Frog BRONZE!");
+		check("lotus: a Bronze frog counts", count("COMMON", "BRONZE") == 1 && ctx.computeOnClient(mc -> com.taz.fishing.lotus.TrophyFrogs.sessionLotus()) == 8);
+		check("lotus: no title for a Bronze one you had", ctx.computeOnClient(mc -> com.taz.util.Alert.lastTitle) == null);
+		tell("NEW DISCOVERY: Common Frog DIAMOND");
+		tell("RIBBIT! [MVP++] mTaz caught their first DIAMOND Common Frog!");
+		tell("  TROPHY FROG! You caught Common Frog DIAMOND!");
+		String title = ctx.computeOnClient(mc -> net.minecraft.ChatFormatting.stripFormatting(com.taz.util.Alert.lastTitle));
+		check("lotus: a new Diamond gets a title (" + title + ")", "NEW DIAMOND Common Frog".equals(title) && count("COMMON", "DIAMOND") == 1);
+		tell("  TROPHY FROG! You caught an Exploding Frog SILVER!");
+		tell("LILY-SPLOSION!");
+		tell("Lily Pad x166");
+		tell("Lotus x77");
+		tell("  TROPHY FROG! You caught a Puddle Jumper SILVER!");
+		check("lotus: an Exploding Frog, the Lily-splosion's Lotus, and a Puddle Jumper", count("EXPLODING", "SILVER") == 1
+				&& count("PUDDLE", "SILVER") == 1 && ctx.computeOnClient(mc -> com.taz.fishing.lotus.TrophyFrogs.splosions()) == 1
+				&& ctx.computeOnClient(mc -> com.taz.fishing.lotus.TrophyFrogs.splosionLotus()) == 77);
+		List<String> lines = hudLines(com.taz.fishing.lotus.FrogTrackerHud.class);
+		check("lotus: the tracker table (" + lines + ")", lines.contains("Trophy Frogs · 4/48 · BRONZE 1/12")
+				&& lines.contains("Total B S G D Pity") && lines.contains("Common Frog 2 1 0 0 1 G 2/100")
+				&& lines.contains("Puddle Jumper 1 0 1 0 0 G 1/50") && lines.contains("Leap Frog 0 0 0 0 0 G 0/100")
+				&& lines.contains("Session: 4 frogs · 288 Lotus") && lines.contains("Lily-splosions: 1 · 77 Lotus"));
+		// The guide: what can bite here now and the Bronze frogs still to get.
+		ctx.runOnClient(mc -> com.taz.fishing.lotus.LotusAtoll.testRain = true);
+		ctx.waitTicks(25);
+		lines = hudLines(com.taz.fishing.lotus.FrogGuideHud.class);
+		check("lotus: rain lets Wetlands Frogs bite (" + lines + ")", lines.contains("Can bite here: Common, Wetlands")
+				&& lines.contains("Rain: Rain · Blessing: none") && lines.contains(" ✔ Wetlands Frog: fish in the rain")
+				&& lines.contains(" ✘ Bullfrog: wear a Red Sweater") && lines.stream().noneMatch(l -> l.contains("Common Frog:")));
+		cmd("item replace entity @p armor.chest with minecraft:leather_chestplate[minecraft:custom_name=\"Red Sweater\"]");
+		cmd("setblock 0 99 0 oak_leaves");
+		tell("WISE! You've been granted +5 Trophy Chance for 30m while on the Lotus Atoll!");
+		ctx.waitTicks(5);
+		lines = hudLines(com.taz.fishing.lotus.FrogGuideHud.class);
+		check("lotus: a Red Sweater, leaves and a Frogcoin blessing (" + lines + ")",
+				lines.contains("Can bite here: Common, Wetlands, Blessed, Bullfrog, Tree")
+						&& lines.contains("Rain: Rain · Blessing: 30m") && lines.contains(" ✔ Bullfrog: Red Sweater on"));
+		ctx.runOnClient(mc -> mc.gui.getChat().clearMessages(false));
+		ctx.waitTicks(2);
+		ctx.takeScreenshot("lotus-atoll");
+		// Rare sea creatures.
+		tell("Bow down before the Frog Prince... or pay the hefty price!");
+		check("lotus: Frog Prince title", "FROG PRINCE".equals(ctx.computeOnClient(mc -> net.minecraft.ChatFormatting.stripFormatting(com.taz.util.Alert.lastTitle))));
+		tell("A Puddle Jumper is preparing for liftoff—cast your rod into it and hold on tight!");
+		check("lotus: Puddle Jumper title", "PUDDLE JUMPER".equals(ctx.computeOnClient(mc -> net.minecraft.ChatFormatting.stripFormatting(com.taz.util.Alert.lastTitle))));
+		// The Atoll's Fairy Souls.
+		check("lotus: its 6 Fairy Souls", ctx.computeOnClient(mc -> com.taz.foraging.FairySouls.missing().stream().filter(s -> s.id().startsWith("LA")).count()) == 6);
+		// Past catches from a chat log (a repeated line marked "(x2)" by a chat mod is one more catch; someone else's isn't yours).
+		int[] fromLog = ctx.computeOnClient(mc -> {
+			try {
+				java.nio.file.Path log = java.nio.file.Files.createTempFile("taz-frogs", ".log.gz");
+				try (java.io.Writer w = new java.io.OutputStreamWriter(new java.util.zip.GZIPOutputStream(java.nio.file.Files.newOutputStream(log)),
+						java.nio.charset.StandardCharsets.UTF_8)) {
+					w.write("[20:11:40] [Render thread/INFO]: [System] [CHAT]   TROPHY FROG! You caught Common Frog BRONZE!\n");
+					w.write("[20:14:22] [Render thread/INFO]: [System] [CHAT]   TROPHY FROG! You caught Common Frog BRONZE! (x2)\n");
+					w.write("[20:17:56] [Render thread/INFO]: [System] [CHAT]   TROPHY FROG! You caught a Puddle Jumper BRONZE!\n");
+					w.write("[20:38:14] [Render thread/INFO]: [System] [CHAT] RIBBIT! [MVP++] mTaz caught their first DIAMOND Common Frog!\n");
+					w.write("[20:40:11] [Render thread/INFO]: [System] [CHAT] [225] [MVP+] Lionheart1209: TROPHY FROG! You caught Cave Frog BRONZE!\n");
+				}
+				return com.taz.fishing.lotus.TrophyFrogs.readLog(log);
+			} catch (java.io.IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		check("lotus: catches read from a chat log (" + java.util.Arrays.toString(fromLog) + ")", fromLog[0] == 2 && fromLog[11 * 4] == 1
+				&& java.util.Arrays.stream(fromLog).sum() == 3);
+		// The frogs you have, from the tab list's Trophy Frogs widget (a dot per tier, filled when you have it).
+		ctx.runOnClient(mc -> com.taz.fishing.trophy.TrophyBook.readTab(List.of("Trophy Frogs:", "●●○● Common Frog", "●○○○ Wetlands Frog",
+				"○○○○ Tree Frog", "●●○○ Puddle Jumper")));
+		lines = hudLines(com.taz.fishing.lotus.FrogTrackerHud.class);
+		check("lotus: the frogs you have from the tab list (" + lines + ")", lines.contains("Trophy Frogs · 7/48 · BRONZE 3/12")
+				&& lines.contains("Common Frog 2 1 ✔ 0 1 G 2/100") && lines.contains("Wetlands Frog 0 ✔ 0 0 0 G 0/100")
+				&& lines.contains("Puddle Jumper 1 ✔ 1 0 0 G 1/50"));
+		cmd("item replace entity @p armor.chest with air");
+		cmd("fill -3 99 -3 3 99 3 air");
+		ctx.runOnClient(mc -> {
+			Taz.config().lotus.enabled = false;
+			com.taz.fishing.lotus.LotusAtoll.resetForTest();
+			com.taz.fishing.lotus.TrophyFrogs.resetForTest();
+		});
+	}
+
+	private int count(String species, String tier) {
+		return ctx.computeOnClient(mc -> com.taz.fishing.lotus.TrophyFrogs.count(com.taz.fishing.lotus.TrophyFrogs.Species.valueOf(species),
+				com.taz.fishing.trophy.Tier.valueOf(tier)));
+	}
+
 	private List<String> hudLines(Class<?> type) {
 		return ctx.computeOnClient(mc -> {
 			for (com.taz.hud.MovableHud h : com.taz.hud.TazHud.all()) {
-				if (type.isInstance(h)) return ((com.taz.hud.TextHud) h).shownLines(false).stream().map(net.minecraft.ChatFormatting::stripFormatting).toList();
+				if (!type.isInstance(h)) continue;
+				List<String> shown = h instanceof com.taz.fishing.trophy.TrophyTableHud t ? t.shownLines(false) : ((com.taz.hud.TextHud) h).shownLines(false);
+				return shown.stream().map(net.minecraft.ChatFormatting::stripFormatting).toList();
 			}
 			throw new AssertionError(type.getSimpleName() + " not registered");
 		});

@@ -23,11 +23,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** The Fairy Souls of Moonglade Marsh (MM) and Torrhus Canyon (TC), from the wiki. Found ones are kept per profile. */
+/**
+ * The Fairy Souls of Moonglade Marsh (MM), Torrhus Canyon (TC) and the Lotus Atoll (LA), from the wiki. Found ones are kept
+ * per profile. The Atoll's are turned on in Lotus Atoll > Waypoints.
+ */
 public final class FairySouls {
 	public record Soul(String id, BlockPos pos, String hint) {
 		boolean torrhus() {
 			return id.startsWith("TC");
+		}
+
+		boolean atoll() {
+			return id.startsWith("LA");
 		}
 	}
 
@@ -55,7 +62,13 @@ public final class FairySouls {
 			new Soul("TC-9", new BlockPos(-554, 94, 256), "Cave on the island's edge (entrance at -526 86 247)"),
 			new Soul("TC-10", new BlockPos(-678, 62, 258), "Cave, entrance at -689 82 285"),
 			new Soul("TC-11", new BlockPos(-711, 59, 290), "Side of the island towards the bottom"),
-			new Soul("TC-12", new BlockPos(-727, 125, 152), "Near the Critter Safari airships"));
+			new Soul("TC-12", new BlockPos(-727, 125, 152), "Near the Critter Safari airships"),
+			new Soul("LA-1", new BlockPos(86, 65, -12), "Lotus Eater's Cave, in the pool of water"),
+			new Soul("LA-2", new BlockPos(12, 66, 28), "Under the area above Researcher Timmy"),
+			new Soul("LA-3", new BlockPos(24, 142, -68), "Lotus Highlands, back of Researcher Tay's floating island"),
+			new Soul("LA-4", new BlockPos(70, 118, 8), "Inside the leaves of a cherry tree"),
+			new Soul("LA-5", new BlockPos(1, 70, -15), "Small room behind Researcher Ribery"),
+			new Soul("LA-6", new BlockPos(89, 78, 27), "Edge of the island"));
 
 	private static final Path FILE = Taz.CONFIG_DIR.resolve("foraging").resolve("fairysouls.json");
 	/** Picking a soul up happens right next to it. */
@@ -78,13 +91,22 @@ public final class FairySouls {
 
 	/** Souls on the island you're on that you haven't found. */
 	public static List<Soul> missing() {
-		boolean torrhus = Galatea.inTorrhus(), moonglade = Galatea.inMoonglade();
-		return SOULS.stream().filter(s -> !isFound(s) && (s.torrhus() ? torrhus : moonglade)).toList();
+		boolean torrhus = Galatea.inTorrhus(), moonglade = Galatea.inMoonglade(), atoll = com.taz.fishing.lotus.LotusAtoll.here();
+		return SOULS.stream().filter(s -> !isFound(s) && (s.atoll() ? atoll : s.torrhus() ? torrhus : moonglade)).toList();
+	}
+
+	/** Shown where you are: Galatea's with Fairy Souls on, the Atoll's with Lotus Atoll > Fairy Souls on. */
+	private static boolean on() {
+		if (com.taz.fishing.lotus.LotusAtoll.here()) {
+			com.taz.fishing.lotus.LotusConfig lotus = com.taz.fishing.lotus.LotusConfig.get();
+			return lotus.enabled && lotus.fairySouls;
+		}
+		return FairySoulsConfig.get().enabled && Galatea.onIslands();
 	}
 
 	/** A plain-text chat line: picking up a soul (or one you had) ticks off the closest. */
 	public static void onChat(String line) {
-		if (!FairySoulsConfig.get().enabled) return;
+		if (!on()) return;
 		if (!line.startsWith("SOUL! You found a Fairy Soul!") && !line.startsWith("You have already found that Fairy Soul!")) return;
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.player == null) return;
@@ -99,19 +121,20 @@ public final class FairySouls {
 		}
 		if (best != null && found().add(best.id())) {
 			save();
-			long left = SOULS.stream().filter(s -> !isFound(s)).count();
-			TazChat.info("Fairy Soul " + best.id() + " ticked off. " + left + " left on Galatea.");
+			Soul found = best;
+			long left = SOULS.stream().filter(s -> !isFound(s) && s.atoll() == found.atoll()).count();
+			TazChat.info("Fairy Soul " + best.id() + " ticked off. " + left + " left on " + (best.atoll() ? "the Lotus Atoll." : "Galatea."));
 		}
 	}
 
 	public static void markAllFound() {
-		for (Soul s : SOULS) found().add(s.id());
+		for (Soul s : SOULS) if (!s.atoll()) found().add(s.id());
 		save();
 		TazChat.info("Every Galatea Fairy Soul marked as found.");
 	}
 
 	public static void forgetFound() {
-		found().clear();
+		found().removeIf(id -> !id.startsWith("LA"));
 		save();
 		TazChat.info("Showing every Galatea Fairy Soul again.");
 	}
@@ -149,7 +172,7 @@ public final class FairySouls {
 	/** LevelRenderEvents.END_MAIN. */
 	public static void render(LevelRenderContext context) {
 		FairySoulsConfig cfg = FairySoulsConfig.get();
-		if (!cfg.enabled || !Galatea.onIslands()) return;
+		if (!on()) return;
 		List<Soul> missing = missing();
 		if (missing.isEmpty()) return;
 		int color = cfg.argb();

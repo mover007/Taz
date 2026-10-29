@@ -79,6 +79,10 @@ public final class TazConfig extends Config {
 	public com.taz.foraging.safari.SafariConfig safari = new com.taz.foraging.safari.SafariConfig();
 
 	@Expose
+	@Category(name = "Lotus Atoll", desc = "Trophy Frogs, a frog guide and waypoints for the Lotus Atoll.")
+	public com.taz.fishing.lotus.LotusConfig lotus = new com.taz.fishing.lotus.LotusConfig();
+
+	@Expose
 	@Category(name = "SkyBlock XP", desc = "Your SkyBlock level.")
 	public SkyblockXpCategory skyblockXp = new SkyblockXpCategory();
 
