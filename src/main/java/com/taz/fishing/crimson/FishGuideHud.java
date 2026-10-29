@@ -17,7 +17,7 @@ import java.util.List;
  * Can bite here: Blobfish, Lavahorse, Volcanic Stonefish
  * Volcano: INACTIVE · Mana: 558 · Bobber: 12s
  *  ✘ Mana Ray: have 1,200+ mana (558)
- *  • Gusher: Blazing Volcano, 7-16 min after it erupts
+ *  ✔ Gusher: Blazing Volcano, 7-16 min after it erupts (6m left)
  * </pre>
  */
 public final class FishGuideHud extends TextHud {
@@ -41,7 +41,7 @@ public final class FishGuideHud extends TextHud {
 		if (preview) {
 			return List.of("§c§lFish Guide §7· §6BRONZE §f15§7/18", "§7Can bite here: §fBlobfish, Lavahorse, Volcanic Stonefish",
 					"§7Volcano: §fINACTIVE §7· Mana: §f558 §7· Bobber: §f12s", " §c✘ §fMana Ray§7: have 1,200+ mana §c(558)",
-					" §7• §fGusher§7: Blazing Volcano, 7-16 min after it erupts");
+					" §a✔ §fGusher§7: Blazing Volcano, 7-16 min after it erupts §a(6m left)");
 		}
 		Player p = Minecraft.getInstance().player;
 		if (p == null || !TrophyFish.here()) return List.of();
@@ -57,7 +57,7 @@ public final class FishGuideHud extends TextHud {
 				+ " §7· Bobber: " + (bobber < 0 ? "§8none" : "§f" + bobber + "s"));
 		if (goal == null) return out;
 		for (TrophyFish.Fish f : TrophyFish.Fish.values()) {
-			if (TrophyFish.has(f, goal)) continue;
+			if (TrophyFish.BOOK.reached(f.ordinal(), goal)) continue;
 			Boolean ready = TrophyFish.canBite(f, p);
 			String mark = ready == null ? "§7•" : ready ? "§a✔" : "§c✘";
 			out.add(" " + mark + " §f" + f.label + "§7: " + hint(f, p));
@@ -69,6 +69,7 @@ public final class FishGuideHud extends TextHud {
 	private static String hint(TrophyFish.Fish f, Player p) {
 		return switch (f) {
 			case MANA_RAY -> f.how + (TrophyFish.mana() >= 0 && TrophyFish.mana() < 1200 ? " §c(" + TrophyFish.mana() + ")" : "");
+			case GUSHER -> f.how + TrophyFish.gusherHint(System.currentTimeMillis());
 			case SLUGFISH -> f.how + (TrophyFish.bobberSeconds(p) >= 0 ? " §f(" + TrophyFish.bobberSeconds(p) + "s)" : "");
 			case VANILLE -> TrophyFish.holdingStarterRod(p) ? "Starter Lava Rod in hand" : f.how;
 			default -> f.how;

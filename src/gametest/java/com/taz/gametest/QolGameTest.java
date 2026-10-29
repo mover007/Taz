@@ -509,9 +509,10 @@ public class QolGameTest implements FabricClientGameTest {
 				&& count("PUDDLE", "SILVER") == 1 && ctx.computeOnClient(mc -> com.taz.fishing.lotus.TrophyFrogs.splosions()) == 1
 				&& ctx.computeOnClient(mc -> com.taz.fishing.lotus.TrophyFrogs.splosionLotus()) == 77);
 		List<String> lines = hudLines(com.taz.fishing.lotus.FrogTrackerHud.class);
-		check("lotus: the tracker table (" + lines + ")", lines.contains("Trophy Frogs · 4/48 · BRONZE 1/12")
-				&& lines.contains("Total B S G D Pity") && lines.contains("Common Frog 2 1 0 0 1 G 2/100")
-				&& lines.contains("Puddle Jumper 1 0 1 0 0 G 1/50") && lines.contains("Leap Frog 0 0 0 0 0 G 0/100")
+		// A higher tier does for the ones below it: the Diamond Common Frog covers Silver and Gold, a Silver covers Bronze.
+		check("lotus: the tracker table (" + lines + ")", lines.contains("Trophy Frogs · 4/48 · BRONZE 3/12")
+				&& lines.contains("Total B S G D Pity") && lines.contains("Common Frog 2 1 ✔ ✔ 1")
+				&& lines.contains("Puddle Jumper 1 ✔ 1 0 0 G 1/50") && lines.contains("Leap Frog 0 0 0 0 0 G 0/100")
 				&& lines.contains("Session: 4 frogs · 288 Lotus") && lines.contains("Lily-splosions: 1 · 77 Lotus"));
 		// The guide: what can bite here now and the Bronze frogs still to get.
 		ctx.runOnClient(mc -> com.taz.fishing.lotus.LotusAtoll.testRain = true);
@@ -561,8 +562,8 @@ public class QolGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> com.taz.fishing.trophy.TrophyBook.readTab(List.of("Trophy Frogs:", "●●○● Common Frog", "●○○○ Wetlands Frog",
 				"○○○○ Tree Frog", "●●○○ Puddle Jumper")));
 		lines = hudLines(com.taz.fishing.lotus.FrogTrackerHud.class);
-		check("lotus: the frogs you have from the tab list (" + lines + ")", lines.contains("Trophy Frogs · 7/48 · BRONZE 3/12")
-				&& lines.contains("Common Frog 2 1 ✔ 0 1 G 2/100") && lines.contains("Wetlands Frog 0 ✔ 0 0 0 G 0/100")
+		check("lotus: the frogs you have from the tab list (" + lines + ")", lines.contains("Trophy Frogs · 7/48 · BRONZE 4/12")
+				&& lines.contains("Common Frog 2 1 ✔ ✔ 1") && lines.contains("Wetlands Frog 0 ✔ 0 0 0 G 0/100")
 				&& lines.contains("Puddle Jumper 1 ✔ 1 0 0 G 1/50"));
 		cmd("item replace entity @p armor.chest with air");
 		cmd("fill -3 99 -3 3 99 3 air");
@@ -612,6 +613,11 @@ public class QolGameTest implements FabricClientGameTest {
 		check("trophy fish: the table (" + lines + ")", lines.contains("Total B S G D Pity") && lines.contains("Blobfish 374 270 94 9 1")
 				&& lines.contains("Sulphur Skitter 5 3 2 0 0 G 5/100") && lines.contains("Flyfish 0 ✔ ✔ 0 0 G 0/100")
 				&& lines.contains("Obfuscated-1 1 ✔ ✔ ✔ 1") && lines.contains("Session: 4 fish · 1056 Magmafish"));
+		// A Diamond with no Gold does for Gold, and the tiers below.
+		ctx.runOnClient(mc -> com.taz.fishing.trophy.TrophyBook.readTab(List.of("○○○● Moldfin")));
+		lines = hudLines(com.taz.fishing.crimson.TrophyFishHud.class);
+		int gold = ctx.computeOnClient(mc -> com.taz.fishing.crimson.TrophyFish.BOOK.caughtAt(com.taz.fishing.trophy.Tier.GOLD));
+		check("trophy fish: a Diamond counts for Gold (" + gold + " " + lines + ")", gold == 4 && lines.contains("Moldfin 0 ✔ ✔ ✔ ✔"));
 		// The guide: in the Blazing Volcano with 558 mana.
 		ctx.runOnClient(mc -> {
 			com.taz.fishing.crimson.TrophyFish.testArea = "Blazing Volcano";
@@ -619,12 +625,35 @@ public class QolGameTest implements FabricClientGameTest {
 		});
 		lines = hudLines(com.taz.fishing.crimson.FishGuideHud.class);
 		check("trophy fish: what can bite in the volcano (" + lines + ")", lines.contains("Can bite here: Blobfish, Lavahorse, Volcanic Stonefish")
-				&& lines.contains(" ✘ Mana Ray: have 1,200+ mana (558)") && lines.contains(" • Gusher: Blazing Volcano, 7-16 min after it erupts")
+				&& lines.contains(" ✘ Mana Ray: have 1,200+ mana (558)")
+				&& lines.contains(" • Gusher: Blazing Volcano, 7-16 min after it erupts (no eruption seen here)")
 				&& lines.stream().noneMatch(l -> l.contains("Blobfish:")));
 		cmd("setblock 2 100 0 sponge");
 		ctx.waitTicks(12);
 		lines = hudLines(com.taz.fishing.crimson.FishGuideHud.class);
 		check("trophy fish: Sulphur nearby (" + lines + ")", lines.contains("Can bite here: Sulphur Skitter, Blobfish, Lavahorse, Volcanic Stonefish"));
+		// Hypixel's action bar draws ✎ as an icon; an eruption that ended 10 minutes ago means Gushers.
+		ctx.runOnClient(mc -> {
+			com.taz.fishing.crimson.TrophyFish.onActionBar("4,737/4,362     1,300/1,300 600");
+			long now = System.currentTimeMillis();
+			com.taz.fishing.crimson.TrophyFish.volcanoState("MEDIUM", now - 15 * 60_000L);
+			com.taz.fishing.crimson.TrophyFish.volcanoState("INACTIVE", now - 10 * 60_000L);
+		});
+		lines = hudLines(com.taz.fishing.crimson.FishGuideHud.class);
+		check("trophy fish: mana from the icon, Gusher time (" + lines + ")",
+				lines.contains("Can bite here: Sulphur Skitter, Gusher, Blobfish, Lavahorse, Mana Ray, Volcanic Stonefish")
+						&& lines.contains(" ✔ Mana Ray: have 1,200+ mana") && lines.contains(" ✔ Gusher: Blazing Volcano, 7-16 min after it erupts (6m left)"));
+		ctx.runOnClient(mc -> {
+			long now = System.currentTimeMillis();
+			com.taz.fishing.crimson.TrophyFish.volcanoState("LOW", now - 5 * 60_000L);
+			com.taz.fishing.crimson.TrophyFish.volcanoState("INACTIVE", now - 4 * 60_000L);
+		});
+		lines = hudLines(com.taz.fishing.crimson.FishGuideHud.class);
+		check("trophy fish: Gushers not yet (" + lines + ")", lines.contains(" ✘ Gusher: Blazing Volcano, 7-16 min after it erupts (opens in 3m)"));
+		// Catching them says it's their time, whatever Taz thought.
+		tell("  TROPHY FISH! You caught Gusher BRONZE!");
+		lines = hudLines(com.taz.fishing.crimson.FishGuideHud.class);
+		check("trophy fish: catching Gushers (" + lines + ")", lines.get(1).contains("Gusher"));
 		ctx.runOnClient(mc -> {
 			mc.gui.getChat().clearMessages(false);
 			mc.gui.clearTitles();
@@ -645,14 +674,18 @@ public class QolGameTest implements FabricClientGameTest {
 					w.write("[22:53:01] [Render thread/INFO]: [System] [CHAT]  \uE02A TROPHY FISH! You caught Lavahorse SILVER!\n");
 					w.write("[22:54:10] [Render thread/INFO]: [System] [CHAT] §2Guild > §b[MVP§6+§b] Jqcp §3[S]§f: leqfer:  TROPHY FISH! You caught Soul Fish GOLD! 2h30\n");
 					w.write("[22:55:12] [Render thread/INFO]: [System] [CHAT]  \uE02A TROPHY FROG! You caught Common Frog BRONZE!\n");
+					// SkyHanni's rewrites, which the log holds when it's on.
+					w.write("[22:56:00] [Render thread/INFO]: [System] [CHAT] \u00A76\u00A76\uE02A \u00A76\u00A7lTROPHY FISH! \u00A77204th \u00A7r\u00A78\u00A7lBRONZE \u00A7fBlobfish \u00A77(276th total)\n");
+					w.write("[22:56:30] [Render thread/INFO]: [System] [CHAT] \uE02A TROPHY FISH! You caught Lavahorse BRONZE! \u00A77(454th total)\n");
+					w.write("[22:57:00] [Render thread/INFO]: [System] [CHAT] \u00A76\u00A76\uE02A \u00A76\u00A7lTROPHY FISH! \u00A7c\u00A7lFIRST \u00A7r\u00A7b\u00A7lDIAMOND \u00A79Lavahorse \u00A77(90th total)\n");
 				}
 				return com.taz.fishing.crimson.TrophyFish.BOOK.countLog(log);
 			} catch (java.io.IOException e) {
 				throw new RuntimeException(e);
 			}
 		});
-		check("trophy fish: catches read from a chat log (" + java.util.Arrays.toString(fromLog) + ")", fromLog[4 * 4] == 1 && fromLog[9 * 4 + 1] == 1
-				&& java.util.Arrays.stream(fromLog).sum() == 2);
+		check("trophy fish: catches read from a chat log (" + java.util.Arrays.toString(fromLog) + ")", fromLog[4 * 4] == 2 && fromLog[9 * 4] == 1
+				&& fromLog[9 * 4 + 1] == 1 && fromLog[9 * 4 + 3] == 1 && java.util.Arrays.stream(fromLog).sum() == 5);
 		cmd("fill -3 99 -3 3 100 3 air");
 		ctx.runOnClient(mc -> {
 			Taz.config().trophyFish.enabled = false;

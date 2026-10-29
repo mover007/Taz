@@ -57,7 +57,7 @@ public final class FrogGuideHud extends TextHud {
 				+ (blessing > 0 ? "§a" + (blessing / 60_000 + 1) + "m" : "§8none"));
 		if (goal == null) return out;
 		for (TrophyFrogs.Species s : TrophyFrogs.Species.values()) {
-			if (TrophyFrogs.has(s, goal)) continue;
+			if (TrophyFrogs.BOOK.reached(s.ordinal(), goal)) continue;
 			Boolean ready = LotusAtoll.canBite(s, p);
 			String mark = ready == null ? "§7•" : ready ? "§a✔" : "§c✘";
 			out.add(" " + mark + " §f" + s.label + "§7: " + hint(s, p));

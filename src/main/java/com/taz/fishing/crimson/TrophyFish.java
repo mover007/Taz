@@ -65,8 +65,11 @@ public final class TrophyFish {
 	}
 
 	public static final TrophyBook BOOK = new TrophyBook("Trophy Fish", "FISH", "fish", entries());
-	private static final Pattern MANA = Pattern.compile("([\\d,]+)/[\\d,]+✎");
+	/** "1,300/1,300✎": Hypixel's resource pack draws the ✎ as a private-use icon (U+E003). */
+	private static final Pattern MANA = Pattern.compile("([\\d,]+)/[\\d,]+(?:✎|\uE003)");
 	private static final Pattern VOLCANO = Pattern.compile("^Volcano: (.+)$");
+	/** Gushers bite 7-16 minutes after the Blazing Volcano erupts. */
+	private static final long GUSHER_FROM = 7 * 60_000L, GUSHER_TO = 16 * 60_000L;
 	/** Tests: pretend to be on the Crimson Isle, in an area ("Blazing Volcano"). */
 	public static boolean testHere;
 	public static String testArea;
@@ -74,6 +77,11 @@ public final class TrophyFish {
 	private static int sessionFish, sessionMagmafish, ticks, mana = -1;
 	private static boolean nearSulphur;
 	private static String volcano;
+	/** This lobby's volcano: when the eruption Taz sees began (0 = not erupting) and when the last one ended (0 = none seen). */
+	private static Object lobby;
+	private static long eruptingSince, eruptedAt;
+	/** Your Gushers in this lobby: the first of this window's and the last one. */
+	private static long gusherFirst, gusherLast;
 
 	static {
 		BOOK.onCatch(TrophyFish::caught);
@@ -121,7 +129,7 @@ public final class TrophyFish {
 		return mana;
 	}
 
-	/** The Blazing Volcano's state from the tab list ("INACTIVE", "ERUPTING"...), or null. */
+	/** The Blazing Volcano's state from the tab list ("INACTIVE", or an eruption's level like "MEDIUM"), or null. */
 	public static String volcano() {
 		return volcano;
 	}
@@ -136,13 +144,59 @@ public final class TrophyFish {
 		return TextUtil.cleanChat(p.getMainHandItem().getHoverName().getString()).contains("Starter Lava Rod");
 	}
 
+	/** The volcano's state from the tab list, each second: an eruption ends when it says INACTIVE again. */
+	public static void volcanoState(String state, long now) {
+		volcano = state;
+		if (state == null) return;
+		if (!state.equals("INACTIVE")) {
+			if (eruptingSince == 0) eruptingSince = now;
+		} else if (eruptingSince > 0) {
+			eruptedAt = now;
+			eruptingSince = 0;
+		}
+	}
+
+	/**
+	 * Whether it's Gusher time: you're catching them, or it's 7-16 minutes after an eruption Taz saw end in this lobby.
+	 * Null when Taz hasn't seen one.
+	 */
+	public static Boolean gusherTime(long now) {
+		if (gusherLast > 0 && now - gusherLast < 3 * 60_000L && now - gusherFirst < GUSHER_TO - GUSHER_FROM) return true;
+		if (eruptingSince > 0) return false;
+		if (eruptedAt == 0) return null;
+		long since = now - eruptedAt;
+		return since >= GUSHER_FROM && since < GUSHER_TO;
+	}
+
+	/** The Gusher window for the guide: " (opens in 3m)", " (6m left)" and so on. */
+	public static String gusherHint(long now) {
+		if (Boolean.TRUE.equals(gusherTime(now)) && (eruptedAt == 0 || now - eruptedAt < GUSHER_FROM || now - eruptedAt >= GUSHER_TO)) {
+			return " §a(you're catching them)";
+		}
+		if (eruptingSince > 0) return " §c(erupting now)";
+		if (eruptedAt == 0) return " §8(no eruption seen here)";
+		long since = now - eruptedAt;
+		if (since < GUSHER_FROM) return " §c(opens in " + minutes(GUSHER_FROM - since) + "m)";
+		if (since < GUSHER_TO) return " §a(" + minutes(GUSHER_TO - since) + "m left)";
+		return " §c(over for this eruption)";
+	}
+
+	private static long minutes(long ms) {
+		return (ms + 59_999) / 60_000;
+	}
+
 	/** Whether a fish can bite you right now, or null when Taz can't tell (bait, geysers, eruptions, the Golden Fish). */
 	public static Boolean canBite(Fish f, Player p) {
 		boolean volcanoArea = inArea("Blazing Volcano");
 		return switch (f) {
 			case BLOBFISH, LAVAHORSE -> true;
 			case SULPHUR -> nearSulphur;
-			case STEAMING, GUSHER -> volcanoArea ? null : false;
+			case STEAMING -> volcanoArea ? null : false;
+			case GUSHER -> {
+				// Gushers on your line say it's their time, wherever the sidebar says you are.
+				Boolean time = gusherTime(System.currentTimeMillis());
+				yield Boolean.TRUE.equals(time) || volcanoArea ? time : Boolean.FALSE;
+			}
 			case STONEFISH -> volcanoArea;
 			case FLYFISH -> volcanoArea && p.fishing != null && p.getY() - p.fishing.getY() >= 8;
 			case SLUGFISH -> bobberSeconds(p) >= 20;
@@ -170,11 +224,17 @@ public final class TrophyFish {
 			}
 		}
 		if (ticks % 20 == 0) {
-			volcano = null;
+			// A new lobby has its own volcano.
+			if (mc.level != lobby) {
+				lobby = mc.level;
+				eruptingSince = eruptedAt = gusherFirst = gusherLast = 0;
+			}
+			String state = null;
 			for (String line : TrophyBook.tabLines(mc)) {
 				Matcher m = VOLCANO.matcher(line);
-				if (m.matches()) volcano = m.group(1).trim();
+				if (m.matches()) state = m.group(1).trim();
 			}
+			volcanoState(state, System.currentTimeMillis());
 		}
 	}
 
@@ -196,6 +256,7 @@ public final class TrophyFish {
 		Fish f = Fish.values()[c.entry()];
 		sessionFish++;
 		sessionMagmafish += f.fillet(c.tier());
+		if (f == Fish.GUSHER) gusherCaught(System.currentTimeMillis());
 		TrophyFishConfig cfg = TrophyFishConfig.get();
 		if (!cfg.enabled || !cfg.fishTitles) return;
 		boolean rare = c.tier() == Tier.GOLD || c.tier() == Tier.DIAMOND;
@@ -203,6 +264,12 @@ public final class TrophyFish {
 		String title = (c.isNew() ? "§a§lNEW " : "") + c.tier().code + "§l" + c.tier().name() + " §f" + f.label;
 		Alert.show(title, "§7Fillets into §f" + f.fillet(c.tier()) + " Magmafish", cfg.sound);
 		if (rare && cfg.party) TazChat.party(c.tier().name() + " " + f.label + "!");
+	}
+
+	/** A Gusher of yours: its window is open, for at most 9 minutes from the first one. */
+	public static void gusherCaught(long now) {
+		if (now - gusherFirst >= GUSHER_TO - GUSHER_FROM) gusherFirst = now;
+		gusherLast = now;
 	}
 
 	public static void reimport() {
@@ -216,6 +283,7 @@ public final class TrophyFish {
 		mana = -1;
 		nearSulphur = false;
 		volcano = null;
+		eruptingSince = eruptedAt = gusherFirst = gusherLast = 0;
 		testHere = false;
 		testArea = null;
 	}

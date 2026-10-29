@@ -49,7 +49,9 @@ import java.util.zip.GZIPInputStream;
  * <ul>
  * <li>Counts come from the collector's menu (Odger's "Trophy Fish", lore like "Bronze ✔ (12)" and "Diamond ✖"), plus
  * every catch since then from Minecraft's chat logs and this session. Before you open the menu, the chat logs alone.</li>
- * <li>Catches are chat lines like "TROPHY FISH! You caught a Blobfish BRONZE!" after an icon.</li>
+ * <li>Catches are chat lines like "TROPHY FISH! You caught a Blobfish BRONZE!" after an icon; the chat logs may hold
+ * SkyHanni's rewrite instead ("TROPHY FISH! 204th BRONZE Blobfish (276th total)").</li>
+ * <li>A tier counts as reached with any tier above it too: a Diamond with no Gold does for Gold.</li>
  * <li>Which tiers you have also comes from the tab list's widget (" ●●○● Common Frog").</li>
  * </ul>
  */
@@ -65,7 +67,14 @@ public final class TrophyBook {
 	public record Catch(TrophyBook book, int entry, Tier tier, boolean isNew) {
 	}
 
-	private static final Pattern CAUGHT = Pattern.compile("^[^A-Za-z]*TROPHY (FISH|FROG)! You caught (?:an? )?(.+) (BRONZE|SILVER|GOLD|DIAMOND)!$");
+	/** A catch line read: "FISH" or "FROG", the species' name, its tier, and whether SkyHanni marked it FIRST. */
+	private record Line(String word, String name, Tier tier, boolean first) {
+	}
+
+	/** Hypixel's line, with SkyHanni's " (454th total)" after it or not. */
+	private static final Pattern CAUGHT = Pattern.compile("^[^A-Za-z]*TROPHY (FISH|FROG)! You caught (?:an? )?(.+) (BRONZE|SILVER|GOLD|DIAMOND)!(?: \\(\\d+(?:st|nd|rd|th) total\\))?$");
+	/** SkyHanni's rewrite of it: "TROPHY FISH! 204th BRONZE Blobfish (276th total)", "FIRST" for a new one. */
+	private static final Pattern REWRITTEN = Pattern.compile("^[^A-Za-z]*TROPHY (FISH|FROG)! (FIRST|\\d+(?:st|nd|rd|th)) (BRONZE|SILVER|GOLD|DIAMOND) (.+) \\(\\d+(?:st|nd|rd|th) total\\)$");
 	private static final Pattern NEW = Pattern.compile("^NEW DISCOVERY: (.+) (BRONZE|SILVER|GOLD|DIAMOND)$");
 	/** A tab list line of the trophy widget: a dot per tier, filled when you have it. */
 	private static final Pattern TAB = Pattern.compile("^([●○]{4}) (.+)$");
@@ -75,7 +84,7 @@ public final class TrophyBook {
 	private static final Pattern LOG_FILE = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2})-\\d+\\.log\\.gz$");
 	private static final Pattern DUPLICATE_SUFFIX = Pattern.compile("\\s*\\(x\\d+\\)$");
 	/** Bumped when the log reading changes, so files read the old way are read again. */
-	private static final int CACHE_VERSION = 3;
+	private static final int CACHE_VERSION = 4;
 	private static final int T = 4;
 	private static final Path DIR = Taz.CONFIG_DIR.resolve("fishing");
 
@@ -162,6 +171,12 @@ public final class TrophyBook {
 		return owned[i * T + t.ordinal()] || count(i, t) > 0;
 	}
 
+	/** Whether a tier is done: you have it or a higher one (a Diamond with no Gold counts for Gold). */
+	public boolean reached(int i, Tier t) {
+		for (Tier up : Tier.values()) if (up.ordinal() >= t.ordinal() && has(i, up)) return true;
+		return false;
+	}
+
 	public int total(int i) {
 		int n = 0;
 		for (Tier t : Tier.values()) n += count(i, t);
@@ -171,26 +186,28 @@ public final class TrophyBook {
 	/** Catches toward the next pity you haven't hit: "G 47/100", "D 120/600", or "" once you have both. */
 	public String pity(int i) {
 		Entry e = entries.get(i);
-		if (!has(i, Tier.GOLD)) return "G " + total(i) + "/" + e.goldPity;
+		if (!reached(i, Tier.GOLD)) return "G " + total(i) + "/" + e.goldPity;
 		if (!has(i, Tier.DIAMOND)) return "D " + total(i) + "/" + e.diamondPity();
 		return "";
 	}
 
-	/** The lowest tier you haven't got every species of, or null when you have them all. */
+	/** The lowest tier not every species has reached, or null when they all have Diamond. */
 	public Tier goalTier() {
-		for (Tier t : Tier.values()) for (int i = 0; i < size(); i++) if (!has(i, t)) return t;
+		for (Tier t : Tier.values()) for (int i = 0; i < size(); i++) if (!reached(i, t)) return t;
 		return null;
 	}
 
+	/** How many species have reached a tier. */
 	public int caughtAt(Tier t) {
 		int n = 0;
-		for (int i = 0; i < size(); i++) if (has(i, t)) n++;
+		for (int i = 0; i < size(); i++) if (reached(i, t)) n++;
 		return n;
 	}
 
+	/** How many species and tiers you really have (a Diamond alone is one). */
 	public int found() {
 		int n = 0;
-		for (Tier t : Tier.values()) n += caughtAt(t);
+		for (int i = 0; i < size(); i++) for (Tier t : Tier.values()) if (has(i, t)) n++;
 		return n;
 	}
 
@@ -232,19 +249,27 @@ public final class TrophyBook {
 			newFind = m.group(1) + " " + m.group(2);
 			return;
 		}
-		m = CAUGHT.matcher(line);
-		if (!m.matches()) return;
-		boolean isNew = (m.group(2) + " " + m.group(3)).equalsIgnoreCase(newFind);
+		Line c = parse(line);
+		if (c == null) return;
+		boolean isNew = c.first || (c.name + " " + c.tier.name()).equalsIgnoreCase(newFind);
 		newFind = null;
 		for (TrophyBook b : books()) {
-			if (!b.word.equals(m.group(1))) continue;
-			int i = b.index(m.group(2));
+			if (!b.word.equals(c.word)) continue;
+			int i = b.index(c.name);
 			if (i < 0) return;
-			Tier t = Tier.valueOf(m.group(3));
-			b.live.add(System.currentTimeMillis() << 8 | (long) i * T + t.ordinal());
+			b.live.add(System.currentTimeMillis() << 8 | (long) i * T + c.tier.ordinal());
 			b.counts = null;
-			b.listener.accept(new Catch(b, i, t, isNew));
+			b.listener.accept(new Catch(b, i, c.tier, isNew));
 		}
+	}
+
+	/** A plain-text catch line, Hypixel's or SkyHanni's rewrite of it (the chat logs hold whichever was shown), or null. */
+	private static Line parse(String line) {
+		Matcher m = CAUGHT.matcher(line);
+		if (m.matches()) return new Line(m.group(1), m.group(2), Tier.valueOf(m.group(3)), false);
+		m = REWRITTEN.matcher(line);
+		if (m.matches()) return new Line(m.group(1), m.group(4), Tier.valueOf(m.group(3)), m.group(2).equals("FIRST"));
+		return null;
 	}
 
 	/** Every client tick: the tab list's trophy widget each second, and an open trophy menu. */
@@ -459,13 +484,13 @@ public final class TrophyBook {
 				if (!raw.contains("TROPHY ")) continue;
 				Matcher lm = LOG_LINE.matcher(raw);
 				if (!lm.matches()) continue;
-				Matcher m = CAUGHT.matcher(DUPLICATE_SUFFIX.matcher(TextUtil.cleanChat(lm.group(1))).replaceAll(""));
-				if (!m.matches()) continue;
+				Line c = parse(DUPLICATE_SUFFIX.matcher(TextUtil.cleanChat(lm.group(1))).replaceAll(""));
+				if (c == null) continue;
 				for (TrophyBook b : books) {
-					int i = b.word.equals(m.group(1)) ? b.index(m.group(2)) : -1;
+					int i = b.word.equals(c.word) ? b.index(c.name) : -1;
 					if (i < 0) continue;
 					long ms = day.atTime(LocalTime.ofSecondOfDay(sec)).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-					found.get(b).add(ms << 8 | (long) i * T + Tier.valueOf(m.group(3)).ordinal());
+					found.get(b).add(ms << 8 | (long) i * T + c.tier.ordinal());
 				}
 			}
 		} catch (Exception e) {
