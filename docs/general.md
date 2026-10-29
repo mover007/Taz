@@ -21,6 +21,7 @@ Everything Taz says starts with **[TAZ]**. Party messages go out one at a time, 
 - **Event Timers:** a HUD counting down to the Dark Auction, Jacob's Contest, Cult of the Fallen Star, Spooky Festival, Season of Jerry and more.
 - **Skill Tracker:** skill XP per hour and time to your next level.
 - **Chat Filter:** hides lobby joins, Watchdog, warping messages, ability damage and other spam.
+- **Stack Duplicates:** a message that repeats one of the last few (5 by default, **Look back** sets it) shows once with a count: "TROPHY FISH! You caught Blobfish BRONZE! (x3)". Blank and separator lines aren't stacked. If Chat Patches' own counter is on too, turn one of them off.
 - **Chat Waypoints:** coordinates in party chat become a beam you can walk to.
 - **Chat Commands:** party "!" commands (!warp, !allinvite, !pt, !kick, !f7, !coords, !ping...).
 - **Command Keys, Slot Binds, Loadout Keybinds, Command Shortcuts.**

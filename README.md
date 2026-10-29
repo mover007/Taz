@@ -32,7 +32,7 @@ Every feature starts off, so you only get what you turn on.
 - **SkyBlock XP:** the cheapest upgrades you haven't done, a level plan and an NPC finder. [More](docs/skyblock-xp.md)
 - **Trophy Fishing:** your 72 Trophy Fish in a table with icons and counts (loaded from Odger), which fish can bite where you stand, and Golden Fish alerts. [More](docs/trophy-fishing.md)
 - **Lotus Atoll:** your 48 Trophy Frogs in a table with icons and pity counts, which frogs can bite where you stand, Wormhole spots, Fairy Souls and rare catch alerts. [More](docs/lotus-atoll.md)
-- **Everyday:** alerts, a Dark Auction reminder, event timers, item prices in tooltips, a chat filter, command keys, a storage overlay, and slayer and fishing helpers. [More](docs/general.md)
+- **Everyday:** alerts, a Dark Auction reminder, event timers, item prices in tooltips, a chat filter, stacked duplicate messages, command keys, a storage overlay, and slayer and fishing helpers. [More](docs/general.md)
 
 ## Install
 

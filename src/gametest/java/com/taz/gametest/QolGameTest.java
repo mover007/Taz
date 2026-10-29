@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 
 /** Quality-of-life features from Odin and NoammAddons. */
 public class QolGameTest implements FabricClientGameTest {
-	private static final String[] PARTS = {"chatcommands", "chattweaks", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
+	private static final String[] PARTS = {"chatcommands", "chattweaks", "chatstack", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
 			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras", "dungeonmap", "mapinfo", "darkmode",
 			"storage", "predictor", "lotus", "trophyfish"};
 	private ClientGameTestContext ctx;
@@ -47,6 +47,7 @@ public class QolGameTest implements FabricClientGameTest {
 			ctx.waitTicks(20);
 			if (runs("chatcommands")) chatCommands();
 			if (runs("chattweaks")) chatTweaks();
+			if (runs("chatstack")) chatStack();
 			if (runs("shortcuts")) shortcuts();
 			if (runs("slotbinds")) slotBinds();
 			if (runs("loadouts")) loadouts();
@@ -117,6 +118,50 @@ public class QolGameTest implements FabricClientGameTest {
 		String at = ctx.computeOnClient(mc -> com.taz.general.ChatTweaks.messageAt(10, mc.getWindow().getGuiScaledHeight() - 42));
 		check("chat: the message under the mouse (" + at + ")", "the newest message".equals(at));
 		ctx.runOnClient(mc -> Taz.config().chat.chat.enabled = false);
+	}
+
+	/** Stack Duplicates: a repeat of one of the newest messages takes its place with a count. */
+	private void chatStack() {
+		ctx.runOnClient(mc -> {
+			Taz.config().chat.stack.enabled = true;
+			Taz.config().chat.stack.range = 5;
+			mc.gui.getChat().clearMessages(false);
+		});
+		tell("TROPHY FISH! You caught Blobfish BRONZE!");
+		tell("You caught a Lava Leech!");
+		tell("TROPHY FISH! You caught Blobfish BRONZE!");
+		tell("TROPHY FISH! You caught Blobfish BRONZE!");
+		List<String> chat = chatLines();
+		check("chat stack: three repeats are one line (x3) (" + chat + ")",
+				chat.equals(List.of("TROPHY FISH! You caught Blobfish BRONZE! (x3)", "You caught a Lava Leech!")));
+		// Separators stay; with Look back 1, only back-to-back repeats stack.
+		ctx.runOnClient(mc -> {
+			Taz.config().chat.stack.range = 1;
+			mc.gui.getChat().clearMessages(false);
+		});
+		tell("▬▬▬▬▬▬▬▬");
+		tell("▬▬▬▬▬▬▬▬");
+		tell("a");
+		tell("b");
+		tell("a");
+		tell("a");
+		chat = chatLines();
+		check("chat stack: separators stay, Look back 1 (" + chat + ")", chat.equals(List.of("a (x2)", "b", "a", "▬▬▬▬▬▬▬▬", "▬▬▬▬▬▬▬▬")));
+		// Off: every line shows.
+		ctx.runOnClient(mc -> {
+			Taz.config().chat.stack.enabled = false;
+			mc.gui.getChat().clearMessages(false);
+		});
+		tell("a");
+		tell("a");
+		check("chat stack: off", chatLines().equals(List.of("a", "a")));
+		ctx.runOnClient(mc -> Taz.config().chat.stack.range = 5);
+	}
+
+	/** The chat's messages as plain text, newest first. */
+	private List<String> chatLines() {
+		return ctx.computeOnClient(mc -> ((com.taz.mixin.ChatComponentAccessor) mc.gui.getChat()).taz$messages().stream()
+				.map(m -> m.content().getString()).toList());
 	}
 
 	private void shortcuts() {
