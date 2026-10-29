@@ -29,9 +29,9 @@ public class SettingsGuiGameTest implements FabricClientGameTest {
 		if (TestFilter.skip("settings")) return;
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			world.getClientLevel().waitForChunksRender();
-			java.util.Set<String> ownCategory = java.util.Set.of("Run Predictor", "Secret Routes", "Puzzle Solvers", "Critter Safari", "Lotus Atoll");
+			java.util.Set<String> ownCategory = java.util.Set.of("Run Predictor", "Secret Routes", "Puzzle Solvers", "Critter Safari", "Lotus Atoll", "Trophy Fishing");
 			for (String category : new String[]{"About", "General", "Chat", "Controls", "Visuals", "Inventory", "Dungeons", "Run Predictor",
-					"Secret Routes", "Puzzle Solvers", "Dungeon Map", "Floor 7", "Slayer", "Fishing", "Foraging", "Galatea", "Critter Safari", "Lotus Atoll",
+					"Secret Routes", "Puzzle Solvers", "Dungeon Map", "Floor 7", "Slayer", "Fishing", "Trophy Fishing", "Foraging", "Galatea", "Critter Safari", "Lotus Atoll",
 					"SkyBlock XP"}) {
 				ctx.runOnClient(mc -> mc.setScreen(Taz.settingsScreen(null, category)));
 				ctx.waitTicks(3);

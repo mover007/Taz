@@ -14,7 +14,7 @@ Use `taz-<version>.jar`, not the `-slim` jar, which is missing the settings GUI 
 
 ## Tests
 
-The in-game tests open a singleplayer world, build what each feature needs (fake trees, honeyhives, critters, dungeon rooms) and check it end to end. Screenshots go to `build/run/clientGameTest/screenshots`. Parts: `xp`, `trees`, `settings`, `honeyhive`, `whispers`, `general`, `galatea`, `safari`, `safariway`, `secrets`, `roomtimes`, `skillissue`, `ported`, `puzzles`, `qol` (with `lotus`), and the general test's parts (`autosave`, `alerts`, `chatfilter`, `commandkeys`, `events`, `darkauction`, `skills`, `waypoints`, `huds`, `prices`, `overlays`, `slayer`, `fishing`).
+The in-game tests open a singleplayer world, build what each feature needs (fake trees, honeyhives, critters, dungeon rooms) and check it end to end. Screenshots go to `build/run/clientGameTest/screenshots`. Parts: `xp`, `trees`, `settings`, `honeyhive`, `whispers`, `general`, `galatea`, `safari`, `safariway`, `secrets`, `roomtimes`, `skillissue`, `ported`, `puzzles`, `qol` (with `lotus` and `trophyfish`), and the general test's parts (`autosave`, `alerts`, `chatfilter`, `commandkeys`, `events`, `darkauction`, `skills`, `waypoints`, `huds`, `prices`, `overlays`, `slayer`, `fishing`).
 
 ## Code layout
 

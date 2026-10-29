@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.taz.Taz;
 import com.taz.dungeons.util.TextUtil;
+import com.taz.fishing.crimson.TrophyFish;
 import com.taz.fishing.lotus.TrophyFrogs;
 import com.taz.util.Items;
 import com.taz.util.TazChat;
@@ -126,7 +127,7 @@ public final class TrophyBook {
 	}
 
 	private static List<TrophyBook> books() {
-		return List.of(TrophyFrogs.BOOK);
+		return List.of(TrophyFish.BOOK, TrophyFrogs.BOOK);
 	}
 
 	private static String norm(String s) {

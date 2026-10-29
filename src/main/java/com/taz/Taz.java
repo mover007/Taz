@@ -146,6 +146,8 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.dungeons.f7.WitherDragons());
 		TazHud.register(new com.taz.fishing.lotus.FrogTrackerHud());
 		TazHud.register(new com.taz.fishing.lotus.FrogGuideHud());
+		TazHud.register(new com.taz.fishing.crimson.TrophyFishHud());
+		TazHud.register(new com.taz.fishing.crimson.FishGuideHud());
 		TazHud.register(new com.taz.dungeons.map.DungeonMap());
 		TazHud.register(new com.taz.dungeons.map.MapInfo.Score());
 		TazHud.register(new com.taz.dungeons.map.MapInfo.RoomSecrets());
@@ -435,6 +437,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Fishing chat", () -> FishingHelper.onChat(line));
 		safely("Trophy catches", () -> com.taz.fishing.trophy.TrophyBook.onChat(line));
 		safely("Lotus Atoll chat", () -> com.taz.fishing.lotus.LotusAtoll.onChat(line));
+		safely("Trophy Fish chat", () -> com.taz.fishing.crimson.TrophyFish.onChat(line));
 		safely("Tree progress chat", () -> TreeProgress.onChat(line));
 		safely("Sweep details chat", () -> SweepDetails.onChat(line));
 		safely("Fairy souls chat", () -> FairySouls.onChat(line));
@@ -476,6 +479,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Room alerts", () -> com.taz.dungeons.info.RoomAlerts.onActionBar(text));
 		safely("Dungeon map", () -> com.taz.dungeons.map.DungeonMap.onActionBar(text));
 		safely("Map info", () -> com.taz.dungeons.map.MapInfo.onActionBar(text));
+		safely("Trophy Fish mana", () -> com.taz.fishing.crimson.TrophyFish.onActionBar(text));
 	}
 
 	/** Runs one feature's handler; a broken feature logs its error instead of breaking the others. */
@@ -544,6 +548,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Leap counter", () -> com.taz.dungeons.f7.LeapCounter.tick(mc));
 		safely("Trophies", () -> com.taz.fishing.trophy.TrophyBook.tick(mc));
 		safely("Lotus Atoll", () -> com.taz.fishing.lotus.LotusAtoll.tick(mc));
+		safely("Trophy Fish", () -> com.taz.fishing.crimson.TrophyFish.tick(mc));
 		safely("Spring boots", () -> com.taz.general.SpringBoots.tick(mc));
 		safely("Pet display", () -> com.taz.general.PetDisplay.tick(mc));
 		safely("Dungeon party", () -> DungeonParty.tick(mc));

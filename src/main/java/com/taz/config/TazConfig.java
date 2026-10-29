@@ -67,6 +67,10 @@ public final class TazConfig extends Config {
 	public FishingCategory fishing = new FishingCategory();
 
 	@Expose
+	@Category(name = "Trophy Fishing", desc = "Trophy Fish on the Crimson Isle: a tracker, a fish guide and alerts.")
+	public com.taz.fishing.crimson.TrophyFishConfig trophyFish = new com.taz.fishing.crimson.TrophyFishConfig();
+
+	@Expose
 	@Category(name = "Foraging", desc = "Trees, whispers and Starlyn Contests.")
 	public ForagingCategory foraging = new ForagingCategory();
 

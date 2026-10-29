@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class QolGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"chatcommands", "chattweaks", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
 			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras", "dungeonmap", "mapinfo", "darkmode",
-			"storage", "predictor", "lotus"};
+			"storage", "predictor", "lotus", "trophyfish"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -66,6 +66,7 @@ public class QolGameTest implements FabricClientGameTest {
 			if (runs("storage")) storage();
 			if (runs("predictor")) predictor();
 			if (runs("lotus")) lotus();
+			if (runs("trophyfish")) trophyFish();
 		}
 		System.out.println("[QolGameTest] PASSED");
 	}
@@ -570,6 +571,98 @@ public class QolGameTest implements FabricClientGameTest {
 			com.taz.fishing.lotus.LotusAtoll.resetForTest();
 			com.taz.fishing.lotus.TrophyFrogs.resetForTest();
 		});
+	}
+
+	private void trophyFish() {
+		ctx.runOnClient(mc -> {
+			Taz.config().trophyFish.enabled = true;
+			Taz.config().trophyFish.party = false;
+			com.taz.fishing.crimson.TrophyFish.resetForTest();
+			com.taz.fishing.crimson.TrophyFish.testHere = true;
+			com.taz.util.Alert.lastTitle = null;
+			Taz.config().trophyFish.trackerHud = new com.taz.hud.HudPos(0.0, 0.05);
+			Taz.config().trophyFish.guideHud = new com.taz.hud.HudPos(0.5, 0.05);
+		});
+		cmd("fill -3 99 -3 3 99 3 stone");
+		cmd("tp @p 0 100 0");
+		ctx.waitTicks(25);
+		// Real lines from the Crimson Isle, which start with an icon.
+		tell(" \uE02A TROPHY FISH! You caught Blobfish BRONZE!");
+		check("trophy fish: a Bronze Blobfish counts", fish("BLOBFISH", "BRONZE") == 1
+				&& ctx.computeOnClient(mc -> com.taz.fishing.crimson.TrophyFish.sessionMagmafish()) == 4);
+		tell("NEW DISCOVERY: Obfuscated-1 DIAMOND");
+		tell(" \uE02A TROPHY FISH! You caught an Obfuscated-1 DIAMOND!");
+		String title = ctx.computeOnClient(mc -> net.minecraft.ChatFormatting.stripFormatting(com.taz.util.Alert.lastTitle));
+		check("trophy fish: a new Diamond gets a title (" + title + ")", "NEW DIAMOND Obfuscated-1".equals(title) && fish("OBF1", "DIAMOND") == 1);
+		tell(" \uE02A TROPHY FISH! You caught a Golden Fish GOLD!");
+		check("trophy fish: a Golden Fish", fish("GOLDEN", "GOLD") == 1);
+		// Odger's menu: lore like "Bronze ✔ (269)" and "Gold ✖". The Bronze Blobfish above was before it, so it's in the menu's count.
+		int[] blob = ctx.computeOnClient(mc -> com.taz.fishing.trophy.TrophyBook.tiers(List.of("Fished up in lava", "Bronze ✔ (269)", "Silver ✔ (94)",
+				"Gold ✔ (9)", "Diamond ✔ (1)")));
+		int[] skitter = ctx.computeOnClient(mc -> com.taz.fishing.trophy.TrophyBook.tiers(List.of("Bronze ✔ (3)", "Silver ✔ (2)", "Gold ✖", "Diamond ✖")));
+		check("trophy fish: Odger's lore read (" + java.util.Arrays.toString(blob) + " " + java.util.Arrays.toString(skitter) + ")",
+				java.util.Arrays.equals(blob, new int[]{269, 94, 9, 1}) && java.util.Arrays.equals(skitter, new int[]{3, 2, 0, 0}));
+		ctx.runOnClient(mc -> com.taz.fishing.crimson.TrophyFish.BOOK.setMenu(java.util.Map.of(
+				com.taz.fishing.crimson.TrophyFish.Fish.BLOBFISH.ordinal(), blob, com.taz.fishing.crimson.TrophyFish.Fish.SULPHUR.ordinal(), skitter)));
+		ctx.waitTicks(2);
+		tell(" \uE02A TROPHY FISH! You caught Blobfish BRONZE!");
+		check("trophy fish: the menu's counts, plus catches after it", fish("BLOBFISH", "BRONZE") == 270 && fish("SULPHUR", "SILVER") == 2);
+		ctx.runOnClient(mc -> com.taz.fishing.trophy.TrophyBook.readTab(List.of("Trophy Fish:", "●●○○ Flyfish", "●●●○ Obfuscated-1")));
+		List<String> lines = hudLines(com.taz.fishing.crimson.TrophyFishHud.class);
+		check("trophy fish: the table (" + lines + ")", lines.contains("Total B S G D Pity") && lines.contains("Blobfish 374 270 94 9 1")
+				&& lines.contains("Sulphur Skitter 5 3 2 0 0 G 5/100") && lines.contains("Flyfish 0 ✔ ✔ 0 0 G 0/100")
+				&& lines.contains("Obfuscated-1 1 ✔ ✔ ✔ 1") && lines.contains("Session: 4 fish · 1056 Magmafish"));
+		// The guide: in the Blazing Volcano with 558 mana.
+		ctx.runOnClient(mc -> {
+			com.taz.fishing.crimson.TrophyFish.testArea = "Blazing Volcano";
+			com.taz.fishing.crimson.TrophyFish.onActionBar("4,481/4,106❤     558/558✎ Mana");
+		});
+		lines = hudLines(com.taz.fishing.crimson.FishGuideHud.class);
+		check("trophy fish: what can bite in the volcano (" + lines + ")", lines.contains("Can bite here: Blobfish, Lavahorse, Volcanic Stonefish")
+				&& lines.contains(" ✘ Mana Ray: have 1,200+ mana (558)") && lines.contains(" • Gusher: Blazing Volcano, 7-16 min after it erupts")
+				&& lines.stream().noneMatch(l -> l.contains("Blobfish:")));
+		cmd("setblock 2 100 0 sponge");
+		ctx.waitTicks(12);
+		lines = hudLines(com.taz.fishing.crimson.FishGuideHud.class);
+		check("trophy fish: Sulphur nearby (" + lines + ")", lines.contains("Can bite here: Sulphur Skitter, Blobfish, Lavahorse, Volcanic Stonefish"));
+		ctx.runOnClient(mc -> {
+			mc.gui.getChat().clearMessages(false);
+			mc.gui.clearTitles();
+			Taz.config().trophyFish.guide = false;
+		});
+		ctx.waitTicks(2);
+		ctx.takeScreenshot("trophy-fish");
+		ctx.runOnClient(mc -> Taz.config().trophyFish.guide = true);
+		tell("You spot a Golden Fish surface from beneath the lava!");
+		check("trophy fish: Golden Fish title", "GOLDEN FISH".equals(ctx.computeOnClient(mc -> net.minecraft.ChatFormatting.stripFormatting(com.taz.util.Alert.lastTitle))));
+		// Past catches from a chat log (someone else's in guild chat isn't yours, nor is a frog).
+		int[] fromLog = ctx.computeOnClient(mc -> {
+			try {
+				java.nio.file.Path log = java.nio.file.Files.createTempFile("taz-fish", ".log.gz");
+				try (java.io.Writer w = new java.io.OutputStreamWriter(new java.util.zip.GZIPOutputStream(java.nio.file.Files.newOutputStream(log)),
+						java.nio.charset.StandardCharsets.UTF_8)) {
+					w.write("[22:52:49] [Render thread/INFO]: [System] [CHAT]  \uE02A TROPHY FISH! You caught Blobfish BRONZE!\n");
+					w.write("[22:53:01] [Render thread/INFO]: [System] [CHAT]  \uE02A TROPHY FISH! You caught Lavahorse SILVER!\n");
+					w.write("[22:54:10] [Render thread/INFO]: [System] [CHAT] §2Guild > §b[MVP§6+§b] Jqcp §3[S]§f: leqfer:  TROPHY FISH! You caught Soul Fish GOLD! 2h30\n");
+					w.write("[22:55:12] [Render thread/INFO]: [System] [CHAT]  \uE02A TROPHY FROG! You caught Common Frog BRONZE!\n");
+				}
+				return com.taz.fishing.crimson.TrophyFish.BOOK.countLog(log);
+			} catch (java.io.IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		check("trophy fish: catches read from a chat log (" + java.util.Arrays.toString(fromLog) + ")", fromLog[4 * 4] == 1 && fromLog[9 * 4 + 1] == 1
+				&& java.util.Arrays.stream(fromLog).sum() == 2);
+		cmd("fill -3 99 -3 3 100 3 air");
+		ctx.runOnClient(mc -> {
+			Taz.config().trophyFish.enabled = false;
+			com.taz.fishing.crimson.TrophyFish.resetForTest();
+		});
+	}
+
+	private int fish(String fish, String tier) {
+		return ctx.computeOnClient(mc -> com.taz.fishing.crimson.TrophyFish.count(com.taz.fishing.crimson.TrophyFish.Fish.valueOf(fish),
+				com.taz.fishing.trophy.Tier.valueOf(tier)));
 	}
 
 	private int count(String species, String tier) {
