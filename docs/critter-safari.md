@@ -22,6 +22,17 @@ A path through the whole run, one biome at a time, along the Safari's walkways (
 
 Once the route picks a target it sticks with it until it's done or gone. A floor drop within 16 blocks is a short detour. **Your biome** picks which biome comes first; on Auto it's your Hunting Hotspot, then the biome you're in, then the one with the most left.
 
+## Full clear
+
+How parties farm Hunting XP: each player stays in their own Hunting Hotspot and catches every critter in it, not just one of each. Turn on **Full clear** under Route and:
+
+- Every critter in your hotspot glows, ones caught before too; critters in other biomes don't (Sparkling ones still do).
+- The route stays in your hotspot, takes you to each critter in view, and goes round the biome's spots and search points again and again.
+- The HUD shows your biome, how many you've caught there and how many are in view, and how many of each critter you've caught.
+- The run report says how many of each you caught.
+
+**Your biome** still wins over your hotspot, for a party that agreed on other biomes.
+
 ## Quest items
 
 - The Ritual takes a Soothing Incense for each of its 4 candles, and the Gem Podiums all 3 gems. Taz counts candles lit and gems placed, and sends you to floor drops until you have the rest.

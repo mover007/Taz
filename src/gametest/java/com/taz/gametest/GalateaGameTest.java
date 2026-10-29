@@ -60,7 +60,7 @@ import java.util.stream.Stream;
  */
 public class GalateaGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"veilshrooms", "treeprogress", "sweep", "resources", "huntingmobs", "fairysouls", "guide",
-			"treegifts", "starlyn", "protected", "recorder", "hotfreset", "contesttiming", "pressure", "route", "safari", "safariway"};
+			"treegifts", "starlyn", "protected", "recorder", "hotfreset", "contesttiming", "pressure", "route", "safari", "safariway", "fullclear"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	private final List<String> shown = new CopyOnWriteArrayList<>();
@@ -104,6 +104,7 @@ public class GalateaGameTest implements FabricClientGameTest {
 			if (runs("route")) route();
 			if (runs("safari")) safari();
 			if (runs("safariway")) safariWay();
+			if (runs("fullclear")) fullClear();
 		}
 		System.out.println("[GalateaGameTest] PASSED");
 	}
@@ -1049,6 +1050,75 @@ public class GalateaGameTest implements FabricClientGameTest {
 					new net.minecraft.world.item.component.ItemLore(List.of(net.minecraft.network.chat.Component.literal(lore))));
 		}
 		return stack;
+	}
+
+	/** Full clear: every critter in your hotspot counts, caught or not, and the route stays there. */
+	private void fullClear() {
+		ctx.runOnClient(mc -> {
+			SafariConfig cfg = Taz.config().safari;
+			cfg.enabled = true;
+			cfg.fullClear = true;
+			cfg.zone = SafariConfig.Zone.AUTO;
+			cfg.highlight = SafariConfig.Highlight.RUN;
+			cfg.caught.clear();
+			SafariHelper.testWhere = SafariHelper.Where.INSIDE;
+			SafariHelper.testBiome = Critters.Biome.FOREST;
+			SafariHelper.reset();
+		});
+		int x = start.getX() + 5, y = start.getY(), z = start.getZ();
+		String mob = " {NoAI:1b,PersistenceRequired:1b,Silent:1b,Tags:[\"taztest\"]}";
+		cmd("summon fox " + x + " " + y + " " + (z - 3) + mob);
+		label(x, y + 1.0, z - 3, "Foxtrot");
+		cmd("summon frog " + x + " " + y + " " + z + mob);
+		label(x, y + 0.8, z, "Treefrog");
+		cmd("summon armor_stand " + x + " " + y + " " + (z + 3)
+				+ " {Invisible:1b,NoGravity:1b,equipment:{head:{id:\"minecraft:player_head\",count:1}},Tags:[\"taztest\"]}");
+		label(x, y + 2.2, z + 3, "Cavernfish");
+		cmd("tp @p " + (x - 8) + " " + (y + 1) + " " + z + " facing " + x + " " + y + " " + z);
+		tell("HOTSPOT! Your Hunting Hotspot is the Forest Biome!");
+		ctx.waitTicks(15);
+		check("full clear: your hotspot is the biome", ctx.computeOnClient(mc -> SafariHelper.fullClearBiome()) == Critters.Biome.FOREST);
+		tell("CAPTURE! You caught a Foxtrot and gained 2x Foxtrot Shard!");
+		tell("CAPTURE! You caught a Treefrog and gained a Treefrog Shard!");
+		ctx.waitTicks(6);
+		String glows = glows();
+		String red = Integer.toHexString(SafariHelper.RED);
+		check("full clear: hotspot critters still glow once caught, others don't (" + glows + ")", glows.contains("fox=" + red)
+				&& glows.contains("frog=" + red) && glows.contains("armor_stand=no"));
+		check("full clear: no 'biome done' talk", !said("Biome is done"));
+		// The Treefrog you caught goes: it isn't somewhere to go back to.
+		cmd("kill @e[type=frog,tag=taztest]");
+		cmd("kill @e[type=armor_stand,name=\"Treefrog\"]");
+		ctx.waitTicks(12);
+		String lost = ctx.computeOnClient(mc -> SafariHelper.lastSeen().stream().map(s -> s.critter().name()).toList().toString());
+		check("full clear: a caught critter isn't kept as last seen (" + lost + ")", !lost.contains("Treefrog"));
+		tell("CAPTURE! You caught a Foxtrot and gained 2x Foxtrot Shard!");
+		ctx.waitTicks(6);
+		List<String> lines = hudLines(SafariGuide.class);
+		check("full clear: the HUD counts your catches there (" + lines + ")", lines.get(0).startsWith("Full clear Forest")
+				&& lines.stream().anyMatch(l -> l.startsWith("Caught here 3  In view 1")) && lines.stream().anyMatch(l -> l.startsWith(" Foxtrot x2 - "))
+				&& lines.stream().anyMatch(l -> l.startsWith(" Treefrog x1 - ")));
+		// Somewhere else, the route still goes back to the hotspot.
+		ctx.runOnClient(mc -> SafariHelper.testBiome = Critters.Biome.CAVERN);
+		ctx.waitTicks(12);
+		lines = hudLines(SafariGuide.class);
+		check("full clear: the route stays on your hotspot (" + lines + ")", ctx.computeOnClient(mc -> com.taz.foraging.safari.SafariWay.zone())
+				== Critters.Biome.FOREST && lines.contains("Head to the Forest Biome"));
+		ctx.runOnClient(mc -> Taz.config().safari.bestCaught = 0);
+		tell("  SAFARI REWARD SUMMARY");
+		tell("    +318,977 Hunting Exp");
+		check("full clear: the run report counts each catch (" + com.taz.util.TazChat.RECENT + ")",
+				said("Full clear: you caught 3 critters: Foxtrot x2, Treefrog."));
+		cmd("kill @e[tag=taztest]");
+		ctx.runOnClient(mc -> {
+			SafariHelper.testWhere = null;
+			SafariHelper.testBiome = null;
+			Taz.config().safari.fullClear = false;
+			Taz.config().safari.caught.clear();
+			Taz.config().safari.bestCaught = 0;
+			Taz.config().safari.enabled = false;
+		});
+		ctx.waitTicks(5);
 	}
 
 	private void label(double x, double y, double z, String name) {

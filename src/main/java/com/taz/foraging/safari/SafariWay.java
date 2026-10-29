@@ -109,6 +109,9 @@ public final class SafariWay {
 			zoneSetting = cfg.zone;
 			zone = null;
 		}
+		// Full clear stays in its biome, whatever's left elsewhere.
+		Biome clear = SafariHelper.fullClearBiome();
+		if (clear != null) return clear;
 		Biome picked = cfg.zone.biome();
 		if (picked != null && hasWork(mc, picked)) return picked;
 		Biome hot = SafariHelper.hotspot();
@@ -135,6 +138,7 @@ public final class SafariWay {
 	/** The three steps of the route through a biome, each a list of places (the nearest one is gone to). */
 	static List<List<Goal>> plan(Minecraft mc, Biome z) {
 		Vec3 me = mc.player.position();
+		boolean clearing = SafariHelper.fullClearBiome() == z;
 		List<Goal> now = new ArrayList<>(), tasks = new ArrayList<>(), search = new ArrayList<>();
 		for (SafariHelper.Sighting s : SafariHelper.sightings()) {
 			if (!SafariHelper.toDo(s.critter()) && !s.sparkling()) continue;
@@ -188,7 +192,7 @@ public final class SafariWay {
 			List<Goal> points = SafariSpots.searchPoints(z).stream()
 					.map(p -> new Goal("Search the " + z.label, names, p, SEARCHED, "search@" + p, true)).toList();
 			// Walked it all and still some to find: round again.
-			if (points.stream().allMatch(g -> VISITED.contains(g.pos()))) points.forEach(g -> VISITED.remove(g.pos()));
+			if (!clearing && points.stream().allMatch(g -> VISITED.contains(g.pos()))) points.forEach(g -> VISITED.remove(g.pos()));
 			search.addAll(points);
 		}
 		if (!missing.isEmpty()) {
@@ -197,6 +201,11 @@ public final class SafariWay {
 				if (SafariMap.zoneAt(p) == z) search.add(new Goal("Floor drop", why, p, 0));
 			}
 			for (Vec3 p : SafariSpots.dropSpots(z)) search.add(new Goal("Floor drop spot", why, p, DROP_CHECKED, "dropspot@" + p, true));
+		}
+		if (clearing) {
+			// Full clear: been to every spot and search point, so round the biome again for critters that came back.
+			List<Goal> spots = java.util.stream.Stream.concat(tasks.stream(), search.stream()).filter(g -> g.reach() > 0).toList();
+			if (!spots.isEmpty() && spots.stream().allMatch(g -> VISITED.contains(g.pos()))) spots.forEach(g -> VISITED.remove(g.pos()));
 		}
 		return List.of(fresh(now, me), fresh(tasks, me), fresh(search, me));
 	}

@@ -40,6 +40,7 @@ public final class SafariGuide extends TextHud {
 	}
 
 	private static List<String> inside() {
+		if (SafariHelper.fullClearBiome() != null) return fullClear(SafariHelper.fullClearBiome());
 		List<String> lines = new ArrayList<>();
 		long minutes = (SafariHelper.timeLeftMs() + 59_999) / 60_000;
 		lines.add("§c§lCritter Safari §f" + SafariHelper.done() + "§7/" + Critters.ALL.size() + " §8| §7~§f" + minutes + "m §7left");
@@ -76,6 +77,34 @@ public final class SafariGuide extends TextHud {
 			others.append("§7").append(b.label).append(" §f").append(left);
 		}
 		if (!others.isEmpty()) lines.add(others.toString());
+		for (Map.Entry<String, Integer> e : SafariHelper.questItems().entrySet()) {
+			QuestItem q = Critters.quest(e.getKey());
+			if (q.brings().stream().map(Critters::named).noneMatch(c -> c != null && SafariHelper.toDo(c))) continue;
+			lines.add("§f" + q.name() + (e.getValue() > 1 ? " x" + e.getValue() : "") + "§7: " + q.use());
+		}
+		return lines;
+	}
+
+	/** Full clear: your biome's critters with how many of each you caught, and the way to the next one. */
+	private static List<String> fullClear(Biome clear) {
+		List<String> lines = new ArrayList<>();
+		long minutes = (SafariHelper.timeLeftMs() + 59_999) / 60_000;
+		lines.add("§c§lFull clear §f" + clear.label + " §8| §7~§f" + minutes + "m §7left");
+		int caps = SafariHelper.hadCapsules() ? SafariHelper.capsules() : -1;
+		int inView = (int) SafariHelper.sightings().stream().filter(s -> s.critter().biome() == clear).count();
+		lines.add("§7Caught here §f" + SafariHelper.caughtIn(clear) + "  §7In view §f" + inView
+				+ (caps >= 0 ? (caps <= 5 ? "  §cCapsules " : "  §7Capsules §f") + caps : ""));
+		if (SafariHelper.biome() != null && SafariHelper.biome() != clear) lines.add("§7Head to the §f" + clear.label + " §7Biome");
+		String way = SafariWay.hudLine();
+		if (way != null) lines.add(way);
+		if (SafariConfig.get().countdowns) lines.addAll(SafariHelper.countdowns());
+		int shown = 0;
+		for (Critter c : Critters.in(clear)) {
+			if (++shown > MAX_CRITTERS) break;
+			int n = SafariHelper.caughtCount(c);
+			lines.add(" §f" + c.name() + (n > 0 ? " §7x" + n : "") + " §7- "
+					+ (c.name().equals("Scrappy") ? SafariHelper.scrappyHint() : SafariHelper.progressHint(c)));
+		}
 		for (Map.Entry<String, Integer> e : SafariHelper.questItems().entrySet()) {
 			QuestItem q = Critters.quest(e.getKey());
 			if (q.brings().stream().map(Critters::named).noneMatch(c -> c != null && SafariHelper.toDo(c))) continue;

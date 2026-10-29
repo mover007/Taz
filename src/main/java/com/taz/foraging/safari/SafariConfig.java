@@ -136,6 +136,14 @@ public final class SafariConfig {
 	@ConfigEditorDropdown
 	public Zone zone = Zone.AUTO;
 
+	@Expose
+	@ConfigAccordionId(id = 1)
+	@ConfigOption(name = "Full clear", desc = "For parties farming Hunting XP: you stay in your Hunting Hotspot (or Your biome) and "
+			+ "catch every critter in it, ones caught before too. Every critter there glows, the route takes you to each one and "
+			+ "round the biome again and again, and the HUD counts your catches there. Your party clears the other biomes.")
+	@ConfigEditorBoolean
+	public boolean fullClear = false;
+
 	@ConfigOption(name = "Floor drops & mounds", desc = "Boxes on floor drops and Rockmite mounds.")
 	@ConfigEditorAccordion(id = 2)
 	public boolean section2 = false;

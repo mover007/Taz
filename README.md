@@ -28,7 +28,7 @@ Every feature starts off, so you only get what you turn on.
 ### Also in Taz
 
 - **Foraging:** a pointer to the next grown tree, Tree Route Assist with the Helix route built in, honeyhives with refill timers, a Whisper Counter, Ruby Veilshrooms, Tree Gifts, Starlyn Contests and Fairy Souls. [More](docs/foraging.md)
-- **Critter Safari:** the critters you need highlighted, a route through every biome, floor drops, a quest item guide, countdowns, a run report and a capsule throw preview. [More](docs/critter-safari.md)
+- **Critter Safari:** the critters you need highlighted, a route through every biome, floor drops, a quest item guide, countdowns, a run report, a capsule throw preview and a full clear mode for Hunting XP. [More](docs/critter-safari.md)
 - **SkyBlock XP:** the cheapest upgrades you haven't done, a level plan and an NPC finder. [More](docs/skyblock-xp.md)
 - **Trophy Fishing:** your 72 Trophy Fish in a table with icons and counts (loaded from Odger), which fish can bite where you stand, and Golden Fish alerts. [More](docs/trophy-fishing.md)
 - **Lotus Atoll:** your 48 Trophy Frogs in a table with icons and pity counts, which frogs can bite where you stand, Wormhole spots, Fairy Souls and rare catch alerts. [More](docs/lotus-atoll.md)

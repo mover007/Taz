@@ -122,6 +122,10 @@ public final class SafariHelper {
 	/** Name tags of needed critters by id: where each was last seen. The ones not in view now are {@link #lost}. */
 	private static final Map<Integer, Seen> LAST_SEEN = new LinkedHashMap<>();
 	private static List<Seen> lost = List.of();
+	/** Full clear: how many of each critter you caught this run, and critters just caught (their name tags go out of view). */
+	private static final Map<Critter, Integer> MINE_COUNT = new LinkedHashMap<>();
+	private static final List<Critter> JUST_CAUGHT = new ArrayList<>();
+	private static long justCaughtAt;
 	/** Critters seen this run, and the ones you caught yourself (for the report). */
 	private static final Set<Critter> SEEN_RUN = new HashSet<>(), MINE_RUN = new HashSet<>();
 	/** When things the HUD counts down (or up) started, 0 when they aren't going on. */
@@ -294,6 +298,8 @@ public final class SafariHelper {
 		lost = List.of();
 		SEEN_RUN.clear();
 		MINE_RUN.clear();
+		MINE_COUNT.clear();
+		JUST_CAUGHT.clear();
 		shywormAt = wumpaStepsAt = wumpaAwakeAt = hideyhoAt = doomspiralAt = 0;
 		REWARDS.clear();
 		inSummary = reported = false;
@@ -384,8 +390,18 @@ public final class SafariHelper {
 				}
 			}
 		}
-		// Out of view: kept a while where it was last seen, unless it's been caught or you're there and it isn't.
+		// A critter just caught leaves view: drop the nearest of its kind, so the route doesn't go back for it.
+		if (now - justCaughtAt > 5000) JUST_CAUGHT.clear();
 		Vec3 me = mc.player.position();
+		for (java.util.Iterator<Critter> it = JUST_CAUGHT.iterator(); it.hasNext(); ) {
+			Critter c = it.next();
+			LAST_SEEN.values().stream().filter(s -> s.critter() == c && !inView.contains(s.id()))
+					.min(java.util.Comparator.comparingDouble(s -> s.pos().distanceToSqr(me))).ifPresent(s -> {
+						LAST_SEEN.remove(s.id());
+						it.remove();
+					});
+		}
+		// Out of view: kept a while where it was last seen, unless it's been caught or you're there and it isn't.
 		LAST_SEEN.values().removeIf(s -> !inView.contains(s.id()) && (now - s.at() > SEEN_MS || !s.sparkling() && !toDo(s.critter())
 				|| s.pos().distanceToSqr(me) < SEEN_GONE * SEEN_GONE));
 		lost = LAST_SEEN.values().stream().filter(s -> !inView.contains(s.id())).toList();
@@ -482,6 +498,8 @@ public final class SafariHelper {
 	/** Whether a critter is one to highlight. */
 	public static boolean needed(Sighting s, SafariConfig cfg) {
 		if (s.sparkling()) return true;
+		Biome clear = fullClearBiome();
+		if (clear != null) return s.critter().biome() == clear;
 		return switch (cfg.highlight) {
 			case RUN -> !CAUGHT_RUN.contains(s.critter());
 			case MINE -> !cfg.caught.contains(s.critter().name());
@@ -491,8 +509,31 @@ public final class SafariHelper {
 
 	/** Whether a critter still counts as to do in the guide. */
 	public static boolean toDo(Critter c) {
+		Biome clear = fullClearBiome();
+		if (clear != null) return c.biome() == clear;
 		SafariConfig cfg = SafariConfig.get();
 		return cfg.highlight == SafariConfig.Highlight.MINE ? !cfg.caught.contains(c.name()) : !CAUGHT_RUN.contains(c);
+	}
+
+	/** Full clear: the biome you're clearing (Your biome, else your Hunting Hotspot, else where you are), or null when it's off. */
+	public static Biome fullClearBiome() {
+		SafariConfig cfg = SafariConfig.get();
+		if (!cfg.fullClear) return null;
+		Biome picked = cfg.zone.biome();
+		if (picked != null) return picked;
+		return hotspot != null ? hotspot : biome;
+	}
+
+	/** Full clear: how many of a critter you caught this run. */
+	public static int caughtCount(Critter c) {
+		return MINE_COUNT.getOrDefault(c, 0);
+	}
+
+	/** Full clear: how many critters of a biome you caught this run. */
+	public static int caughtIn(Biome b) {
+		int n = 0;
+		for (Map.Entry<Critter, Integer> e : MINE_COUNT.entrySet()) if (e.getKey().biome() == b) n += e.getValue();
+		return n;
 	}
 
 	public static int left(Biome b) {
@@ -605,7 +646,9 @@ public final class SafariHelper {
 			if (c != null) caught(mc, c, false);
 		} else if ((m = HOTSPOT.matcher(line)).matches()) {
 			hotspot = Biome.named(m.group(1));
-			if (hotspot != null && cfg.tips) TazChat.info("Your Hunting Hotspot is the " + hotspot.label + " Biome: the route does it first. "
+			if (hotspot != null && cfg.tips && cfg.fullClear) TazChat.info("Your Hunting Hotspot is the " + hotspot.label + " Biome. Full clear: "
+					+ "catch every critter in it, again and again, while your party clears theirs.");
+			else if (hotspot != null && cfg.tips) TazChat.info("Your Hunting Hotspot is the " + hotspot.label + " Biome: the route does it first. "
 					+ "Everyone in a party gets a different one, so each of you taking yours splits the biomes. If you agreed on another, "
 					+ "set Your biome in /taz. If your party splits up, "
 					+ "take that one.");
@@ -666,7 +709,12 @@ public final class SafariHelper {
 		SafariConfig cfg = SafariConfig.get();
 		if (mc.level != null && mc.level != runLevel) reset();
 		boolean newThisRun = CAUGHT_RUN.add(c);
-		if (mine) MINE_RUN.add(c);
+		if (mine) {
+			MINE_RUN.add(c);
+			MINE_COUNT.merge(c, 1, Integer::sum);
+		}
+		JUST_CAUGHT.add(c);
+		justCaughtAt = System.currentTimeMillis();
 		switch (c.name()) {
 			case "Shyworm" -> shywormAt = 0;
 			case "Wumpa" -> wumpaStepsAt = wumpaAwakeAt = 0;
@@ -683,6 +731,8 @@ public final class SafariHelper {
 		}
 		if (!cfg.tips) return;
 		if (first) TazChat.info("Your first " + c.name() + "! (" + cfg.caught.size() + "/" + Critters.ALL.size() + " critters caught so far)");
+		// A full clear never runs out; there's nothing "done" to say.
+		if (fullClearBiome() != null) return;
 		// What the guide counts: this run's catches, or in "never caught by me" mode only your own first ones.
 		if (cfg.highlight == SafariConfig.Highlight.MINE ? !first : !newThisRun) return;
 		if (done() == Critters.ALL.size()) {
@@ -818,6 +868,12 @@ public final class SafariHelper {
 		int party = CAUGHT_RUN.size(), mine = MINE_RUN.size(), all = Critters.ALL.size();
 		TazChat.info("Safari report: " + (party > mine ? "you caught " + mine + ", your party " + party + "/" + all : "you caught " + mine + "/" + all)
 				+ " in " + took / 60_000 + "m " + took / 1000 % 60 + "s.");
+		if (cfg.fullClear && !MINE_COUNT.isEmpty()) {
+			int total = MINE_COUNT.values().stream().mapToInt(Integer::intValue).sum();
+			List<String> each = new ArrayList<>();
+			MINE_COUNT.forEach((c, n) -> each.add(c.name() + (n > 1 ? " x" + n : "")));
+			TazChat.info("Full clear: you caught " + total + " critter" + (total == 1 ? "" : "s") + ": " + String.join(", ", each) + ".");
+		}
 		if (!REWARDS.isEmpty()) {
 			List<String> got = new ArrayList<>();
 			if (REWARDS.containsKey("Safari Essence")) got.add("+" + REWARDS.get("Safari Essence") + " Safari Essence");
