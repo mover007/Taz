@@ -709,6 +709,17 @@ public class QolGameTest implements FabricClientGameTest {
 		ctx.runOnClient(mc -> Taz.config().trophyFish.guide = true);
 		tell("You spot a Golden Fish surface from beneath the lava!");
 		check("trophy fish: Golden Fish title", "GOLDEN FISH".equals(ctx.computeOnClient(mc -> net.minecraft.ChatFormatting.stripFormatting(com.taz.util.Alert.lastTitle))));
+		// Gold and Diamond titles have a switch each: Gold off once you're done with Gold.
+		ctx.runOnClient(mc -> {
+			Taz.config().trophyFish.goldTitles = false;
+			com.taz.util.Alert.lastTitle = null;
+		});
+		tell(" \uE02A TROPHY FISH! You caught Lavahorse GOLD!");
+		check("trophy fish: no title for Gold with Gold off", ctx.computeOnClient(mc -> com.taz.util.Alert.lastTitle) == null);
+		tell(" \uE02A TROPHY FISH! You caught Lavahorse DIAMOND!");
+		title = ctx.computeOnClient(mc -> net.minecraft.ChatFormatting.stripFormatting(com.taz.util.Alert.lastTitle));
+		check("trophy fish: Diamond still gets one (" + title + ")", "DIAMOND Lavahorse".equals(title));
+		ctx.runOnClient(mc -> Taz.config().trophyFish.goldTitles = true);
 		// Past catches from a chat log (someone else's in guild chat isn't yours, nor is a frog).
 		int[] fromLog = ctx.computeOnClient(mc -> {
 			try {

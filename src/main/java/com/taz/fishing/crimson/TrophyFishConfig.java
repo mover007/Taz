@@ -80,7 +80,19 @@ public final class TrophyFishConfig {
 
 	@Expose
 	@ConfigAccordionId(id = 2)
-	@ConfigOption(name = "Fish titles", desc = "A title for every Gold or Diamond Trophy Fish, and for each fish new to your collection.")
+	@ConfigOption(name = "Gold fish", desc = "A title for every Gold Trophy Fish. Turn it off once you're done with Gold.")
+	@ConfigEditorBoolean
+	public boolean goldTitles = true;
+
+	@Expose
+	@ConfigAccordionId(id = 2)
+	@ConfigOption(name = "Diamond fish", desc = "A title for every Diamond Trophy Fish.")
+	@ConfigEditorBoolean
+	public boolean diamondTitles = true;
+
+	@Expose
+	@ConfigAccordionId(id = 2)
+	@ConfigOption(name = "New fish", desc = "A title for each fish and tier new to your collection, whatever the tier.")
 	@ConfigEditorBoolean
 	public boolean fishTitles = true;
 
@@ -92,7 +104,7 @@ public final class TrophyFishConfig {
 
 	@Expose
 	@ConfigAccordionId(id = 2)
-	@ConfigOption(name = "Tell your party", desc = "Say Gold and Diamond fish in party chat.")
+	@ConfigOption(name = "Tell your party", desc = "Say Gold and Diamond fish in party chat (the tiers with titles on).")
 	@ConfigEditorBoolean
 	public boolean party = false;
 

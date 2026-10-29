@@ -258,9 +258,10 @@ public final class TrophyFish {
 		sessionMagmafish += f.fillet(c.tier());
 		if (f == Fish.GUSHER) gusherCaught(System.currentTimeMillis());
 		TrophyFishConfig cfg = TrophyFishConfig.get();
-		if (!cfg.enabled || !cfg.fishTitles) return;
-		boolean rare = c.tier() == Tier.GOLD || c.tier() == Tier.DIAMOND;
-		if (!rare && !c.isNew()) return;
+		if (!cfg.enabled) return;
+		// Gold and Diamond have a switch each, so Gold can go quiet once you're done with it.
+		boolean rare = c.tier() == Tier.GOLD ? cfg.goldTitles : c.tier() == Tier.DIAMOND && cfg.diamondTitles;
+		if (!rare && !(c.isNew() && cfg.fishTitles)) return;
 		String title = (c.isNew() ? "§a§lNEW " : "") + c.tier().code + "§l" + c.tier().name() + " §f" + f.label;
 		Alert.show(title, "§7Fillets into §f" + f.fillet(c.tier()) + " Magmafish", cfg.sound);
 		if (rare && cfg.party) TazChat.party(c.tier().name() + " " + f.label + "!");

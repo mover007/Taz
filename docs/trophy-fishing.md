@@ -51,4 +51,4 @@ Catch conditions and fillet values are from the SkyHanni repo's trophy fish data
 
 ## Alerts
 
-Titles for every Gold and Diamond fish and each fish new to your collection, when a Golden Fish surfaces, and when it's weak enough to reel in. **Tell your party** also says Gold and Diamond fish in party chat.
+Titles for Gold fish, Diamond fish and each fish new to your collection, each with its own switch: turn **Gold fish** off once you're done with Gold. Also a title when a Golden Fish surfaces, and when it's weak enough to reel in. **Tell your party** also says Gold and Diamond fish in party chat, for the tiers whose titles are on.
