@@ -2,7 +2,7 @@
 
 ## Settings
 
-`/taz` is the only command. It opens the settings menu (Mod Menu and an optional key do too), with categories on the left and a search bar. Each feature is one collapsed section with **Enabled** first, and every feature starts off. Big features (Run Predictor, Secret Routes, Puzzle Solvers, Dungeon Map, Critter Safari) have a category of their own.
+`/taz` opens the settings menu (Mod Menu and an optional key do too), with categories on the left and a search bar. Each feature is one collapsed section with **Enabled** first, and every feature starts off. Big features (Run Predictor, Secret Routes, Puzzle Solvers, Dungeon Map, Critter Safari) have a category of their own.
 
 Settings save by themselves to `config/taz/config.json`. Taz keeps the last good copy, so a damaged file is restored instead of reset.
 
@@ -13,6 +13,16 @@ Every Taz HUD moves in one editor: **About → Move HUDs**. Drag to move, scroll
 ## Chat
 
 Everything Taz says starts with **[TAZ]**. Party messages go out one at a time, and one Hypixel doesn't show is sent again once. Some messages have buttons ([Track], [Bazaar], [AH], [Recipe]) so you never need to type commands.
+
+## Player Viewer
+
+`/pv [player]` opens a player viewer like NEU's: the player in their armor, and tabs for an **Overview** (purse, bank, networth, skill average, Catacombs, Magical Power, skills and slayers), **Dungeons** (Catacombs, classes, and each floor's runs, best score and fastest S+), **Gear** (armor, equipment, pet, weapons, wardrobe and accessories), **Inventories** and **Pets**. Hover anything for details, and use the arrows by the profile name to switch profiles.
+
+`/nw [player]` says a networth in chat: with cosmetics, without them, and unsoulbound. Hover a number to see what it's made of.
+
+With no name, both show you. The data is from [SkyCrypt](https://sky.shiiyu.moe), so they need your own SkyCrypt API key: sign in on SkyCrypt, request a key on your dashboard's Developer page, and paste it in **General → Player Viewer**. SkyCrypt only has players someone looked up on its site recently; for anyone else, Taz gives you a link to open their page first. Each answer is kept 5 minutes.
+
+Taz's `/pv` replaces Skyblocker's, which is still at `/skyblocker pv`. Taz isn't affiliated with or endorsed by SkyCrypt or Hypixel.
 
 ## Features
 

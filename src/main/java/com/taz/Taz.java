@@ -51,7 +51,6 @@ import io.github.notenoughupdates.moulconfig.managed.ManagedConfig;
 import io.github.notenoughupdates.moulconfig.platform.MoulConfigScreenComponent;
 import io.github.notenoughupdates.moulconfig.processor.ProcessedCategory;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -252,7 +251,7 @@ public final class Taz implements ClientModInitializer {
 		});
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> saveIfChanged());
 
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, buildContext) -> TazCommand.register(dispatcher));
+		TazCommand.init();
 		ClientTickEvents.END_CLIENT_TICK.register(Taz::tick);
 		started = true;
 	}

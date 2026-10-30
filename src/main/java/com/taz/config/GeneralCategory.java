@@ -6,6 +6,7 @@ import com.taz.general.DarkAuctionConfig;
 import com.taz.general.EventTimersConfig;
 import com.taz.general.KickTimerConfig;
 import com.taz.general.PetDisplayConfig;
+import com.taz.general.PlayerViewerConfig;
 import com.taz.general.RagnarockConfig;
 import com.taz.general.SpringBootsConfig;
 import com.taz.general.SkillTrackerConfig;
@@ -53,4 +54,9 @@ public final class GeneralCategory {
 	@ConfigOption(name = "Kick Timer", desc = "How long ago Hypixel kicked you from SkyBlock, so you know when you can rejoin.")
 	@Accordion
 	public KickTimerConfig kickTimer = new KickTimerConfig();
+
+	@Expose
+	@ConfigOption(name = "Player Viewer", desc = "/pv opens a player viewer and /nw says a networth, with data from SkyCrypt. They need your own SkyCrypt API key.")
+	@Accordion
+	public PlayerViewerConfig viewer = new PlayerViewerConfig();
 }

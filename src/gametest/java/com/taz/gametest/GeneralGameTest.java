@@ -2,6 +2,7 @@ package com.taz.gametest;
 
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.taz.Taz;
 import com.taz.config.ConfigSafety;
 import com.taz.config.Migration;
@@ -18,6 +19,9 @@ import com.taz.general.SkillTracker;
 import com.taz.general.SkillTrackerConfig;
 import com.taz.general.SkyblockEvent;
 import com.taz.general.Waypoints;
+import com.taz.general.pv.Networth;
+import com.taz.general.pv.PlayerViewerScreen;
+import com.taz.general.pv.SkyCrypt;
 import com.taz.hud.MovableHud;
 import com.taz.hud.TazHud;
 import com.taz.hud.TazHudEditor;
@@ -28,6 +32,7 @@ import com.taz.slayer.SlayerHelper;
 import com.taz.util.Alert;
 import com.taz.xpassist.data.Prices;
 import io.github.notenoughupdates.moulconfig.managed.GsonMapper;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -53,17 +58,20 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 /** The General, Inventory, Slayer and Fishing features and settings auto-save. */
 public class GeneralGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"defaults", "autosave", "alerts", "chatfilter", "commandkeys", "events", "darkauction", "skills", "waypoints", "huds",
-			"prices", "overlays", "slayer", "fishing"};
+			"prices", "overlays", "slayer", "fishing", "networth", "pv"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	/** Every chat line that reached the chat (after the chat filter and the [Waypoint] button). */
 	private final List<String> shown = new CopyOnWriteArrayList<>();
+	/** Set when another mod's /pv (a stand-in for Skyblocker's) runs instead of Taz's. */
+	private static volatile boolean otherPv;
 
 	private static boolean runs(String part) {
 		return TestFilter.runs(part, "general");
@@ -80,6 +88,12 @@ public class GeneralGameTest implements FabricClientGameTest {
 			if (!overlay) shown.add(message.getString());
 		});
 		ClientReceiveMessageEvents.CHAT.register((message, signed, sender, params, time) -> shown.add(message.getString()));
+		// Another mod's /pv, registered like Skyblocker's: Taz's has to win.
+		if (runs("pv")) ClientCommandRegistrationCallback.EVENT.register((d, b) -> d.register(ClientCommands.literal("pv")
+				.then(ClientCommands.argument("username", StringArgumentType.string()).executes(c -> {
+					otherPv = true;
+					return 1;
+				}))));
 		try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
 			sp = world;
 			world.getClientLevel().waitForChunksRender();
@@ -107,6 +121,8 @@ public class GeneralGameTest implements FabricClientGameTest {
 			if (runs("overlays")) overlays();
 			if (runs("slayer")) slayer();
 			if (runs("fishing")) fishing();
+			if (runs("networth")) networth();
+			if (runs("pv")) playerViewer();
 		}
 		System.out.println("[GeneralGameTest] PASSED");
 	}
@@ -637,6 +653,117 @@ public class GeneralGameTest implements FabricClientGameTest {
 	}
 
 	// ---- helpers
+
+	/** /nw: a networth from canned SkyCrypt answers, and what it says without a key or for a player SkyCrypt doesn't have. */
+	private void networth() {
+		ctx.runOnClient(mc -> {
+			fakeSkyCrypt();
+			Taz.config().general.viewer.apiKey = "";
+			mc.gui.getChat().clearMessages(false);
+		});
+		clientCommand("nw TazTester");
+		check("networth: asks for a key", chatHas("need your own SkyCrypt API key"));
+		ctx.runOnClient(mc -> Taz.config().general.viewer.apiKey = "test-key");
+		clientCommand("nw TazTester");
+		String nw = ctx.computeOnClient(mc -> Networth.lastShown);
+		check("networth: with and without cosmetics, and unsoulbound (" + nw + ")", nw.contains("TazTester's networth · Pomegranate")
+				&& nw.contains("With cosmetics: 272.94B") && nw.contains("Non-cosmetic: 118.42B") && nw.contains("Unsoulbound: 98.5B")
+				&& nw.contains("Purse 2.22B · Bank 1B") && nw.contains("Data from SkyCrypt"));
+		int asked = SkyCrypt.REQUESTS.get();
+		clientCommand("nw TazTester");
+		check("networth: kept, not asked again", SkyCrypt.REQUESTS.get() == asked);
+		ctx.runOnClient(mc -> SkyCrypt.FAKE.put("embed/Nobody", new SkyCrypt.Fake(404, "{\"code\":\"NOT_CACHED\",\"detail\":\"Not cached\"}")));
+		clientCommand("nw Nobody");
+		check("networth: a player SkyCrypt doesn't have", chatHas("Open Nobody's page once"));
+		clientCommand("nw not-a-name");
+		check("networth: not a Minecraft name", chatHas("isn't a Minecraft name"));
+		ctx.takeScreenshot("networth-chat");
+		ctx.runOnClient(mc -> {
+			SkyCrypt.FAKE.clear();
+			SkyCrypt.clear();
+			Taz.config().general.viewer.apiKey = "";
+		});
+	}
+
+	/** /pv: the viewer opens on canned SkyCrypt answers, every tab draws, and profiles switch. */
+	private void playerViewer() {
+		ctx.runOnClient(mc -> {
+			fakeSkyCrypt();
+			Taz.config().general.viewer.apiKey = "test-key";
+		});
+		clientCommand("pv TazTester");
+		ctx.waitTicks(5);
+		check("pv: opens", ctx.computeOnClient(mc -> mc.screen instanceof PlayerViewerScreen));
+		check("pv: Taz's /pv runs, not the other mod's", !otherPv);
+		for (int i = 0; i < PlayerViewerScreen.TABS.length; i++) {
+			int tab = i;
+			ctx.runOnClient(mc -> ((PlayerViewerScreen) mc.screen).showTab(tab));
+			ctx.waitTicks(tab == 3 ? 10 : 4);
+			ctx.takeScreenshot("pv-" + PlayerViewerScreen.TABS[i].toLowerCase(Locale.ROOT));
+		}
+		check("pv: inventories loaded", ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).inventoriesDone()));
+		// The helmet's tooltip on the Gear tab.
+		ctx.runOnClient(mc -> ((PlayerViewerScreen) mc.screen).showTab(2));
+		int[] at = ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).screenPos(133, 29));
+		double gui = ctx.computeOnClient(mc -> (double) mc.getWindow().getGuiScale());
+		ctx.getInput().setCursorPos(at[0] * gui, at[1] * gui);
+		ctx.waitTicks(4);
+		ctx.takeScreenshot("pv-gear-tooltip");
+		ctx.runOnClient(mc -> ((PlayerViewerScreen) mc.screen).nextProfile());
+		ctx.waitTicks(5);
+		check("pv: switches profile", "Kiwi".equals(ctx.computeOnClient(mc -> mc.screen instanceof PlayerViewerScreen v ? v.profileName() : "")));
+		check("pv: stays on the tab", ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).tab() == 2));
+		ctx.runOnClient(mc -> {
+			mc.setScreen(null);
+			SkyCrypt.clear();
+			Taz.config().general.viewer.apiKey = "";
+			mc.gui.getChat().clearMessages(false);
+		});
+		clientCommand("pv TazTester");
+		check("pv: asks for a key", chatHas("need your own SkyCrypt API key"));
+		ctx.runOnClient(mc -> SkyCrypt.FAKE.clear());
+	}
+
+	/** Canned SkyCrypt answers for a made-up player with two profiles (src/gametest/resources/pv). */
+	private static void fakeSkyCrypt() {
+		SkyCrypt.FAKE.clear();
+		SkyCrypt.clear();
+		String uuid = "5d1a2b3c4d5e4f60a1b2c3d4e5f60718/";
+		String pomegranate = uuid + "11111111-2222-3333-4444-555555555555", kiwi = uuid + "66666666-7777-8888-9999-000000000000";
+		SkyCrypt.FAKE.put("embed/TazTester", SkyCrypt.Fake.ok(fixture("embed")));
+		SkyCrypt.FAKE.put("stats/TazTester", SkyCrypt.Fake.ok(fixture("stats")));
+		SkyCrypt.FAKE.put("stats/TazTester/66666666-7777-8888-9999-000000000000", SkyCrypt.Fake.ok(fixture("stats-kiwi")));
+		for (String at : List.of(pomegranate, kiwi)) {
+			SkyCrypt.FAKE.put("combined/" + at, SkyCrypt.Fake.ok(fixture("combined")));
+			SkyCrypt.FAKE.put("networth/" + at, SkyCrypt.Fake.ok(fixture("networth")));
+		}
+		SkyCrypt.FAKE.put("inventory/" + pomegranate, SkyCrypt.Fake.ok(fixture("inventory")));
+	}
+
+	private static String fixture(String name) {
+		try (var in = GeneralGameTest.class.getResourceAsStream("/pv/" + name + ".json")) {
+			return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			throw new AssertionError("fixture " + name, e);
+		}
+	}
+
+	private void clientCommand(String command) {
+		ctx.runOnClient(mc -> {
+			try {
+				ClientCommands.getActiveDispatcher().execute(command, (FabricClientCommandSource) mc.getConnection().getSuggestionsProvider());
+			} catch (Exception e) {
+				throw new AssertionError(command, e);
+			}
+		});
+		ctx.waitTicks(3);
+	}
+
+	/** Whether a line in the chat contains this text. */
+	private boolean chatHas(String text) {
+		return ctx.computeOnClient(mc -> ((com.taz.mixin.ChatComponentAccessor) mc.gui.getChat()).taz$messages().stream()
+				.anyMatch(m -> m.content().getString().contains(text)));
+	}
 
 	private static MovableHud hud(Class<?> type) {
 		for (MovableHud h : TazHud.all()) if (type.isInstance(h)) return h;
