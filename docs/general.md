@@ -40,7 +40,7 @@ Taz's `/pv` replaces Skyblocker's, which is still at `/skyblocker pv`. Taz isn't
 
 ## Inventory
 
-- **Item Prices:** lowest BIN or bazaar price at the bottom of every item's tooltip.
+- **Item Prices:** lowest BIN (from SkyCofl) or bazaar price (from Hypixel) at the bottom of every item's tooltip.
 - **Item Overlays:** rarity colour behind items, and numbers on pets, books, minions and menus.
 - **Storage Overlay:** every ender chest page and backpack at once in /storage.
 - **Auction Price Input:** type prices like 10m or 2.5k.

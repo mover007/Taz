@@ -71,6 +71,7 @@ public final class Migration {
 			if (version < 3) upgradeToV3(root);
 			if (version < 4) upgradeToV4(root);
 			if (version < 5) upgradeToV5(root);
+			if (version < 6) upgradeToV6(root);
 			root.addProperty("configVersion", TazConfig.CURRENT_VERSION);
 			Files.writeString(file, ModConfig.GSON.toJson(root), StandardCharsets.UTF_8);
 			Taz.LOGGER.info("Upgraded {} from layout {} to {}", file, version, TazConfig.CURRENT_VERSION);
@@ -168,6 +169,15 @@ public final class Migration {
 		}
 		JsonObject galatea = object(root, "galatea");
 		if (galatea != null) move(galatea, "safari", root, "safari");
+	}
+
+	/** v6: lowest BIN prices come from SkyCofl instead of SkyHelper's price file (unless you set your own). */
+	static void upgradeToV6(JsonObject root) {
+		JsonObject xp = object(root, "skyblockXp"), assist = xp == null ? null : object(xp, "xpAssist");
+		JsonObject sources = assist == null ? null : object(assist, "dataSources");
+		if (sources != null && sources.has("pricesUrl") && sources.get("pricesUrl").getAsString().contains("SkyHelperBot/Prices")) {
+			sources.addProperty("pricesUrl", new com.taz.xpassist.config.ModConfig.DataSources().pricesUrl);
+		}
 	}
 
 	private static void moveFeature(JsonObject root, String fromCategory, String feature, String toCategory, String newName) {

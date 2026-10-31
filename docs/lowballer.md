@@ -33,7 +33,7 @@ An item's **worth** is the lower of its lowest BIN and median sale. You can pick
 
 Bazaar items get no estimate. For them, Taz asks for the latest bazaar price of the whole stack and uses what insta-selling it would get. Anything else SkyCofl doesn't estimate gets its lowest BIN by id.
 
-If SkyCofl can't be reached, Taz uses its own price list (the one behind price tooltips) and tries SkyCofl again after 30 seconds. An item nobody prices is left out of the totals, and the HUD says so.
+If SkyCofl's estimate can't be reached, Taz uses the price lists behind price tooltips (SkyCofl's lowest BINs, downloaded every 15 minutes, and Hypixel's bazaar) and tries the estimate again after 30 seconds. An item nobody prices is left out of the totals, and the HUD says so.
 
 Prices are asked for once their side stops changing, all their new items in one go. They're kept for 3 minutes, so opening the trade again doesn't ask again. SkyCofl allows each player 30 lookups in 10 seconds. If it asks Taz to wait, the HUD says how long.
 

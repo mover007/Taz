@@ -8,7 +8,7 @@ import io.github.notenoughupdates.moulconfig.common.text.StructuredText;
 
 /** Everything in the settings GUI (/taz), saved as config/taz/config.json. */
 public final class TazConfig extends Config {
-	public static final int CURRENT_VERSION = 5;
+	public static final int CURRENT_VERSION = 6;
 
 	@Expose
 	@Category(name = "About", desc = "What Taz does, and moving its HUDs.")

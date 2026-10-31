@@ -547,7 +547,7 @@ public class GeneralGameTest implements FabricClientGameTest {
 
 	private void prices() {
 		ctx.runOnClient(mc -> ItemPrices.testPrices = Prices.parse(
-				"{\"HYPERION\":900000000,\"ENCHANTMENT_ULTIMATE_WISE_5\":3000000,\"LVL_100_LEGENDARY_GOLDEN_DRAGON\":700000000}",
+				"{\"HYPERION\":900000000,\"ENCHANTMENT_ULTIMATE_WISE_5\":3000000,\"GOLDEN_DRAGON;4\":700000000}",
 				"{\"products\":{\"ENCHANTED_DIAMOND\":{\"quick_status\":{\"buyPrice\":1700.5,\"sellPrice\":1500.2}}}}"));
 		List<ItemStack> items = sampleItems();
 		String sword = tooltip(items.get(0));
@@ -555,7 +555,7 @@ public class GeneralGameTest implements FabricClientGameTest {
 		String diamond = tooltip(items.get(1));
 		check("prices: bazaar with the stack (" + diamond + ")", diamond.contains("Bazaar buy: 1.7K") && diamond.contains("x64"));
 		check("prices: enchanted book by its enchant", tooltip(items.get(2)).contains("Lowest BIN: 3M"));
-		check("prices: pet by level and rarity", tooltip(items.get(3)).contains("Lowest BIN: 700M"));
+		check("prices: pet by rarity", tooltip(items.get(3)).contains("Lowest BIN: 700M"));
 		check("prices: nothing on vanilla items", !tooltip(items.get(8)).contains("Lowest BIN") && !tooltip(items.get(8)).contains("Bazaar"));
 	}
 

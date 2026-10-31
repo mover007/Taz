@@ -31,7 +31,7 @@ public final class PriceTooltips {
 					+ (stackLine ? " §8(x" + count + ": §6" + TextUtil.coins(buy * count) + "§8/§6" + TextUtil.coins(sell * count) + "§8)" : "")));
 		} else if (cfg.lowestBin) {
 			double bin = prices.market(key);
-			if (Double.isNaN(bin) && key.startsWith("LVL_")) return;
+			if (Double.isNaN(bin) && key.contains(";")) return;
 			if (!Double.isNaN(bin)) {
 				lines.add(Component.literal("§7Lowest BIN: §6" + TextUtil.coins(bin)
 						+ (stackLine ? " §8(x" + count + ": §6" + TextUtil.coins(bin * count) + "§8)" : "")));

@@ -61,7 +61,7 @@ The jar is `build/libs/taz-<version>.jar` (JDK 25). Tests, code layout and how t
 - [Skyblocker](https://github.com/SkyblockerMod/Skyblocker): the Rockmite mound texture.
 - [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig) (MPL-2.0): the settings menu.
 - [SkyCrypt](https://sky.shiiyu.moe): the profile data for `/pv` and `/nw`, through its API with your own key. Taz isn't affiliated with or endorsed by SkyCrypt or Hypixel.
-- [SkyCofl](https://sky.coflnet.com): the prices for the Lowballer, through its API. Taz isn't affiliated with or endorsed by SkyCofl or Hypixel.
+- [SkyCofl](https://sky.coflnet.com): the prices for the Lowballer and item tooltips, through its API. Taz isn't affiliated with or endorsed by SkyCofl or Hypixel.
 
 The licences of bundled data are next to it in `src/main/resources/assets/taz/`.
 

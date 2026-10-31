@@ -8,18 +8,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Live prices: Hypixel's bazaar API for bazaar items, and the same public price file the
- * SkyHelper bot uses (github.com/SkyHelperBot/Prices) for auction house lowest-BIN prices.
+ * Live prices: Hypixel's bazaar API for bazaar items, and SkyCofl's lowest-BIN list (sky.coflnet.com/api/prices/neu,
+ * id → coins; pets as "ENDER_DRAGON;4") for the auction house.
  */
 public final class Prices {
 	private final Map<String, Double> market = new HashMap<>();
 	private final Map<String, double[]> bazaar = new HashMap<>();
 	public final long loadedAt = System.currentTimeMillis();
 
-	public static Prices parse(String skyHelperBody, String bazaarBody) {
+	public static Prices parse(String lowestBinBody, String bazaarBody) {
 		Prices prices = new Prices();
-		if (skyHelperBody != null) {
-			JsonObject json = JsonParser.parseString(skyHelperBody).getAsJsonObject();
+		if (lowestBinBody != null) {
+			JsonObject json = JsonParser.parseString(lowestBinBody).getAsJsonObject();
 			for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
 				if (entry.getValue().isJsonPrimitive() && entry.getValue().getAsJsonPrimitive().isNumber()) {
 					double value = entry.getValue().getAsDouble();
@@ -63,7 +63,7 @@ public final class Prices {
 		return value > 0 ? value : Double.NaN;
 	}
 
-	/** Lowest BIN / market price from the SkyHelper price file, or NaN. */
+	/** Lowest BIN from SkyCofl's list, or NaN. */
 	public double market(String id) {
 		Double value = market.get(id);
 		return value != null ? value : Double.NaN;

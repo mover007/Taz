@@ -38,7 +38,9 @@ public final class XpCalculator {
 	private static final Pattern SLAYER_REQ = Pattern.compile("(?i)^(Zombie|Spider|Wolf|Enderman|Blaze|Vampire) Slayer (\\d+)$");
 	private static final Pattern CONTACT_REQ = Pattern.compile("(?i)^Have (.+?)'s? contact$");
 	private static final Pattern PET = Pattern.compile("(?i)^\\[lvl\\s*\\d+]\\s+(.+)$");
-	private static final Pattern PET_PRICE = Pattern.compile("^LVL_1_(COMMON|UNCOMMON|RARE|EPIC|LEGENDARY|MYTHIC)_([A-Z0-9_]+)$");
+	private static final Pattern PET_PRICE = Pattern.compile("^([A-Z0-9_]+);([0-5])$");
+	/** Pet rarities by their number in SkyCofl's price keys ("ENDER_DRAGON;4" is a legendary one). */
+	private static final List<String> PET_RARITIES = List.of("COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC");
 
 	private final NeuRepo neu;
 	private final HypixelItems items;
@@ -680,8 +682,8 @@ public final class XpCalculator {
 	private double cheapestPet(String petName) {
 		String type = petName.trim().toUpperCase(Locale.ROOT).replace(' ', '_');
 		double best = Double.NaN;
-		for (String rarity : List.of("COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC")) {
-			double price = book.prices().market("LVL_1_" + rarity + "_" + type);
+		for (int rarity = 0; rarity < PET_RARITIES.size(); rarity++) {
+			double price = book.prices().market(type + ";" + rarity);
 			if (!Double.isNaN(price) && (Double.isNaN(best) || price < best)) {
 				best = price;
 			}
@@ -779,8 +781,8 @@ public final class XpCalculator {
 			if (!matcher.matches()) {
 				continue;
 			}
-			String rarity = matcher.group(1);
-			String type = matcher.group(2);
+			String rarity = PET_RARITIES.get(Integer.parseInt(matcher.group(2)));
+			String type = matcher.group(1);
 			int ownedScore = profile != null ? rules.petScore(profile.bestPets.get(type)) : 0;
 			int gain = rules.petScore(rarity) - ownedScore;
 			if (gain <= 0) {

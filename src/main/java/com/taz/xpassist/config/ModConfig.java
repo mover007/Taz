@@ -149,9 +149,9 @@ public class ModConfig {
 		public String hypixelApiBase = "https://api.hypixel.net/v2";
 
 		@Expose
-		@ConfigOption(name = "Prices URL", desc = "Lowest BIN / Bazaar price list (SkyHelper's by default).")
+		@ConfigOption(name = "Prices URL", desc = "Lowest BIN price list (SkyCofl's by default). Bazaar prices come from the Hypixel API.")
 		@ConfigEditorText
-		public String pricesUrl = "https://raw.githubusercontent.com/SkyHelperBot/Prices/main/pricesV2.json";
+		public String pricesUrl = "https://sky.coflnet.com/api/prices/neu";
 
 		@Expose
 		@ConfigOption(name = "NEU repo owner", desc = "GitHub owner of the item repo.")

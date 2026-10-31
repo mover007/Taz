@@ -15,18 +15,17 @@ import net.minecraft.world.item.component.CustomData;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Item prices for tooltips: the ones SkyBlock XP Assist already downloaded when it's on, or else the same two
- * files (SkyHelper lowest-BIN prices and Hypixel's bazaar), downloaded in the background every 15 minutes
+ * lists (SkyCofl's lowest BINs and Hypixel's bazaar), downloaded in the background every 15 minutes
  * into config/taz/prices/.
  */
 public final class ItemPrices {
 	private static final long REFRESH_MS = 15 * 60_000L;
-	private static final Pattern PET_LEVEL = Pattern.compile("^\\[Lvl (\\d+)]");
+	private static final List<String> PET_TIERS = List.of("COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC");
 
 	private static volatile Prices own;
 	private static volatile boolean loading;
@@ -78,8 +77,8 @@ public final class ItemPrices {
 	}
 
 	/**
-	 * The price-file key of an item: its SkyBlock id, "ENCHANTMENT_ULTIMATE_WISE_5" for a one-enchant book,
-	 * "LVL_100_LEGENDARY_GOLDEN_DRAGON" for a pet.
+	 * The price-list key of an item: its SkyBlock id, "ENCHANTMENT_ULTIMATE_WISE_5" for a one-enchant book (a bazaar
+	 * id), "GOLDEN_DRAGON;4" for a legendary pet (SkyCofl's key: the type and the rarity's number, any level).
 	 */
 	public static String key(ItemStack stack) {
 		String id = ItemUtil.skyblockId(stack);
@@ -96,9 +95,8 @@ public final class ItemPrices {
 		if (id.equals("PET")) {
 			JsonObject pet = ItemUtil.petInfo(stack);
 			if (pet == null || !pet.has("type") || !pet.has("tier")) return id;
-			Matcher m = PET_LEVEL.matcher(ItemUtil.name(stack));
-			String level = m.find() ? m.group(1) : "1";
-			return "LVL_" + level + "_" + pet.get("tier").getAsString() + "_" + pet.get("type").getAsString();
+			int tier = PET_TIERS.indexOf(pet.get("tier").getAsString());
+			return tier < 0 ? id : pet.get("type").getAsString() + ";" + tier;
 		}
 		return id;
 	}
