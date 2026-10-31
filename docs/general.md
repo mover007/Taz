@@ -20,9 +20,32 @@ Everything Taz says starts with **[TAZ]**. Party messages go out one at a time, 
 
 `/nw [player]` says a networth in chat: with cosmetics, without them, and unsoulbound. Hover a number to see what it's made of.
 
-With no name, both show you. The data is from [SkyCrypt](https://sky.shiiyu.moe), so they need your own SkyCrypt API key: sign in on SkyCrypt, request a key on your dashboard's Developer page, and paste it in **General → Player Viewer**. SkyCrypt only has players someone looked up on its site recently; for anyone else, Taz gives you a link to open their page first. Each answer is kept 5 minutes.
+With no name, both show you. There's nothing to set up:
 
-Taz's `/pv` replaces Skyblocker's, which is still at `/skyblocker pv`. Taz isn't affiliated with or endorsed by SkyCrypt or Hypixel.
+- **Profiles** come from Hypixel's API, through Taz's own server, which holds Taz's one API key. Hypixel's rules don't allow a key in a mod. Each lookup is kept 5 minutes in the game and 10 on the server.
+- **Levels** are worked out from the raw XP: skills (with Anita's and pet care caps), Catacombs and classes, slayers and pets.
+- **Items** are read from the inventories Hypixel stores, so they need the player's inventory API on.
+- **Magical Power** counts each different accessory by its rarity, the Hegemony Artifact twice, Abiphone contacts and the Rift Prism. It doesn't know accessory families, so a lower tier of one you have still counts.
+- **Gear stats** add up what the armor and equipment lore says.
+- **Pet heads** come from the NEU repo that SkyBlock XP downloads; until it has, pets show as bones.
+
+**Networth** is worked out the way [SkyHelper-Networth](https://github.com/Altpapier/SkyHelper-Networth) does it (the networth SkyHelper and SkyCrypt show), with prices from [SkyCofl](https://sky.coflnet.com) and Hypixel's bazaar:
+
+- **Items** are worth their lowest BIN, plus what their upgrades cost. That covers enchantments, potato books, stars and master stars, gemstones and slots, scrolls, the recombobulator, reforge stones, Art of War, drill and rod parts and the rest, each counted at SkyHelper's share.
+- **SkyCofl's floor:** every item is also sent to SkyCofl's price estimate, which matches it to sold items like it. When their median sale is higher, that counts instead. This catches what a price list can't see: skins, shiny items, coins in a Crown of Avarice.
+- **Pets** are worth SkyCofl's estimate: their level, held item and skin.
+- **Where items count from:**
+  - inventory, armor, equipment and equipment sets
+  - the wardrobe (Hypixel's loadouts)
+  - ender chest, backpacks, personal vault and bags
+  - candy and carnival masks
+  - the museum
+- **Bazaar items, sacks and essence** go by Hypixel's bazaar, near insta-buy, as SkyHelper prices them. Purse, bank and personal bank are added on top.
+- **Non-cosmetic** leaves out skins and dyes. **Unsoulbound** leaves out soulbound items, museum donations and essence.
+
+Tested on a real profile, it comes within about 1% of SkyHelper's networth. Hover a slot to see what an item counts for; the Gear tab lists weapons most valuable first.
+
+Taz's `/pv` replaces Skyblocker's, which is still at `/skyblocker pv`. Taz isn't affiliated with or endorsed by SkyCofl or Hypixel.
 
 ## Features
 

@@ -1,5 +1,8 @@
 package com.taz.gametest;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -21,7 +24,8 @@ import com.taz.general.SkyblockEvent;
 import com.taz.general.Waypoints;
 import com.taz.general.pv.Networth;
 import com.taz.general.pv.PlayerViewerScreen;
-import com.taz.general.pv.SkyCrypt;
+import com.taz.general.pv.SkyblockItems;
+import com.taz.general.pv.Hypixel;
 import com.taz.hud.MovableHud;
 import com.taz.hud.TazHud;
 import com.taz.hud.TazHudEditor;
@@ -53,6 +57,9 @@ import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
@@ -64,11 +71,14 @@ import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.phys.Vec3;
 import org.lwjgl.glfw.GLFW;
 
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
@@ -665,54 +675,85 @@ public class GeneralGameTest implements FabricClientGameTest {
 
 	// ---- helpers
 
-	/** /nw: a networth from canned SkyCrypt answers, and what it says without a key or for a player SkyCrypt doesn't have. */
+	/** /nw: a networth from a made-up Hypixel profile priced by made-up SkyCofl estimates, and what it says when there's nothing to show. */
 	private void networth() {
 		ctx.runOnClient(mc -> {
-			fakeSkyCrypt();
-			Taz.config().general.viewer.apiKey = "";
+			fakeHypixel();
 			mc.gui.getChat().clearMessages(false);
 		});
+		int asked = Hypixel.REQUESTS.get(), priced = Cofl.REQUESTS.get();
 		clientCommand("nw TazTester");
-		check("networth: asks for a key", chatHas("need your own SkyCrypt API key"));
-		ctx.runOnClient(mc -> Taz.config().general.viewer.apiKey = "test-key");
-		clientCommand("nw TazTester");
+		realWait(1500);
 		String nw = ctx.computeOnClient(mc -> Networth.lastShown);
 		check("networth: with and without cosmetics, and unsoulbound (" + nw + ")", nw.contains("TazTester's networth · Pomegranate")
-				&& nw.contains("With cosmetics: 272.94B") && nw.contains("Non-cosmetic: 118.42B") && nw.contains("Unsoulbound: 98.5B")
-				&& nw.contains("Purse 2.22B · Bank 1B") && nw.contains("Data from SkyCrypt"));
-		int asked = SkyCrypt.REQUESTS.get();
+				&& nw.contains("With cosmetics: 7.09B") && nw.contains("Non-cosmetic: 6.63B") && nw.contains("Unsoulbound: 6.77B")
+				&& nw.contains("Purse 1.5B · Bank 1B · Personal 5M") && nw.contains("Data from Hypixel · prices from SkyCofl"));
+		int lookups = Hypixel.REQUESTS.get() - asked, estimates = Cofl.REQUESTS.get() - priced;
+		check("networth: one profile and museum lookup and one SkyCofl estimate (" + lookups + ", " + estimates + ")", lookups == 3 && estimates == 1);
+		int askedAgain = Hypixel.REQUESTS.get(), pricedAgain = Cofl.REQUESTS.get();
+		ctx.runOnClient(mc -> Networth.lastShown = "");
 		clientCommand("nw TazTester");
-		check("networth: kept, not asked again", SkyCrypt.REQUESTS.get() == asked);
-		ctx.runOnClient(mc -> SkyCrypt.FAKE.put("embed/Nobody", new SkyCrypt.Fake(404, "{\"code\":\"NOT_CACHED\",\"detail\":\"Not cached\"}")));
+		realWait(500);
+		check("networth: kept, not asked again", Hypixel.REQUESTS.get() == askedAgain && Cofl.REQUESTS.get() == pricedAgain
+				&& ctx.computeOnClient(mc -> Networth.lastShown).contains("With cosmetics: 7.09B"));
 		clientCommand("nw Nobody");
-		check("networth: a player SkyCrypt doesn't have", chatHas("Open Nobody's page once"));
+		realWait(300);
+		check("networth: no such player", chatHas("There's no Minecraft player called Nobody."));
+		clientCommand("nw Newbie");
+		realWait(300);
+		check("networth: never played SkyBlock", chatHas("Newbie hasn't played SkyBlock."));
 		clientCommand("nw not-a-name");
 		check("networth: not a Minecraft name", chatHas("isn't a Minecraft name"));
+		clientCommand("nw Steve");
+		realWait(300);
+		check("networth: Taz's server can't help", chatHas("Taz can't get Hypixel's data right now"));
 		ctx.takeScreenshot("networth-chat");
-		ctx.runOnClient(mc -> {
-			SkyCrypt.FAKE.clear();
-			SkyCrypt.clear();
-			Taz.config().general.viewer.apiKey = "";
-		});
+		ctx.runOnClient(mc -> unfake());
 	}
 
-	/** /pv: the viewer opens on canned SkyCrypt answers, every tab draws, and profiles switch. */
+	/** /pv: the viewer opens on a made-up Hypixel profile, everything is worked out from it, every tab draws, and profiles switch. */
 	private void playerViewer() {
-		ctx.runOnClient(mc -> {
-			fakeSkyCrypt();
-			Taz.config().general.viewer.apiKey = "test-key";
-		});
+		ctx.runOnClient(mc -> fakeHypixel());
 		clientCommand("pv TazTester");
-		ctx.waitTicks(5);
+		realWait(1000);
 		check("pv: opens", ctx.computeOnClient(mc -> mc.screen instanceof PlayerViewerScreen));
 		check("pv: Taz's /pv runs, not the other mod's", !otherPv);
+		check("pv: networth worked out", ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).networthDone()));
+		JsonObject stats = ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).profile().stats());
+		JsonObject combined = ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).profile().combined());
+		JsonObject skills = stats.getAsJsonObject("skills").getAsJsonObject("skills");
+		check("pv: skill levels and caps, Foraging 57 with 3 extra levels (" + skills.getAsJsonObject("foraging") + ")", skills.getAsJsonObject("farming").get("level").getAsInt() == 50
+				&& !skills.getAsJsonObject("farming").get("maxed").getAsBoolean() && skills.getAsJsonObject("mining").get("level").getAsInt() == 60
+				&& skills.getAsJsonObject("mining").get("maxed").getAsBoolean() && skills.getAsJsonObject("runecrafting").get("level").getAsInt() == 25
+				&& skills.getAsJsonObject("foraging").get("level").getAsInt() == 57 && skills.getAsJsonObject("foraging").get("maxed").getAsBoolean());
+		check("pv: rank", stats.getAsJsonObject("rank").get("rankText").getAsString().equals("MVP")
+				&& stats.getAsJsonObject("rank").get("plusText").getAsString().equals("++"));
+		JsonObject dungeons = combined.getAsJsonObject("dungeons");
+		check("pv: Catacombs 50 and class levels", dungeons.getAsJsonObject("level").get("level").getAsInt() == 50
+				&& dungeons.getAsJsonObject("classes").getAsJsonObject("classes").getAsJsonObject("mage").get("level").getAsInt() == 50);
+		JsonObject slayers = combined.getAsJsonObject("slayers").getAsJsonObject("data");
+		check("pv: slayer levels", slayers.getAsJsonObject("zombie").getAsJsonObject("level").get("level").getAsInt() == 9
+				&& slayers.getAsJsonObject("blaze").getAsJsonObject("level").get("level").getAsInt() == 8
+				&& slayers.getAsJsonObject("vampire").getAsJsonObject("level").get("level").getAsInt() == 5);
+		JsonObject gear = combined.getAsJsonObject("gear");
+		check("pv: armor stats, wardrobe and weapons (" + gear.getAsJsonObject("armor").get("stats") + ")",
+				gear.getAsJsonObject("armor").getAsJsonObject("stats").get("strength").getAsInt() == 180
+						&& gear.getAsJsonObject("armor").getAsJsonObject("stats").get("health").getAsInt() == 720
+						&& gear.getAsJsonArray("wardrobe").size() == 2 && gear.getAsJsonObject("weapons").getAsJsonArray("weapons").size() == 4
+						&& gear.getAsJsonObject("weapons").getAsJsonObject("highest_priority_weapon").get("id").getAsString().equals("HYPERION"));
+		check("pv: magical power", combined.getAsJsonObject("accessories").getAsJsonObject("magicalPower").get("total").getAsInt() == 78);
+		JsonObject pets = combined.getAsJsonObject("pets");
+		check("pv: pets and pet score", pets.get("amount").getAsInt() == 3 && pets.getAsJsonObject("petScore").get("amount").getAsInt() == 16
+				&& pets.getAsJsonArray("pets").get(0).getAsJsonObject().get("active").getAsBoolean());
+		check("pv: inventory tabs", ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).inventoryTabs()) == 5);
+		List<String> weapons = ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).weaponIds());
+		check("pv: weapons, most valuable first (" + weapons + ")", weapons.equals(List.of("TERMINATOR", "HYPERION", "JUJU_SHORTBOW", "ASPECT_OF_THE_DRAGON")));
 		for (int i = 0; i < PlayerViewerScreen.TABS.length; i++) {
 			int tab = i;
 			ctx.runOnClient(mc -> ((PlayerViewerScreen) mc.screen).showTab(tab));
-			ctx.waitTicks(tab == 3 ? 10 : 4);
+			ctx.waitTicks(4);
 			ctx.takeScreenshot("pv-" + PlayerViewerScreen.TABS[i].toLowerCase(Locale.ROOT));
 		}
-		check("pv: inventories loaded", ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).inventoriesDone()));
 		// The helmet's tooltip on the Gear tab.
 		ctx.runOnClient(mc -> ((PlayerViewerScreen) mc.screen).showTab(2));
 		int[] at = ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).screenPos(133, 29));
@@ -721,34 +762,89 @@ public class GeneralGameTest implements FabricClientGameTest {
 		ctx.waitTicks(4);
 		ctx.takeScreenshot("pv-gear-tooltip");
 		ctx.runOnClient(mc -> ((PlayerViewerScreen) mc.screen).nextProfile());
-		ctx.waitTicks(5);
+		realWait(500);
 		check("pv: switches profile", "Kiwi".equals(ctx.computeOnClient(mc -> mc.screen instanceof PlayerViewerScreen v ? v.profileName() : "")));
 		check("pv: stays on the tab", ctx.computeOnClient(mc -> ((PlayerViewerScreen) mc.screen).tab() == 2));
+		ctx.takeScreenshot("pv-kiwi-gear");
 		ctx.runOnClient(mc -> {
 			mc.setScreen(null);
-			SkyCrypt.clear();
-			Taz.config().general.viewer.apiKey = "";
 			mc.gui.getChat().clearMessages(false);
 		});
-		clientCommand("pv TazTester");
-		check("pv: asks for a key", chatHas("need your own SkyCrypt API key"));
-		ctx.runOnClient(mc -> SkyCrypt.FAKE.clear());
+		clientCommand("pv Nobody");
+		realWait(300);
+		check("pv: a player who doesn't exist stays closed", ctx.computeOnClient(mc -> mc.screen == null)
+				&& chatHas("There's no Minecraft player called Nobody."));
+		ctx.runOnClient(mc -> unfake());
 	}
 
-	/** Canned SkyCrypt answers for a made-up player with two profiles (src/gametest/resources/pv). */
-	private static void fakeSkyCrypt() {
-		SkyCrypt.FAKE.clear();
-		SkyCrypt.clear();
-		String uuid = "5d1a2b3c4d5e4f60a1b2c3d4e5f60718/";
-		String pomegranate = uuid + "11111111-2222-3333-4444-555555555555", kiwi = uuid + "66666666-7777-8888-9999-000000000000";
-		SkyCrypt.FAKE.put("embed/TazTester", SkyCrypt.Fake.ok(fixture("embed")));
-		SkyCrypt.FAKE.put("stats/TazTester", SkyCrypt.Fake.ok(fixture("stats")));
-		SkyCrypt.FAKE.put("stats/TazTester/66666666-7777-8888-9999-000000000000", SkyCrypt.Fake.ok(fixture("stats-kiwi")));
-		for (String at : List.of(pomegranate, kiwi)) {
-			SkyCrypt.FAKE.put("combined/" + at, SkyCrypt.Fake.ok(fixture("combined")));
-			SkyCrypt.FAKE.put("networth/" + at, SkyCrypt.Fake.ok(fixture("networth")));
+	/** A made-up player with two profiles (src/gametest/resources/pv/hypixel.json), and made-up prices for their items. */
+	private static void fakeHypixel() {
+		unfake();
+		String uuid = "5d1a2b3c4d5e4f60a1b2c3d4e5f60718", steve = "8667ba71b85a4004af54457a9734eed7", newbie = "0000aaaa1111bbbb2222cccc3333dddd";
+		Hypixel.FAKE.put("uuid/TazTester", Hypixel.Fake.ok("{\"id\":\"" + uuid + "\",\"name\":\"TazTester\"}"));
+		Hypixel.FAKE.put("skyblock/" + uuid, Hypixel.Fake.ok(fixture("hypixel")));
+		Hypixel.FAKE.put("uuid/Newbie", Hypixel.Fake.ok("{\"id\":\"" + newbie + "\",\"name\":\"Newbie\"}"));
+		Hypixel.FAKE.put("skyblock/" + newbie, Hypixel.Fake.ok("{\"uuid\":\"" + newbie + "\",\"player\":{},\"profiles\":null}"));
+		Hypixel.FAKE.put("uuid/Steve", Hypixel.Fake.ok("{\"id\":\"" + steve + "\",\"name\":\"Steve\"}"));
+		Hypixel.FAKE.put("skyblock/" + steve, new Hypixel.Fake(503, "{\"code\":\"SERVER_KEY\",\"detail\":\"No key\"}"));
+		Cofl.fake = (path, body) -> path.equals("price/nbt") ? fakeEstimates(body) : null;
+		SkyblockItems.testItems = Map.of();
+		ItemPrices.testPrices = Prices.parse("{}", "{\"products\":{"
+				+ "\"ENCHANTED_DIAMOND\":{\"quick_status\":{\"buyPrice\":1600,\"sellPrice\":1500}},"
+				+ "\"ENCHANTMENT_ULTIMATE_WISE_5\":{\"quick_status\":{\"buyPrice\":700000,\"sellPrice\":600000}},"
+				+ "\"ESSENCE_WITHER\":{\"quick_status\":{\"buyPrice\":3500,\"sellPrice\":3000}},"
+				+ "\"ESSENCE_DRAGON\":{\"quick_status\":{\"buyPrice\":2000,\"sellPrice\":1500}}}}");
+	}
+
+	private static void unfake() {
+		Hypixel.FAKE.clear();
+		Hypixel.clear();
+		Networth.clear();
+		Cofl.fake = null;
+		SkyblockItems.testItems = null;
+		ItemPrices.testPrices = null;
+	}
+
+	/** Made-up SkyCofl estimates: each item by its id (a pet by its type); bazaar items get none, like the real thing. */
+	private static String fakeEstimates(String body) {
+		Map<String, long[]> prices = Map.ofEntries(Map.entry("HYPERION", new long[]{900_000_000, 800_000_000}),
+				Map.entry("TERMINATOR", new long[]{1_000_000_000, 1_100_000_000}), Map.entry("NECRON_HANDLE", new long[]{300_000_000, 310_000_000}),
+				Map.entry("NECRON_BOOTS", new long[]{50_000_000, 60_000_000}), Map.entry("NECRON_LEGGINGS", new long[]{50_000_000, 60_000_000}),
+				Map.entry("NECRON_CHESTPLATE", new long[]{50_000_000, 60_000_000}), Map.entry("NECRON_HELMET", new long[]{50_000_000, 60_000_000}),
+				Map.entry("MOLTEN_NECKLACE", new long[]{10_000_000, 10_000_000}), Map.entry("MOLTEN_CLOAK", new long[]{10_000_000, 10_000_000}),
+				Map.entry("MOLTEN_BELT", new long[]{10_000_000, 10_000_000}), Map.entry("MOLTEN_BRACELET", new long[]{10_000_000, 10_000_000}),
+				Map.entry("DYE_PURE_BLACK", new long[]{250_000_000, 260_000_000}), Map.entry("PET_SKIN_ENDER_DRAGON_UNDEAD", new long[]{200_000_000, 200_000_000}),
+				Map.entry("STORM_LEGGINGS", new long[]{20_000_000, 20_000_000}), Map.entry("STORM_CHESTPLATE", new long[]{20_000_000, 20_000_000}),
+				Map.entry("STORM_HELMET", new long[]{20_000_000, 20_000_000}), Map.entry("STORM_BOOTS", new long[]{20_000_000, 20_000_000}),
+				Map.entry("JUMBO_BACKPACK", new long[]{5_000_000, 5_000_000}), Map.entry("ASPECT_OF_THE_DRAGON", new long[]{1_000_000, 900_000}),
+				Map.entry("JUJU_SHORTBOW", new long[]{30_000_000, 32_000_000}), Map.entry("HEGEMONY_ARTIFACT", new long[]{1_000_000, 1_000_000}),
+				Map.entry("BAT_RING", new long[]{1_000_000, 1_000_000}), Map.entry("POCKET_ESPRESSO_MACHINE", new long[]{1_000_000, 1_000_000}),
+				Map.entry("PET:GOLDEN_DRAGON", new long[]{1_000_000_000, 1_000_000_000}), Map.entry("PET:ENDER_DRAGON", new long[]{450_000_000, 470_000_000}),
+				Map.entry("PET:ENDERMAN", new long[]{20_000_000, 25_000_000}));
+		try {
+			String data = JsonParser.parseString(body).getAsJsonObject().get("fullInventoryNbt").getAsString();
+			ListTag items = NbtIo.readCompressed(new ByteArrayInputStream(Base64.getDecoder().decode(data)), NbtAccounter.unlimitedHeap()).getListOrEmpty("i");
+			JsonArray out = new JsonArray();
+			for (int i = 0; i < items.size(); i++) {
+				CompoundTag extra = items.getCompoundOrEmpty(i).getCompoundOrEmpty("tag").getCompoundOrEmpty("ExtraAttributes");
+				String id = extra.getStringOr("id", "");
+				if (id.equals("PET")) id = "PET:" + JsonParser.parseString(extra.getStringOr("petInfo", "{}")).getAsJsonObject().get("type").getAsString();
+				long[] p = prices.get(id);
+				if (p == null) {
+					out.add(JsonNull.INSTANCE);
+					continue;
+				}
+				JsonObject e = new JsonObject();
+				e.addProperty("lbin", p[0]);
+				e.addProperty("median", p[1]);
+				e.addProperty("volume", 5.0);
+				e.addProperty("fastSell", p[1]);
+				out.add(e);
+			}
+			return out.toString();
+		} catch (Exception e) {
+			throw new AssertionError("fake SkyCofl estimate", e);
 		}
-		SkyCrypt.FAKE.put("inventory/" + pomegranate, SkyCrypt.Fake.ok(fixture("inventory")));
 	}
 
 	// ---- lowballer

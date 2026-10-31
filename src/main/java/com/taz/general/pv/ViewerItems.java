@@ -26,24 +26,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Icons for SkyCrypt's items. Its texture links name a head texture, dyed leather, a potion or an item id; an item id becomes
- * Hypixel's resource pack model when the pack is loaded, else the Minecraft item, else the item SkyCrypt says it's drawn from.
+ * Icons for the viewer's items. Their texture links ({@link ProfileItems}) name a head texture, dyed leather, a potion or a
+ * SkyBlock id; a SkyBlock id becomes Hypixel's resource pack model when the pack is loaded, else the Minecraft item with that
+ * name, else the Minecraft item the link says it's made from ("?mc=player_head").
  */
 final class ViewerItems {
 	private static final Map<String, ItemStack> BY_LINK = new HashMap<>();
-	/** Item ids SkyCrypt named a Minecraft item for ("HELIX_ARMOR_CHESTPLATE" → leather chestplate). */
-	private static final Map<String, Item> RESOLVED = new ConcurrentHashMap<>();
-	private static final Set<String> ASKED = ConcurrentHashMap.newKeySet();
 	/** Hypixel's pack models by file name: "aspect_of_the_void" → hypixel_skyblock:item/slayer/enderman/aspect_of_the_void. */
 	private static Map<String, Identifier> packModels;
-	/** One item id is asked about at a time. */
-	private static CompletableFuture<?> queue = CompletableFuture.completedFuture(null);
 
 	private ViewerItems() {
 	}
@@ -54,7 +47,7 @@ final class ViewerItems {
 		BY_LINK.clear();
 	}
 
-	/** The icon for a texture link; empty while SkyCrypt is still being asked which item it is. */
+	/** The icon for a texture link. */
 	static ItemStack icon(String link) {
 		return stack(link, false);
 	}
@@ -70,12 +63,10 @@ final class ViewerItems {
 		ItemStack known = BY_LINK.get(key);
 		if (known != null) return known;
 		ItemStack made = make(link, wear);
-		if (made == null) return ItemStack.EMPTY;
 		BY_LINK.put(key, made);
 		return made;
 	}
 
-	/** Null while waiting for SkyCrypt. */
 	private static ItemStack make(String link, boolean wear) {
 		String path = link.contains("?") ? link.substring(0, link.indexOf('?')) : link;
 		String[] parts = path.split("/");
@@ -86,36 +77,24 @@ final class ViewerItems {
 		if (path.contains("/api/item/")) {
 			String id = path.substring(path.indexOf("/api/item/") + 10);
 			if (id.contains("/")) id = id.substring(0, id.indexOf('/'));
-			return byId(id, wear, true);
-		}
-		if (path.contains("/cache/rendered/")) {
-			// "skyblock=DAVIDS_CLOAK__pack=HYPIXEL_PLUS__mc=minecraft_player_head__model=..."
-			String skyblock = param(last, "skyblock"), mc = param(last, "mc");
-			ItemStack s = skyblock.isEmpty() ? null : byId(skyblock, wear, false);
-			if (s != null) return s;
-			Item item = vanilla(mc.replaceFirst("^minecraft_", ""));
-			return item != null ? new ItemStack(item) : new ItemStack(Items.PAPER);
+			ItemStack s = byId(id, wear);
+			if (s == null) {
+				Item item = vanilla(query(link, "mc"));
+				s = new ItemStack(item != null ? item : Items.PAPER);
+			}
+			if (query(link, "glint").equals("1")) s.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+			return s;
 		}
 		return new ItemStack(Items.PAPER);
 	}
 
-	private static ItemStack byId(String id, boolean wear, boolean ask) {
+	private static ItemStack byId(String id, boolean wear) {
 		if (!wear) {
 			ItemStack pack = pack(id);
 			if (pack != null) return pack;
 		}
 		Item item = vanilla(id);
-		if (item == null) item = RESOLVED.get(id);
-		if (item != null) return new ItemStack(item);
-		if (!ask) return null;
-		if (ASKED.add(id)) {
-			queue = queue.thenCompose(v -> SkyCrypt.resolve(id)).handle((texture, error) -> {
-				Item found = texture == null ? null : vanilla(param(texture.substring(texture.lastIndexOf('/') + 1), "mc").replaceFirst("^minecraft_", ""));
-				RESOLVED.put(id, found != null ? found : Items.PAPER);
-				return null;
-			});
-		}
-		return null;
+		return item != null ? new ItemStack(item) : null;
 	}
 
 	/** Hypixel's model for this item id, when its pack is loaded. */
@@ -146,9 +125,11 @@ final class ViewerItems {
 		return item.isPresent() && item.get() != Items.AIR ? item.get() : null;
 	}
 
-	/** A value from a rendered texture's file name: "a=1__b=2.webp". */
-	private static String param(String file, String name) {
-		for (String part : file.replaceAll("\\.[a-z]+$", "").split("__")) {
+	/** A value from a link's query: "?mc=player_head&glint=1". */
+	private static String query(String link, String name) {
+		int q = link.indexOf('?');
+		if (q < 0) return "";
+		for (String part : link.substring(q + 1).split("&")) {
 			if (part.startsWith(name + "=")) return part.substring(name.length() + 1);
 		}
 		return "";
@@ -214,7 +195,7 @@ final class ViewerItems {
 		};
 	}
 
-	/** Whether this item slot has an item (SkyCrypt sends empty slots as {}). */
+	/** Whether this item slot has an item (an empty slot is {} or null). */
 	static boolean present(JsonElement item) {
 		return !Json.str(item, "texture_path").isEmpty() || !Json.str(item, "display_name").isEmpty();
 	}

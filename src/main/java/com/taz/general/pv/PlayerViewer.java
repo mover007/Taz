@@ -1,6 +1,7 @@
 package com.taz.general.pv;
 
-import com.google.gson.JsonElement;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -21,24 +22,47 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 /**
- * /pv [player] opens a player viewer like NEU's, and /nw [player] says a networth, both with data from SkyCrypt.
- * They're commands, not features, so they're always there. Registered after other mods, so Taz's /pv is the one that runs.
+ * /pv [player] opens a player viewer like NEU's, and /nw [player] says a networth, both with Hypixel's data (through Taz's
+ * server) and SkyCofl's prices. They're commands, not features, so they're always there. Registered after other mods, so
+ * Taz's /pv is the one that runs.
  */
 public final class PlayerViewer {
 	private static final Pattern NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
 
-	/** One profile: SkyCrypt's stats (player, skills, profiles), combined data (gear, pets, dungeons, slayers) and networth. */
-	public record Profile(JsonElement stats, JsonElement combined, JsonElement networth) {
+	/** One profile: its stats (player, skills, profiles), combined data (gear, pets, dungeons, slayers), inventories and networth. */
+	public record Profile(ProfileData data, CompletableFuture<JsonObject> worth) {
+		public JsonObject stats() {
+			return data.stats;
+		}
+
+		public JsonObject combined() {
+			return data.combined;
+		}
+
+		public JsonArray inventories() {
+			return data.inventories;
+		}
+
+		/** The networth once it's worked out, else null. */
+		public JsonObject networth() {
+			return worth.isDone() && !worth.isCompletedExceptionally() ? worth.join() : null;
+		}
+
+		/** The networth couldn't be worked out. */
+		public boolean networthFailed() {
+			return worth.isCompletedExceptionally();
+		}
+
 		public String uuid() {
-			return Json.str(stats, "uuid");
+			return data.uuid;
 		}
 
 		public String id() {
-			return Json.str(stats, "profile_id");
+			return data.profileId;
 		}
 
 		public String name() {
-			return Json.str(stats, "username");
+			return data.name;
 		}
 	}
 
@@ -71,14 +95,9 @@ public final class PlayerViewer {
 
 	/** Loads a profile (the player's selected one when profileId is null) and opens the viewer on this tab (-1: the last one). */
 	static void open(String player, String profileId, int tab) {
-		String stats = "stats/" + SkyCrypt.part(player) + (profileId == null ? "" : "/" + SkyCrypt.part(profileId));
-		SkyCrypt.get(stats).thenCompose(s -> {
-			String at = SkyCrypt.part(Json.str(s, "uuid")) + "/" + SkyCrypt.part(Json.str(s, "profile_id"));
-			CompletableFuture<JsonElement> networth = SkyCrypt.get("networth/" + at).exceptionally(e -> null);
-			return SkyCrypt.get("combined/" + at).thenCombine(networth, (c, n) -> new Profile(s, c, n));
-		}).whenCompleteAsync((profile, error) -> {
-			if (error != null) SkyCrypt.explain(error, player);
-			else Taz.openScreenNextTick(() -> new PlayerViewerScreen(profile, tab));
+		Hypixel.skyblock(player).thenApplyAsync(answer -> ProfileData.of(answer, player, profileId)).whenCompleteAsync((data, error) -> {
+			if (error != null) Hypixel.explain(error, player);
+			else Taz.openScreenNextTick(() -> new PlayerViewerScreen(new Profile(data, Networth.of(data)), tab));
 		}, Minecraft.getInstance());
 	}
 

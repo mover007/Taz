@@ -26,7 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-/** /pv: a player viewer like NEU's. Tabs along the top, the player on the left, SkyCrypt's data on the right. */
+/** /pv: a player viewer like NEU's. Tabs along the top, the player on the left, their Hypixel data on the right. */
 public final class PlayerViewerScreen extends Screen {
 	public static final String[] TABS = {"Overview", "Dungeons", "Gear", "Inventories", "Pets"};
 	private static final int OVERVIEW = 0, DUNGEONS = 1, GEAR = 2, INVENTORIES = 3, PETS = 4;
@@ -37,6 +37,10 @@ public final class PlayerViewerScreen extends Screen {
 	private static final String[] SLAYERS = {"zombie", "spider", "wolf", "enderman", "blaze", "vampire"};
 	private static final String[] TIERS = {"I", "II", "III", "IV", "V"};
 	private static final int WARDROBE_COLUMNS = 8, ROWS = 11;
+	private static final Map<String, String> STAT_LABELS = Map.ofEntries(Map.entry("intelligence", "Intel"), Map.entry("true_defense", "True Def"),
+			Map.entry("attack_speed", "Atk Speed"), Map.entry("health_regen", "Regen"), Map.entry("ability_damage", "Ability Dmg"),
+			Map.entry("sea_creature_chance", "SC Chance"), Map.entry("fishing_speed", "Fish Speed"), Map.entry("mining_speed", "Mining Spd"),
+			Map.entry("mining_fortune", "Mining Ftn"), Map.entry("farming_fortune", "Farming Ftn"), Map.entry("foraging_fortune", "Foraging Ftn"));
 	private static final DateTimeFormatter JOINED = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
 	/** The tab /pv opens on: the one you looked at last. */
 	private static int lastTab;
@@ -54,9 +58,6 @@ public final class PlayerViewerScreen extends Screen {
 	private int ox, oy;
 	private float scale = 1;
 	private List<Component> tip;
-	private JsonElement inventories;
-	private String inventoryError;
-	private boolean inventoriesAsked;
 	private int inventory, inventoryScroll, petScroll, wardrobePage;
 	private String switching;
 
@@ -91,9 +92,24 @@ public final class PlayerViewerScreen extends Screen {
 		this.tab = lastTab = tab;
 	}
 
-	/** Test hook: whether the Inventories tab has its data (or an error). */
-	public boolean inventoriesDone() {
-		return inventories != null || inventoryError != null;
+	/** Test hook: their weapons' ids in the order the Gear tab shows them. */
+	public List<String> weaponIds() {
+		return byWorth(Json.arr(p.combined(), "gear", "weapons", "weapons")).stream().map(w -> Json.str(w, "id")).toList();
+	}
+
+	/** Test hook: the profile showing. */
+	public PlayerViewer.Profile profile() {
+		return p;
+	}
+
+	/** Test hook: how many inventory tabs there are. */
+	public int inventoryTabs() {
+		return p.inventories().size();
+	}
+
+	/** Test hook: whether the networth is worked out (or failed). */
+	public boolean networthDone() {
+		return p.networth() != null || p.networthFailed();
 	}
 
 	/** Test hooks: the profile showing, switching to the next one, and where a point of the panel is on screen. */
@@ -187,15 +203,14 @@ public final class PlayerViewerScreen extends Screen {
 		if (joined > 0) {
 			g.centeredText(font, "Joined " + JOINED.format(Instant.ofEpochMilli(joined).atZone(ZoneId.systemDefault())), c, H - 27, TazTheme.GREY);
 		}
-		String credit = "Data from SkyCrypt";
+		String credit = "Hypixel · SkyCofl";
 		int cw = font.width(credit), cx = c - cw / 2, cy = H - 14;
 		boolean hover = in(mx, my, cx, cy - 1, cw, 10);
 		g.text(font, hover ? Component.literal(credit).withStyle(s -> s.withUnderlined(true)) : Component.literal(credit), cx, cy,
 				hover ? TazTheme.PALE_RED : TazTheme.DARK_GREY, false);
-		if (hover) tip = List.of(Component.literal("Open " + p.name() + " on sky.shiiyu.moe"),
-				grey("Taz isn't affiliated with SkyCrypt or Hypixel."));
-		click(cx, cy - 1, cw, 10, () -> ConfirmLinkScreen.confirmLinkNow(this, SkyCrypt.SITE + SkyCrypt.part(p.name()) + "/"
-				+ SkyCrypt.part(Json.str(p.stats(), "profile_cute_name"))));
+		if (hover) tip = List.of(Component.literal("Data from Hypixel's API, prices provided by SkyCofl"),
+				grey("Click to open " + p.name() + " on sky.coflnet.com."), grey("Taz isn't affiliated with SkyCofl or Hypixel."));
+		click(cx, cy - 1, cw, 10, () -> ConfirmLinkScreen.confirmLinkNow(this, Hypixel.COFL + p.uuid()));
 	}
 
 	private void arrow(GuiGraphicsExtractor g, String text, int x, int y, int mx, int my, Runnable action) {
@@ -257,15 +272,16 @@ public final class PlayerViewerScreen extends Screen {
 	private void overview(GuiGraphicsExtractor g, int mx, int my) {
 		JsonObject normal = Json.obj(p.networth(), "normal"), nonCosmetic = Json.obj(p.networth(), "nonCosmetic");
 		boolean nw = p.networth() != null;
+		String none = p.networthFailed() ? "?" : "…";
 		JsonElement bank = Json.at(p.stats(), "bank");
 		int y = 8;
 		stat(g, mx, my, CX, y, "Purse", TextUtil.coins(Json.num(p.stats(), "purse"), 2), null);
 		stat(g, mx, my, CX, y + 10, "Bank", bank == null ? "API off" : TextUtil.coins(bank.getAsDouble(), 2),
 				Json.num(p.stats(), "personalBank") > 0 ? List.of(grey("Personal bank " + TextUtil.coins(Json.num(p.stats(), "personalBank"), 2))) : null);
-		stat(g, mx, my, CX, y + 20, "Networth", nw ? TextUtil.coins(Json.num(normal, "networth"), 2) : "?", parts("With cosmetics", normal, "total"));
-		stat(g, mx, my, CX, y + 30, "Non-cosmetic", nw ? TextUtil.coins(Json.num(nonCosmetic, "networth"), 2) : "?",
+		stat(g, mx, my, CX, y + 20, "Networth", nw ? TextUtil.coins(Json.num(normal, "networth"), 2) : none, parts("With cosmetics", normal, "total"));
+		stat(g, mx, my, CX, y + 30, "Non-cosmetic", nw ? TextUtil.coins(Json.num(nonCosmetic, "networth"), 2) : none,
 				parts("Without cosmetics", nonCosmetic, "total"));
-		stat(g, mx, my, CX, y + 40, "Unsoulbound", nw ? TextUtil.coins(Json.num(normal, "unsoulboundNetworth"), 2) : "?",
+		stat(g, mx, my, CX, y + 40, "Unsoulbound", nw ? TextUtil.coins(Json.num(normal, "unsoulboundNetworth"), 2) : none,
 				parts("Not soulbound", normal, "unsoulboundTotal"));
 		int bx = CX + 150;
 		stat(g, mx, my, bx, y, "Skill Average", oneDecimal(Json.num(p.stats(), "skills", "averageSkillLevel")),
@@ -273,8 +289,7 @@ public final class PlayerViewerScreen extends Screen {
 		JsonObject cata = Json.obj(p.combined(), "dungeons", "level");
 		stat(g, mx, my, bx, y + 10, "Catacombs", String.valueOf((int) Json.num(cata, "level")), skillTip("Catacombs", cata));
 		stat(g, mx, my, bx, y + 20, "Magical Power", count(Json.num(p.combined(), "accessories", "magicalPower", "total")), null);
-		stat(g, mx, my, bx, y + 30, "Fairy Souls", count(Json.num(p.stats(), "fairySouls", "found")) + " / "
-				+ count(Json.num(p.stats(), "fairySouls", "total")), null);
+		stat(g, mx, my, bx, y + 30, "Fairy Souls", count(Json.num(p.stats(), "fairySouls", "found")), null);
 		stat(g, mx, my, bx, y + 40, "Slayer XP", TextUtil.coins(Json.num(p.combined(), "slayers", "totalSlayerExp"), 1), null);
 
 		header(g, "Skills", CX, 64);
@@ -305,7 +320,7 @@ public final class PlayerViewerScreen extends Screen {
 	}
 
 	private List<Component> parts(String title, JsonObject result, String field) {
-		if (p.networth() == null) return List.of(grey("SkyCrypt couldn't work out the networth."));
+		if (p.networth() == null) return List.of(grey(p.networthFailed() ? "Couldn't work out the networth." : "Pricing their items with SkyCofl…"));
 		List<Component> out = new ArrayList<>();
 		out.add(Component.literal(title).withColor(TazTheme.RED & 0xFFFFFF));
 		out.addAll(Networth.parts(result, field));
@@ -320,7 +335,10 @@ public final class PlayerViewerScreen extends Screen {
 	/** "Farming 60" over a progress bar; hover for the XP. */
 	private void levelBar(GuiGraphicsExtractor g, int mx, int my, int x, int y, String name, JsonObject skill, int barWidth) {
 		boolean maxed = Json.bool(skill, "maxed");
-		g.text(font, name + " " + (int) Json.num(skill, "level"), x, y + 1, maxed ? TazTheme.RED : TazTheme.TEXT, true);
+		String label = name + " " + (int) Json.num(skill, "level");
+		// A long name in a narrow cell ("Berserk 39" next to "Archer") is cut short: "Bers. 39".
+		if (font.width(label) > barWidth + 2 && name.length() > 5) label = name.substring(0, 4) + ". " + (int) Json.num(skill, "level");
+		g.text(font, label, x, y + 1, maxed ? TazTheme.RED : TazTheme.TEXT, true);
 		bar(g, x, y + 11, barWidth, maxed ? 1 : Json.num(skill, "progress"), maxed);
 		if (in(mx, my, x - 18, y, barWidth + 20, 18)) tip = skillTip(name, skill);
 	}
@@ -368,8 +386,9 @@ public final class PlayerViewerScreen extends Screen {
 		for (Map.Entry<String, JsonElement> e : Json.obj(classes, "classes").entrySet()) {
 			if (!e.getValue().isJsonObject()) continue;
 			int x = CX + i * 60;
-			String name = cap(e.getKey()) + (e.getKey().equals(selected) ? " ✦" : "");
-			levelBar(g, mx, my, x, 54, name, e.getValue().getAsJsonObject(), 54);
+			// The class they play, marked under its bar (the names fill the row).
+			if (e.getKey().equals(selected)) g.text(font, "✦ selected", x, 70, TazTheme.PALE_RED, false);
+			levelBar(g, mx, my, x, 54, cap(e.getKey()), e.getValue().getAsJsonObject(), 54);
 			i++;
 		}
 
@@ -407,8 +426,8 @@ public final class PlayerViewerScreen extends Screen {
 		JsonObject s = Json.obj(floor, "stats"), best = Json.obj(floor, "best_run");
 		List<Component> out = new ArrayList<>();
 		out.add(Component.literal(title).withColor(TazTheme.RED & 0xFFFFFF));
-		out.add(grey("Played " + count(Json.num(s, "times_played")) + " · completed " + count(Json.num(s, "tier_completions"))
-				+ " · milestones " + count(Json.num(s, "milestone_completions"))));
+		out.add(grey((Json.num(s, "times_played") > 0 ? "Played " + count(Json.num(s, "times_played")) + " · completed " : "Completed ")
+				+ count(Json.num(s, "tier_completions")) + " · milestones " + count(Json.num(s, "milestone_completions"))));
 		out.add(grey("Best score " + count(Json.num(s, "best_score"))));
 		out.add(grey("Fastest " + time(Json.num(s, "fastest_time")) + " · S " + time(Json.num(s, "fastest_time_s"))
 				+ " · S+ " + time(Json.num(s, "fastest_time_s_plus"))));
@@ -444,10 +463,13 @@ public final class PlayerViewerScreen extends Screen {
 			g.text(font, set, CX + 64, ty, 0xFF000000 | ViewerItems.rarity(Json.str(gear, "armor", "set_rarity")), true);
 			ty += 11;
 		}
+		int room = CX + CW - WARDROBE_COLUMNS * 18 - 6 - (CX + 64);
 		for (Map.Entry<String, JsonElement> e : Json.obj(gear, "armor", "stats").entrySet()) {
 			if (ty > 92) break;
-			g.text(font, Networth.category(e.getKey()) + " ", CX + 64, ty, TazTheme.GREY, false);
-			g.text(font, number(Json.num(e.getValue())), CX + 64 + font.width(Networth.category(e.getKey()) + " "), ty, TazTheme.TEXT, false);
+			String value = " " + number(Json.num(e.getValue()));
+			String label = font.plainSubstrByWidth(STAT_LABELS.getOrDefault(e.getKey(), Networth.category(e.getKey())), room - font.width(value));
+			g.text(font, label, CX + 64, ty, TazTheme.GREY, false);
+			g.text(font, value, CX + 64 + font.width(label), ty, TazTheme.TEXT, false);
 			ty += 10;
 		}
 
@@ -466,7 +488,7 @@ public final class PlayerViewerScreen extends Screen {
 			for (int r = 0; r < 4; r++) slot(g, mx, my, wx + c * 18, 20 + r * 18, r < pieces.size() ? pieces.get(r) : null);
 		}
 
-		JsonArray weapons = Json.arr(gear, "weapons", "weapons");
+		List<JsonElement> weapons = byWorth(Json.arr(gear, "weapons", "weapons"));
 		header(g, "Weapons" + (weapons.size() > 48 ? " (48 of " + weapons.size() + ")" : ""), CX, 100);
 		for (int i = 0; i < Math.min(48, weapons.size()); i++) slot(g, mx, my, CX + (i % 16) * 18, 112 + (i / 16) * 18, weapons.get(i));
 		if (weapons.isEmpty()) g.text(font, "None, or their inventory API is off", CX, 114, TazTheme.DARK_GREY, false);
@@ -474,10 +496,19 @@ public final class PlayerViewerScreen extends Screen {
 		JsonObject acc = Json.obj(p.combined(), "accessories");
 		header(g, "Accessories", CX, 170);
 		stat(g, mx, my, CX, 182, "Magical Power", count(Json.num(acc, "magicalPower", "total")), magicalPowerTip(acc));
-		stat(g, mx, my, CX, 192, "Unique", count(Json.num(acc, "unique")) + " · " + Json.arr(acc, "missing").size() + " missing", null);
+		stat(g, mx, my, CX, 192, "Unique", count(Json.num(acc, "unique")), null);
 		stat(g, mx, my, CX + 150, 182, "Recombobulated", count(Json.num(acc, "recombobulated")), null);
 		String power = Json.str(acc, "selectedPower");
 		stat(g, mx, my, CX + 150, 192, "Power", power.isEmpty() ? "None" : cap(power), null);
+	}
+
+	/** Items, most valuable first once the networth has priced them. */
+	private List<JsonElement> byWorth(JsonArray items) {
+		List<JsonElement> out = new ArrayList<>();
+		items.forEach(out::add);
+		Map<JsonObject, Double> values = p.data().values;
+		if (!values.isEmpty()) out.sort((a, b) -> Double.compare(values.getOrDefault(b, 0.0), values.getOrDefault(a, 0.0)));
+		return out;
 	}
 
 	private List<Component> magicalPowerTip(JsonObject acc) {
@@ -496,32 +527,11 @@ public final class PlayerViewerScreen extends Screen {
 		return null;
 	}
 
-	// ---- Inventories: SkyCrypt's inventory tabs, loaded when you first open this tab
+	// ---- Inventories: one tab per inventory, bag and backpack
 
 	private void inventories(GuiGraphicsExtractor g, int mx, int my) {
-		if (!inventoriesAsked) {
-			inventoriesAsked = true;
-			SkyCrypt.get("inventory/" + SkyCrypt.part(p.uuid()) + "/" + SkyCrypt.part(p.id())).whenCompleteAsync((json, error) -> {
-				if (error != null) {
-					Throwable t = SkyCrypt.cause(error);
-					inventoryError = t instanceof SkyCrypt.Failure f && f.code.equals("NOT_CACHED")
-							? "SkyCrypt hasn't loaded these inventories yet. Open their SkyCrypt page, then reopen /pv."
-							: "Couldn't load the inventories: " + t.getMessage();
-				} else {
-					inventories = json;
-				}
-			}, Minecraft.getInstance());
-		}
-		if (inventoryError != null) {
-			g.textWithWordWrap(font, Component.literal(inventoryError), CX, 12, CW, TazTheme.LIGHT_RED);
-			return;
-		}
-		if (inventories == null) {
-			g.text(font, "Loading inventories…", CX, 12, TazTheme.GREY, false);
-			return;
-		}
 		List<JsonObject> tabs = new ArrayList<>();
-		for (JsonElement e : inventories.isJsonArray() ? inventories.getAsJsonArray() : Json.arr(inventories, "items")) {
+		for (JsonElement e : p.inventories()) {
 			if (e.isJsonObject()) tabs.add(e.getAsJsonObject());
 		}
 		if (tabs.isEmpty()) {
@@ -568,8 +578,7 @@ public final class PlayerViewerScreen extends Screen {
 		JsonObject pets = Json.obj(p.combined(), "pets");
 		stat(g, mx, my, CX, 8, "Pet Score", count(Json.num(pets, "petScore", "amount")) + " (+" + (int) Json.num(pets, "petScore", "stats", "magic_find")
 				+ " Magic Find)", null);
-		stat(g, mx, my, CX, 18, "Pets", count(Json.num(pets, "amount")) + " · " + count(Json.num(pets, "amountSkins")) + " skins · "
-				+ Json.arr(pets, "missing").size() + " missing", null);
+		stat(g, mx, my, CX, 18, "Pets", count(Json.num(pets, "amount")) + " · " + count(Json.num(pets, "amountSkins")) + " with skins", null);
 		JsonArray list = Json.arr(pets, "pets");
 		int columns = 16, rows = (list.size() + columns - 1) / columns, visible = ROWS - 1;
 		int top = 32;
@@ -611,6 +620,8 @@ public final class PlayerViewerScreen extends Screen {
 		if (in(mx, my, x, y, 18, 18)) {
 			g.fill(x + 1, y + 1, x + 17, y + 17, 0x50FFFFFF);
 			tip = ViewerItems.tooltip(item);
+			Double worth = item.isJsonObject() ? p.data().values.get(item.getAsJsonObject()) : null;
+			if (worth != null && worth > 0) tip.add(Component.literal("§8Networth: §6" + TextUtil.coins(worth, 2)));
 		}
 	}
 
@@ -721,7 +732,7 @@ public final class PlayerViewerScreen extends Screen {
 	/** Milliseconds as "4:38". */
 	private static String time(double ms) {
 		if (ms <= 0) return "-";
-		long s = Math.round(ms / 1000);
+		long s = (long) Math.floor(ms / 1000);
 		return s / 60 + ":" + String.format(Locale.ROOT, "%02d", s % 60);
 	}
 

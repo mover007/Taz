@@ -56,7 +56,7 @@ public final class GeneralCategory {
 	public KickTimerConfig kickTimer = new KickTimerConfig();
 
 	@Expose
-	@ConfigOption(name = "Player Viewer", desc = "/pv opens a player viewer and /nw says a networth, with data from SkyCrypt. They need your own SkyCrypt API key.")
+	@ConfigOption(name = "Player Viewer", desc = "/pv opens a player viewer and /nw says a networth, with data from Hypixel and prices from SkyCofl.")
 	@Accordion
 	public PlayerViewerConfig viewer = new PlayerViewerConfig();
 }

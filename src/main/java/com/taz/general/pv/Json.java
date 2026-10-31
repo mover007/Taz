@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-/** Reading SkyCrypt's JSON without trusting its shape: a missing or wrong-typed field gives an empty value. */
+/** Reading JSON without trusting its shape: a missing or wrong-typed field gives an empty value. */
 final class Json {
 	private Json() {
 	}
