@@ -40,6 +40,7 @@ public class AbstractContainerScreenMixin {
 		AbstractContainerScreen<?> self = (AbstractContainerScreen<?>) (Object) this;
 		if (com.taz.dungeons.info.LeapMenu.onClick(self, event.x(), event.y(), event.button())
 				|| com.taz.general.StorageOverlay.onClick(self, event.x(), event.y())
+				|| com.taz.lowballer.TradeHud.onClick(self, event.x(), event.y(), leftPos)
 				|| com.taz.general.InventoryKeys.onClick(self, hoveredSlot, event.button())) cir.setReturnValue(true);
 	}
 
@@ -60,6 +61,7 @@ public class AbstractContainerScreenMixin {
 	@Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
 	private void taz$bindFrames(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta, CallbackInfo ci) {
 		com.taz.general.InventoryKeys.render((AbstractContainerScreen<?>) (Object) this, g, hoveredSlot, leftPos, topPos);
+		com.taz.lowballer.TradeHud.render((AbstractContainerScreen<?>) (Object) this, g, mouseX, mouseY, leftPos);
 	}
 
 	/** In a Floor 7 terminal, Taz draws the slots (only the ones to click show). */
@@ -95,5 +97,6 @@ public class AbstractContainerScreenMixin {
 		if (com.taz.xpassist.SkyblockXpAssist.enabled()) ProgressDetector.onSlotClick((AbstractContainerScreen<?>) (Object) this, slotId);
 		TerminalSolver.onClick((AbstractContainerScreen<?>) (Object) this, slotId);
 		com.taz.general.AuctionInput.onSlotClick((AbstractContainerScreen<?>) (Object) this, slotId);
+		com.taz.lowballer.TradeMenu.onSlotClick((AbstractContainerScreen<?>) (Object) this);
 	}
 }

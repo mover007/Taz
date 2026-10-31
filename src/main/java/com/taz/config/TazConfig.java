@@ -35,6 +35,10 @@ public final class TazConfig extends Config {
 	public InventoryCategory inventory = new InventoryCategory();
 
 	@Expose
+	@Category(name = "Lowballer", desc = "What their side of a trade is worth and lowball offers for it, with SkyCofl prices.")
+	public com.taz.lowballer.LowballerConfig lowballer = new com.taz.lowballer.LowballerConfig();
+
+	@Expose
 	@Category(name = "Dungeons", desc = "Catacombs features.")
 	public DungeonsCategory dungeons = new DungeonsCategory();
 

@@ -28,6 +28,9 @@ import com.taz.hud.TazHudEditor;
 import com.taz.hud.TextHud;
 import com.taz.inventory.ItemOverlays;
 import com.taz.inventory.ItemPrices;
+import com.taz.lowballer.Cofl;
+import com.taz.lowballer.TradeHud;
+import com.taz.lowballer.TradeMenu;
 import com.taz.slayer.SlayerHelper;
 import com.taz.util.Alert;
 import com.taz.xpassist.data.Prices;
@@ -39,7 +42,14 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.screens.inventory.SignEditScreen;
+import net.minecraft.world.inventory.ChestMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -65,7 +75,7 @@ import java.util.stream.Stream;
 /** The General, Inventory, Slayer and Fishing features and settings auto-save. */
 public class GeneralGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"defaults", "autosave", "alerts", "chatfilter", "commandkeys", "events", "darkauction", "skills", "waypoints", "huds",
-			"prices", "overlays", "slayer", "fishing", "networth", "pv"};
+			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	/** Every chat line that reached the chat (after the chat filter and the [Waypoint] button). */
@@ -123,6 +133,7 @@ public class GeneralGameTest implements FabricClientGameTest {
 			if (runs("fishing")) fishing();
 			if (runs("networth")) networth();
 			if (runs("pv")) playerViewer();
+			if (runs("lowballer")) lowballer();
 		}
 		System.out.println("[GeneralGameTest] PASSED");
 	}
@@ -738,6 +749,121 @@ public class GeneralGameTest implements FabricClientGameTest {
 			SkyCrypt.FAKE.put("networth/" + at, SkyCrypt.Fake.ok(fixture("networth")));
 		}
 		SkyCrypt.FAKE.put("inventory/" + pomegranate, SkyCrypt.Fake.ok(fixture("inventory")));
+	}
+
+	// ---- lowballer
+
+	/** The trade menu HUD on canned SkyCofl answers: worth, offers, a click that fills the coins sign, and Taz's prices offline. */
+	private void lowballer() {
+		ctx.runOnClient(mc -> {
+			Taz.config().lowballer.enabled = true;
+			TradeMenu.clear();
+			ItemPrices.testPrices = Prices.parse("{}", "{\"products\":{}}");
+			Cofl.fake = (path, body) -> switch (path) {
+				case "price/nbt" -> "[{\"lbin\":520000000,\"median\":456000000,\"volume\":1.0,\"fastSell\":388000000},"
+						+ "{\"lbin\":475000000,\"median\":470000000,\"volume\":26.0,\"fastSell\":400000000},null,null]";
+				case "item/price/ENCHANTED_DIAMOND/current?count=64" -> "{\"sell\":80678.4,\"buy\":83820.8,\"available\":54699,\"isAh\":false}";
+				default -> null;
+			};
+		});
+		int before = Cofl.REQUESTS.get();
+		openTrade();
+		realWait(1500);
+		List<String> hud = tradeHud();
+		check("lowballer: worth of their side (" + hud + ")", hud.contains("Worth: 931.08M (4 items + 5M coins)")
+				&& hud.contains("1 item has no price: left out"));
+		check("lowballer: smart offer, item by item", hud.contains("Smart offer: 810.08M (13% under)")
+				&& hud.contains(" Hyperion 456M 1/day -15%") && hud.contains(" Ender Dragon (100) 470M 26/day -10.9%")
+				&& hud.contains(" 64x Enchanted Diamond 80.68K bazaar -6.3%") && hud.contains(" Mystery Stick · no price"));
+		check("lowballer: 10%, 12%... under", hud.contains("-10%: 838M") && hud.contains("-12%: 819M") && hud.contains("-20%: 745M"));
+		check("lowballer: your offer", hud.contains("Your offer: 800M (14.1% under)"));
+		check("lowballer: one estimate, then the latest price of the rest", Cofl.REQUESTS.get() - before == 3);
+		String tip = tooltip(ctx.computeOnClient(mc -> ((ContainerScreen) mc.screen).getMenu().getContainer().getItem(5).copy()));
+		check("lowballer: item tooltip (" + tip.replace("\n", " | ") + ")", tip.contains("Worth: 456M · sells 1/day")
+				&& tip.contains("Smart offer: 387M (15% under)") && tip.contains("5% margin, 3.5% AH tax, +4% sells 1/day, +2.5% unsteady price"));
+		ctx.takeScreenshot("lowballer-trade");
+
+		// Click "-10%" on the HUD, then the coins sign gets it.
+		int line = hud.indexOf("-10%: 838M");
+		double gui = ctx.computeOnClient(mc -> (double) mc.getWindow().getGuiScale());
+		double[] at = ctx.computeOnClient(mc -> TradeHud.spot(line, (mc.screen.width - 176) / 2));
+		ctx.getInput().setCursorPos(at[0] * gui, at[1] * gui);
+		ctx.waitTicks(2);
+		ctx.takeScreenshot("lowballer-hover");
+		ctx.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
+		ctx.waitTicks(2);
+		check("lowballer: clicking an offer chooses it", ctx.computeOnClient(mc -> TradeMenu.chosen()) == 838_000_000L
+				&& tradeHud().contains("Copied 838M: now click Coins"));
+		ctx.runOnClient(mc -> TradeMenu.onSlotClick((ContainerScreen) mc.screen));
+		ctx.setScreen(() -> {
+			BlockPos pos = net.minecraft.client.Minecraft.getInstance().player.blockPosition().above(3);
+			SignBlockEntity sign = new SignBlockEntity(pos, Blocks.OAK_SIGN.defaultBlockState());
+			sign.setLevel(net.minecraft.client.Minecraft.getInstance().level);
+			sign.setText(new SignText().setMessage(1, Component.literal("^^^^^^^^^^^^^^^")).setMessage(2, Component.literal("Enter amount")), true);
+			return new SignEditScreen(sign, true, false);
+		});
+		ctx.waitTicks(3);
+		String typed = ctx.computeOnClient(mc -> mc.screen instanceof SignEditScreen s ? ((com.taz.mixin.AbstractSignEditScreenAccessor) s).taz$lines()[0] : "no sign");
+		check("lowballer: the coins sign gets the offer (" + typed + ")", typed.equals("838000000"));
+		ctx.takeScreenshot("lowballer-sign");
+		ctx.setScreen(() -> null);
+		ctx.waitTicks(2);
+
+		// Open again: nothing new to ask.
+		int asked = Cofl.REQUESTS.get();
+		openTrade();
+		realWait(800);
+		check("lowballer: prices kept", Cofl.REQUESTS.get() == asked && tradeHud().contains("Smart offer: 810.08M (13% under)"));
+		ctx.setScreen(() -> null);
+
+		// SkyCofl out of reach: Taz's own price list stands in.
+		ctx.runOnClient(mc -> {
+			TradeMenu.clear();
+			Cofl.fake = (path, body) -> {
+				throw new IllegalStateException("offline");
+			};
+			ItemPrices.testPrices = Prices.parse("{\"HYPERION\":500000000}", "{\"products\":{}}");
+		});
+		openTrade();
+		realWait(1500);
+		hud = tradeHud();
+		check("lowballer: offline, Taz's prices (" + hud + ")", hud.contains("Couldn't reach SkyCofl: Taz's own prices for now")
+				&& hud.contains(" Hyperion 500M sales ? -16.5%"));
+		ctx.setScreen(() -> null);
+		ctx.runOnClient(mc -> {
+			Cofl.fake = null;
+			TradeMenu.clear();
+			ItemPrices.testPrices = null;
+			Taz.config().lowballer.enabled = false;
+		});
+	}
+
+	/** A trade with "Steve": a Hyperion, an Ender Dragon, 64 Enchanted Diamonds, something nobody prices and 5M coins on his side. */
+	private void openTrade() {
+		ctx.setScreen(() -> {
+			net.minecraft.world.entity.player.Inventory inv = net.minecraft.client.Minecraft.getInstance().player.getInventory();
+			net.minecraft.world.SimpleContainer trade = new net.minecraft.world.SimpleContainer(45);
+			for (int slot : new int[]{4, 13, 22, 31, 40}) trade.setItem(slot, item(Items.BLACK_STAINED_GLASS_PANE, 1, "⇦ Your stuff", null, null, null));
+			CompoundTag hype = new CompoundTag();
+			hype.putString("uuid", "11111111-2222-3333-4444-555555555555");
+			trade.setItem(5, item(Items.IRON_SWORD, 1, "Hyperion", "HYPERION", List.of("Gear Score: 1000", "", "LEGENDARY DUNGEON SWORD"), hype));
+			CompoundTag pet = new CompoundTag();
+			pet.putString("petInfo", "{\"type\":\"ENDER_DRAGON\",\"tier\":\"LEGENDARY\",\"exp\":25353230.0}");
+			trade.setItem(6, item(Items.PLAYER_HEAD, 1, "[Lvl 100] Ender Dragon", "PET", List.of("", "LEGENDARY"), pet));
+			trade.setItem(7, item(Items.DIAMOND, 64, "Enchanted Diamond", "ENCHANTED_DIAMOND", List.of("", "UNCOMMON"), null));
+			trade.setItem(8, item(Items.STICK, 1, "Mystery Stick", "MYSTERY_STICK", List.of("", "COMMON"), null));
+			trade.setItem(14, item(Items.GOLD_NUGGET, 1, "5M coins", null, null, null));
+			trade.setItem(0, item(Items.GOLD_NUGGET, 1, "800M coins", null, null, null));
+			return new ContainerScreen(new ChestMenu(MenuType.GENERIC_9x5, 1, inv, trade, 5), inv, Component.literal("You                    Steve"));
+		});
+		ctx.waitTicks(2);
+	}
+
+	private List<String> tradeHud() {
+		return ctx.computeOnClient(mc -> {
+			TradeMenu.Trade t = TradeMenu.trade();
+			return t == null ? List.<String>of() : TradeHud.text(t).stream().map(net.minecraft.ChatFormatting::stripFormatting).toList();
+		});
 	}
 
 	private static String fixture(String name) {

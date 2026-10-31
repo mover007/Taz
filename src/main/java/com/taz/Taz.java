@@ -151,6 +151,7 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.dungeons.map.MapInfo.Score());
 		TazHud.register(new com.taz.dungeons.map.MapInfo.RoomSecrets());
 		TazHud.register(new com.taz.foraging.safari.SafariGuide());
+		TazHud.register(com.taz.lowballer.TradeHud.HUD);
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -233,12 +234,14 @@ public final class Taz implements ClientModInitializer {
 		ClientEntityEvents.ENTITY_UNLOAD.register((entity, level) -> safely("Secret routes entity", () -> SecretTrainer.onEntityGone(entity)));
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Secret routes screen", () -> SecretTrainer.onScreenOpened(screen)));
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Auction price input", () -> com.taz.general.AuctionInput.onScreen(screen)));
+		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Lowballer coins sign", () -> com.taz.lowballer.TradeMenu.onScreen(screen)));
 		ClientReceiveMessageEvents.ALLOW_GAME.register(ChatFilter::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(SweepDetails::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(TreeGifts::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(StarlynContest::allow);
 		ClientReceiveMessageEvents.MODIFY_GAME.register(Waypoints::addButton);
 		ItemTooltipCallback.EVENT.register(PriceTooltips::onTooltip);
+		ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> safely("Lowballer tooltip", () -> com.taz.lowballer.TradeMenu.tooltip(stack, lines)));
 		ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> safely("Party finder tooltip", () -> com.taz.dungeons.info.PartyFinder.tooltip(stack, lines)));
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			onServerChange();
@@ -538,6 +541,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Starlyn contest", StarlynContest::tick);
 		safely("Galatea recorder", () -> GalateaRecorder.tick(mc));
 		safely("Party chat", TazChat::tick);
+		safely("Lowballer", () -> com.taz.lowballer.TradeMenu.tick(mc));
 		safely("Dungeon location", () -> com.taz.dungeons.util.DungeonLocation.tick(mc));
 		safely("Dungeon rooms", () -> DungeonRooms.tick(mc));
 		safely("Performance HUD", () -> com.taz.general.PerformanceHud.tick(mc));

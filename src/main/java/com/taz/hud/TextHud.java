@@ -72,6 +72,17 @@ public abstract class TextHud implements MovableHud {
 		return box(font, lines, screenW, screenH);
 	}
 
+	/** The index of the line under the mouse (screen coordinates), or -1. */
+	public final int lineAt(Font font, int screenW, int screenH, double mouseX, double mouseY) {
+		List<String> lines = lines(false);
+		if (lines.isEmpty()) return -1;
+		int[] b = box(font, lines, screenW, screenH);
+		if (mouseX < b[0] || mouseX >= b[0] + b[2] || mouseY < b[1] || mouseY >= b[1] + b[3]) return -1;
+		double y = (mouseY - b[1]) / scaleNow() - PADDING;
+		int i = y < 0 ? -1 : (int) (y / (font.lineHeight + 1));
+		return i < lines.size() ? i : -1;
+	}
+
 	@Override
 	public void moveTo(int x, int y, int screenW, int screenH) {
 		pos().x = screenW > 0 ? x / (double) screenW : 0;
@@ -83,7 +94,7 @@ public abstract class TextHud implements MovableHud {
 		List<String> lines = lines(preview);
 		if (lines.isEmpty()) return;
 		int[] b = box(font, lines, g.guiWidth(), g.guiHeight());
-		float scale = clampScale(pos().scale);
+		float scale = scaleNow();
 		g.pose().pushMatrix();
 		g.pose().translate(b[0], b[1]);
 		g.pose().scale(scale, scale);
@@ -105,12 +116,17 @@ public abstract class TextHud implements MovableHud {
 	/** Screen box at the saved spot, pushed back inside the screen if needed. */
 	private int[] box(Font font, List<String> lines, int screenW, int screenH) {
 		int[] size = size(font, lines);
-		float scale = clampScale(pos().scale);
+		float scale = scaleNow();
 		int w = Math.round(size[0] * scale), h = Math.round(size[1] * scale);
 		int x = (int) Math.round(pos().x * screenW), y = (int) Math.round(pos().y * screenH);
 		x = Math.max(0, Math.min(x, screenW - w));
 		y = Math.max(0, Math.min(y, screenH - h));
 		return new int[]{x, y, w, h};
+	}
+
+	/** The scale it's drawn at now: the saved one, unless a HUD shrinks itself to fit somewhere. */
+	protected float scaleNow() {
+		return clampScale(pos().scale);
 	}
 
 	public static float clampScale(float s) {
