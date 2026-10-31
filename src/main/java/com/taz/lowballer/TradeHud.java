@@ -208,6 +208,6 @@ public final class TradeHud extends TextHud {
 			Lowball.Priced p = new Lowball.Priced((Long) it[1], (Double) it[2], (Long) it[3], false);
 			items.add(new TradeMenu.Item(stack, p, Lowball.offer(p, cfg), false));
 		}
-		return rows(new TradeMenu.Trade("Steve", items, 0, 800_000_000L, null), cfg);
+		return rows(new TradeMenu.Trade("Steve", items, 0, 800_000_000L, List.of(), null), cfg);
 	}
 }

@@ -44,6 +44,10 @@ public final class TazCommand {
 					XpActions.track(StringArgumentType.getString(ctx, "npc"));
 					return 1;
 				})))
+				.then(literal("lowballs").executes(ctx -> {
+					Taz.openScreenNextTick(com.taz.lowballer.TrackerScreen::new);
+					return 1;
+				}))
 				.then(literal("untrack").executes(ctx -> {
 					NpcTracker.untrack();
 					return 1;

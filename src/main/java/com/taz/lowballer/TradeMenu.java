@@ -58,8 +58,8 @@ public final class TradeMenu {
 	public record Item(ItemStack stack, Lowball.Priced priced, Lowball.Offer offer, boolean pricing) {
 	}
 
-	/** Their side of the open trade. */
-	public record Trade(String other, List<Item> items, long coins, long yourCoins, String problem) {
+	/** The open trade: their side, and what you put in (your items are priced too, for the Lowball Tracker). */
+	public record Trade(String other, List<Item> items, long coins, long yourCoins, List<Item> yourItems, String problem) {
 		/** Their priced items. */
 		public long itemsWorth() {
 			long sum = 0;
@@ -138,7 +138,7 @@ public final class TradeMenu {
 		ContainerScreen screen = (ContainerScreen) mc.screen;
 		Container c = screen.getMenu().getContainer();
 		long now = System.currentTimeMillis();
-		List<ItemStack> theirs = new ArrayList<>();
+		List<ItemStack> theirs = new ArrayList<>(), yours = new ArrayList<>();
 		long coins = 0, yourCoins = 0;
 		for (int slot : THEIRS) {
 			ItemStack s = c.getItem(slot);
@@ -148,13 +148,16 @@ public final class TradeMenu {
 			else theirs.add(s);
 		}
 		for (int slot : YOURS) {
-			Long co = coins(c.getItem(slot));
+			ItemStack s = c.getItem(slot);
+			if (s.isEmpty()) continue;
+			Long co = coins(s);
 			if (co != null) yourCoins += co;
+			else yours.add(s);
 		}
 
 		StringBuilder side = new StringBuilder();
 		List<ItemStack> todo = new ArrayList<>();
-		for (ItemStack s : theirs) {
+		for (ItemStack s : java.util.stream.Stream.concat(theirs.stream(), yours.stream()).toList()) {
 			String key = key(s);
 			side.append(key).append('\n');
 			Entry e = PRICES.get(key);
@@ -166,14 +169,19 @@ public final class TradeMenu {
 		}
 		if (!todo.isEmpty() && now - changedAt >= SETTLE_MS && now >= busyUntil) ask(todo);
 
+		String title = TextUtil.cleanChat(screen.getTitle().getString());
+		trade = new Trade(title.substring(3).trim(), items(theirs, cfg), coins, yourCoins, items(yours, cfg), problem);
+		LowballTracker.seen(trade);
+	}
+
+	private static List<Item> items(List<ItemStack> stacks, LowballerConfig cfg) {
 		List<Item> items = new ArrayList<>();
-		for (ItemStack s : theirs) {
+		for (ItemStack s : stacks) {
 			Entry e = PRICES.get(key(s));
 			Lowball.Priced p = e == null ? null : e.estimate() != null ? priced(e.estimate(), cfg.worth) : e.latest();
 			items.add(new Item(s, p, p == null ? null : Lowball.offer(p, cfg), e == null));
 		}
-		String title = TextUtil.cleanChat(screen.getTitle().getString());
-		trade = new Trade(title.substring(3).trim(), items, coins, yourCoins, problem);
+		return items;
 	}
 
 	/** What a SkyCofl estimate makes the item worth, by the Worth setting. */
@@ -227,7 +235,7 @@ public final class TradeMenu {
 	}
 
 	/** The latest bazaar or lowest BIN price of a stack's id from SkyCofl, else Taz's price list; null when neither has it. */
-	private static Lowball.Priced latest(ItemStack stack, boolean askCofl) throws Exception {
+	static Lowball.Priced latest(ItemStack stack, boolean askCofl) throws Exception {
 		int count = stack.getCount();
 		String tag = coflTag(stack);
 		if (askCofl && tag != null) {
@@ -269,7 +277,12 @@ public final class TradeMenu {
 	/** Coins in a trade slot ("64M coins", "1,500,000 coins"), or null when it isn't coins. */
 	static Long coins(ItemStack stack) {
 		if (stack == null || stack.isEmpty()) return null;
-		Matcher m = COINS.matcher(TextUtil.cleanChat(stack.getHoverName().getString()).trim());
+		return coins(stack.getHoverName().getString());
+	}
+
+	/** "64M coins", "12.5M coins", "1,500,000 coins" as coins; null when it isn't. */
+	static Long coins(String text) {
+		Matcher m = COINS.matcher(TextUtil.cleanChat(text).trim());
 		if (!m.matches()) return null;
 		double n;
 		try {

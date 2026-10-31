@@ -33,8 +33,11 @@ import com.taz.hud.TextHud;
 import com.taz.inventory.ItemOverlays;
 import com.taz.inventory.ItemPrices;
 import com.taz.lowballer.Cofl;
+import com.taz.lowballer.Flip;
+import com.taz.lowballer.LowballTracker;
 import com.taz.lowballer.TradeHud;
 import com.taz.lowballer.TradeMenu;
+import com.taz.lowballer.TrackerScreen;
 import com.taz.slayer.SlayerHelper;
 import com.taz.util.Alert;
 import com.taz.xpassist.data.Prices;
@@ -85,7 +88,7 @@ import java.util.stream.Stream;
 /** The General, Inventory, Slayer and Fishing features and settings auto-save. */
 public class GeneralGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"defaults", "autosave", "alerts", "chatfilter", "commandkeys", "events", "darkauction", "skills", "waypoints", "huds",
-			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer"};
+			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer", "tracker"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	/** Every chat line that reached the chat (after the chat filter and the [Waypoint] button). */
@@ -144,6 +147,7 @@ public class GeneralGameTest implements FabricClientGameTest {
 			if (runs("networth")) networth();
 			if (runs("pv")) playerViewer();
 			if (runs("lowballer")) lowballer();
+			if (runs("tracker")) tracker();
 		}
 		System.out.println("[GeneralGameTest] PASSED");
 	}
@@ -938,6 +942,183 @@ public class GeneralGameTest implements FabricClientGameTest {
 			ItemPrices.testPrices = null;
 			Taz.config().lowballer.enabled = false;
 		});
+	}
+
+	// ---- lowball tracker
+
+	/**
+	 * A lowball through the trade menu, then each way one sells: BIN (its price from SkyCofl's copy of your auctions),
+	 * part on the bazaar, out in a trade, and on the AH while you weren't looking. Then fixing what you paid, the menu, CSV.
+	 */
+	private void tracker() {
+		String now = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).withNano(0).toString();
+		String ended = java.time.LocalDateTime.now(java.time.ZoneOffset.UTC).minusMinutes(1).withNano(0).toString();
+		ctx.runOnClient(mc -> {
+			Taz.config().lowballer.enabled = Taz.config().lowballer.track = Taz.config().lowballer.trackerChat = true;
+			LowballTracker.testAccount = "gametest";
+			LowballTracker.reset();
+			TradeMenu.clear();
+			ItemPrices.testPrices = Prices.parse("{}", "{\"products\":{}}");
+			Cofl.fake = (path, body) -> {
+				if (path.startsWith("player/") && path.endsWith("page=0")) {
+					return "[{\"auctionId\":\"a2\",\"itemName\":\"Mystery Stick\",\"startingBid\":2000000,\"highestBid\":2000000,\"bin\":true,\"end\":\"" + ended + "\"},"
+							+ "{\"auctionId\":\"a1\",\"itemName\":\"Hyperion\",\"startingBid\":520000000,\"highestBid\":0,\"bin\":true,\"end\":\"2099-01-01T00:00:00\"}]";
+				}
+				return switch (path) {
+					case "auction/a1" -> "{\"start\":\"" + now + "\",\"nbtData\":{\"data\":{\"uuid\":\"11111111-2222-3333-4444-555555555555\"}}}";
+					case "auction/a2" -> "{\"start\":\"" + now + "\",\"nbtData\":{\"data\":{}}}";
+					case "price/nbt" -> "[{\"lbin\":520000000,\"median\":456000000,\"volume\":1.0,\"fastSell\":388000000},"
+							+ "{\"lbin\":475000000,\"median\":470000000,\"volume\":26.0,\"fastSell\":400000000},null,null]";
+					case "item/price/ENCHANTED_DIAMOND/current?count=64" -> "{\"sell\":80678.4,\"buy\":83820.8,\"available\":54699,\"isAh\":false}";
+					default -> null;
+				};
+			};
+		});
+		openTrade();
+		realWait(1500);
+		ctx.setScreen(() -> null);
+		ctx.waitTicks(2);
+		for (String line : List.of("Trade completed with [MVP+] Steve!", "+ 1x Hyperion", "+ 1x [Lvl 100] Ender Dragon", "+ 64x Enchanted Diamond",
+				"+ 1x Mystery Stick", "+ 5M coins", "- 800M coins")) tell(line);
+		realWait(1200);
+		List<Flip> flips = ctx.computeOnClient(mc -> LowballTracker.flips());
+		check("tracker: the trade's four items (" + flips.size() + ")", flips.size() == 4);
+		Flip hype = flip("Hyperion"), dragon = flip("[Lvl 100] Ender Dragon"), dia = flip("Enchanted Diamond"), stick = flip("Mystery Stick");
+		long paid = flips.stream().mapToLong(f -> f.paid).sum();
+		check("tracker: 800M less their 5M, split by worth (" + hype.paid + ", " + dragon.paid + ", " + dia.paid + ", " + stick.paid + ")",
+				paid == 795_000_000L && Math.abs(hype.paid - 795e6 * 456e6 / 926_080_678.0) < 2 && stick.paid == 0
+						&& hype.worth == 456_000_000L && hype.from.equals("Steve") && hype.uuid.equals("11111111-2222-3333-4444-555555555555"));
+		check("tracker: chat line", chatHas("Lowball tracked: 4 items from Steve for 795M (worth 926.08M, 14.2% under)"));
+
+		// Listed from the Create BIN Auction menu; SkyCofl says what for; bought; then the coins collected.
+		listOnAh(hype.stack.copy(), "Hyperion");
+		check("tracker: on the AH", hype.status == Flip.Status.LISTED && hype.listedAs.equals("Hyperion"));
+		ctx.runOnClient(mc -> LowballTracker.syncListings(true));
+		realWait(800);
+		check("tracker: its AH price from SkyCofl (" + hype.listPrice + ")", hype.listPrice == 520_000_000L
+				&& hype.expectedProfit() == 520_000_000L - 18_200_000L - hype.paid && chatHas("Lowball on the AH: Hyperion for 520M"));
+		tell("[Auction] Buyer123 bought Hyperion for 500,000,000 coins CLICK");
+		check("tracker: sold on BIN (" + hype.sold + ", " + hype.fees + ")", hype.status == Flip.Status.SOLD && hype.sold == 500_000_000L
+				&& hype.soldHow.equals("BIN") && hype.soldTo.equals("Buyer123") && hype.fees == 17_500_000L);
+		check("tracker: sale chat line", chatHas("Lowball sold: Hyperion for 500M: +91.04M profit (+23.3%)"));
+		tell("You collected 495,000,000 coins from selling Hyperion to [VIP] Buyer123 in an auction!");
+		check("tracker: claim tax from what was collected", hype.collected && hype.fees == 17_500_000L);
+
+		// Half the diamonds on the bazaar: the stack splits.
+		long diaPaid = dia.paid;
+		tell("[Bazaar] Sold 32x Enchanted Diamond for 2,600,000 coins!");
+		flips = ctx.computeOnClient(mc -> LowballTracker.flips());
+		Flip soldDia = flips.stream().filter(f -> f.name.equals("Enchanted Diamond") && f.status == Flip.Status.SOLD).findFirst().orElse(null);
+		check("tracker: part of a stack sold on the bazaar", flips.size() == 5 && soldDia != null && soldDia.count == 32 && soldDia.sold == 2_600_000L
+				&& soldDia.soldHow.equals("Bazaar") && dia.count == 32 && dia.open() && soldDia.paid + dia.paid == diaPaid);
+
+		// The dragon goes out in a trade for 600M, to a player whose long name the trade menu's title cuts short.
+		ItemStack pet = dragon.stack.copy();
+		ctx.setScreen(() -> {
+			net.minecraft.world.entity.player.Inventory inv = net.minecraft.client.Minecraft.getInstance().player.getInventory();
+			net.minecraft.world.SimpleContainer trade = new net.minecraft.world.SimpleContainer(45);
+			for (int slot : new int[]{4, 13, 22, 31, 40}) trade.setItem(slot, item(Items.BLACK_STAINED_GLASS_PANE, 1, "⇦ Your stuff", null, null, null));
+			trade.setItem(0, pet);
+			trade.setItem(5, item(Items.GOLD_NUGGET, 1, "600M coins", null, null, null));
+			return new ContainerScreen(new ChestMenu(MenuType.GENERIC_9x5, 3, inv, trade, 5), inv, Component.literal("You                  Alexandergr"));
+		});
+		realWait(800);
+		ctx.setScreen(() -> null);
+		for (String line : List.of("Trade completed with [VIP+] Alexandergreat!", "- 1x [Lvl 100] Ender Dragon", "+ 600M coins")) tell(line);
+		realWait(1200);
+		check("tracker: sold in a trade (" + dragon.status + ", " + dragon.sold + ")", dragon.status == Flip.Status.SOLD && dragon.sold == 600_000_000L
+				&& dragon.soldHow.equals("Trade") && dragon.soldTo.equals("Alexandergreat") && ctx.computeOnClient(mc -> LowballTracker.flips()).size() == 5);
+
+		// The stick sells on the AH with no chat line: SkyCofl's copy of your auctions says so.
+		listOnAh(stick.stack.copy(), "Mystery Stick");
+		ctx.runOnClient(mc -> LowballTracker.syncListings(true));
+		realWait(800);
+		check("tracker: a sale seen only by SkyCofl (" + stick.status + ", " + stick.sold + ")", stick.status == Flip.Status.SOLD
+				&& stick.sold == 2_000_000L && stick.listPrice == 2_000_000L && stick.soldHow.equals("BIN") && stick.fees == 40_000L);
+
+		// What you paid for the diamonds left, typed in: the trade's other items share the rest.
+		ctx.runOnClient(mc -> LowballTracker.editPaid(dia, 1_000_000L));
+		long tradeTotal = ctx.computeOnClient(mc -> LowballTracker.flips().stream().filter(f -> f.from.equals("Steve")).mapToLong(f -> f.paid).sum());
+		check("tracker: fixing what you paid (" + dia.paid + ", total " + tradeTotal + ")", dia.paid == 1_000_000L && dia.manualPaid
+				&& tradeTotal == 795_000_000L && hype.paid < 391_456_175L);
+
+		// The menu: tabs, search, numbers.
+		clientCommand("taz lowballs");
+		ctx.waitTicks(3);
+		int rows = ctx.computeOnClient(mc -> mc.screen instanceof TrackerScreen s ? s.rows().size() : -1);
+		check("tracker: /taz lowballs opens the menu (" + rows + " rows)", rows == 5);
+		int unsold = ctx.computeOnClient(mc -> {
+			TrackerScreen s = (TrackerScreen) mc.screen;
+			s.showTab("UNSOLD");
+			int n = s.rows().size();
+			s.showTab("ALL");
+			s.search("dragon");
+			return n * 10 + s.rows().size();
+		});
+		check("tracker: the Unsold tab and search (" + unsold + ")", unsold == 11);
+		ctx.runOnClient(mc -> {
+			TrackerScreen s = (TrackerScreen) mc.screen;
+			s.search("");
+			s.pick(dia);
+		});
+		ctx.waitTicks(2);
+		ctx.takeScreenshot("tracker-menu");
+		LowballTracker.Stats s = ctx.computeOnClient(mc -> LowballTracker.stats(0));
+		long profit = ctx.computeOnClient(mc -> LowballTracker.flips().stream().filter(f -> f.status == Flip.Status.SOLD).mapToLong(Flip::profit).sum());
+		check("tracker: stats (" + s + ")", s.sold() == 4 && s.unsold() == 1 && s.listed() == 0 && s.bought() == 5 && s.spent() == 795_000_000L
+				&& s.profit() == profit && s.best() == dragon && s.unsoldPaid() == 1_000_000L);
+
+		// A spreadsheet of it all.
+		Path csv = ctx.computeOnClient(mc -> {
+			try {
+				return LowballTracker.exportCsv();
+			} catch (Exception e) {
+				throw new AssertionError(e);
+			}
+		});
+		List<String> lines;
+		try {
+			lines = Files.readAllLines(csv);
+		} catch (Exception e) {
+			throw new AssertionError(e);
+		}
+		check("tracker: CSV export (" + lines.size() + " lines)", lines.size() == 6 && lines.get(0).startsWith("Bought,From,Item")
+				&& lines.stream().anyMatch(l -> l.contains(",Hyperion,1,") && l.contains(",Sold,") && l.contains(",BIN,Buyer123,")));
+		ctx.setScreen(() -> null);
+
+		// Read back from the file.
+		ctx.runOnClient(mc -> LowballTracker.reload());
+		Flip again = ctx.computeOnClient(mc -> LowballTracker.flips().stream().filter(f -> f.name.equals("Hyperion")).findFirst().orElse(null));
+		check("tracker: saved", again != null && again != hype && again.status == Flip.Status.SOLD && again.sold == 500_000_000L
+				&& again.listPrice == 520_000_000L && com.taz.util.Items.id(again.stack).equals("HYPERION")
+				&& ctx.computeOnClient(mc -> LowballTracker.flips()).size() == 5);
+		ctx.runOnClient(mc -> {
+			LowballTracker.reset();
+			LowballTracker.testAccount = null;
+			Cofl.fake = null;
+			TradeMenu.clear();
+			ItemPrices.testPrices = null;
+			Taz.config().lowballer.enabled = false;
+		});
+	}
+
+	/** Opens Hypixel's Create BIN Auction menu with the item in it, then says the auction started. */
+	private void listOnAh(ItemStack stack, String name) {
+		ctx.setScreen(() -> {
+			net.minecraft.world.entity.player.Inventory inv = net.minecraft.client.Minecraft.getInstance().player.getInventory();
+			net.minecraft.world.SimpleContainer menu = new net.minecraft.world.SimpleContainer(54);
+			menu.setItem(13, stack);
+			return new ContainerScreen(new ChestMenu(MenuType.GENERIC_9x6, 2, inv, menu, 6), inv, Component.literal("Create BIN Auction"));
+		});
+		ctx.waitTicks(3);
+		ctx.setScreen(() -> null);
+		tell("BIN Auction started for " + name + "!");
+	}
+
+	private Flip flip(String name) {
+		Flip f = ctx.computeOnClient(mc -> LowballTracker.flips().stream().filter(x -> x.name.equals(name)).findFirst().orElse(null));
+		if (f == null) throw new AssertionError("general: tracker: no " + name);
+		return f;
 	}
 
 	/** A trade with "Steve": a Hyperion, an Ender Dragon, 64 Enchanted Diamonds, something nobody prices and 5M coins on his side. */

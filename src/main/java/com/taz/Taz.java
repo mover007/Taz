@@ -437,6 +437,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Chat waypoints", () -> Waypoints.onChat(line));
 		safely("Slayer chat", () -> SlayerHelper.onChat(line));
 		safely("Fishing chat", () -> FishingHelper.onChat(line));
+		safely("Lowball tracker chat", () -> com.taz.lowballer.LowballTracker.onChat(line));
 		safely("Trophy catches", () -> com.taz.fishing.trophy.TrophyBook.onChat(line));
 		safely("Lotus Atoll chat", () -> com.taz.fishing.lotus.LotusAtoll.onChat(line));
 		safely("Trophy Fish chat", () -> com.taz.fishing.crimson.TrophyFish.onChat(line));
@@ -542,6 +543,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Galatea recorder", () -> GalateaRecorder.tick(mc));
 		safely("Party chat", TazChat::tick);
 		safely("Lowballer", () -> com.taz.lowballer.TradeMenu.tick(mc));
+		safely("Lowball tracker", () -> com.taz.lowballer.LowballTracker.tick(mc));
 		safely("Dungeon location", () -> com.taz.dungeons.util.DungeonLocation.tick(mc));
 		safely("Dungeon rooms", () -> DungeonRooms.tick(mc));
 		safely("Performance HUD", () -> com.taz.general.PerformanceHud.tick(mc));

@@ -118,6 +118,51 @@ public final class Cofl {
 		return new Current(sell, buy, o.has("isAh") && o.get("isAh").getAsBoolean());
 	}
 
+	/** One of a player's auctions: SkyCofl's id, the item's name, its BIN price (or starting bid), the top bid, and when it ends or sold. */
+	public record Auction(String id, String name, long price, long highestBid, boolean bin, long end) {
+	}
+
+	/** A player's latest auctions, active and ended, newest first (10 a page). */
+	public static List<Auction> playerAuctions(String player, int page) throws IOException, InterruptedException {
+		String reply = send("player/" + player.replace("-", "") + "/auctions?page=" + page, null);
+		List<Auction> out = new ArrayList<>();
+		if (reply == null) return out;
+		for (JsonElement e : JsonParser.parseString(reply).getAsJsonArray()) {
+			if (!e.isJsonObject()) continue;
+			JsonObject o = e.getAsJsonObject();
+			out.add(new Auction(str(o, "auctionId"), str(o, "itemName"), num(o, "startingBid"), num(o, "highestBid"),
+					o.has("bin") && o.get("bin").getAsBoolean(), time(str(o, "end"))));
+		}
+		return out;
+	}
+
+	/** An auction's item uuid ("" for stackables) and when it started, or null when SkyCofl doesn't have it. */
+	public record AuctionItem(String uuid, long start) {
+	}
+
+	public static AuctionItem auctionItem(String auctionId) throws IOException, InterruptedException {
+		String reply = send("auction/" + auctionId, null);
+		if (reply == null) return null;
+		JsonObject o = JsonParser.parseString(reply).getAsJsonObject();
+		JsonObject data = o.has("nbtData") && o.get("nbtData").isJsonObject() && o.getAsJsonObject("nbtData").has("data")
+				? o.getAsJsonObject("nbtData").getAsJsonObject("data") : new JsonObject();
+		return new AuctionItem(str(data, "uuid"), time(str(o, "start")));
+	}
+
+	/** SkyCofl's times are UTC without a zone ("2026-10-31T16:54:16"); 0 when missing. */
+	private static long time(String s) {
+		if (s.isEmpty()) return 0;
+		try {
+			return java.time.LocalDateTime.parse(s).toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+		} catch (java.time.format.DateTimeParseException e) {
+			return 0;
+		}
+	}
+
+	private static String str(JsonObject o, String key) {
+		return o.has(key) && o.get(key).isJsonPrimitive() ? o.get(key).getAsString() : "";
+	}
+
 	/** The item as 1.8 NBT ({id, Count, tag: {ExtraAttributes, display}}), the shape SkyCofl's price estimate reads. */
 	static CompoundTag legacy(ItemStack stack) {
 		CompoundTag item = new CompoundTag();

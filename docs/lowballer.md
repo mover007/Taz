@@ -53,4 +53,68 @@ It never goes further under than **Most under** (40%).
 
 For example, take a clean Hyperion worth 456M that sells about once a day, and sells within 5 minutes at 388M. Taz goes 5% (margin) + 3.5% (tax) + 4% (slow) + 2.5% (unsteady) = 15% under, so 387M.
 
+## Lowball Tracker
+
+Open it with `/taz lowballs`, or `/taz` → Lowballer → Lowball Tracker → Open. It works while the Lowballer is on (switch it off with **Track lowballs**). Hover the **?** next to its title for a quick how-to.
+
+### How it works
+
+1. **You lowball.** Every trade where you get items is recorded when it goes through, one row per item, with what you paid. What you paid is your coins (less any coins they gave, plus what your own items were worth), split between their items by worth.
+2. **You list it.** List it from the AH's Create Auction menu and its row says **On AH**, with the price you listed it at. The price comes from SkyCofl's copy of your auctions, about a minute after you list it.
+3. **It sells.** Taz marks it **Sold** and works out your profit after tax. You don't have to do anything.
+
+Every lowball is one of:
+
+| | Means |
+|---|---|
+| **Not listed** | You still have it and it isn't on the AH. |
+| **On AH** | You listed it. Its price shows in the Price column. |
+| **Sold** | It sold, and the Profit column is final. |
+| **Kept** | You're using it yourself. It's left out of the profit. |
+
+The tabs show **All**, **Unsold** (Not listed and On AH) and **Sold**.
+
+### The columns
+
+- **Paid:** your share of the trade, and how far under its worth that was.
+- **Price:** what it sold for. For an unsold item, its AH price, or **≈** its worth when it isn't listed.
+- **Profit:** what it sold for, less tax, less what you paid. For an unsold item, **≈** is what it makes if it sells at that price, after AH tax.
+
+Click a column title to sort by it; click again for the other way. Items from the same trade are joined by a red bar when the list is by date. Type in the search box to find an item or a player.
+
+Hover a row for everything about it: who it was from and when, its worth then and now, its AH price, the tax, how long you held it, and the whole trade it came from ("795M for 4 items, sold so far 1.1B, profit if the rest sell ≈ +292M").
+
+### How sales are noticed
+
+| Sold | How Taz knows |
+|---|---|
+| On the AH | "[Auction] ... bought" or "You collected ... coins". If it sold while you were offline, SkyCofl's copy of your auctions says so the next time the menu opens. The listing fee and 1% claim tax come off. |
+| On the bazaar | "[Bazaar] Sold" or "[Bazaar] Claimed". Selling part of a stack splits it into two rows. |
+| To an NPC | "You sold ..." |
+| In a trade | You give it in a trade: it sold for what you got for it. |
+
+An auction that ends with no buyer (or that you cancel) goes back to **Not listed**.
+
+### Changing a lowball
+
+Click a row, then use the buttons under the numbers on the left:
+
+- **Sold for…:** type what it sold for (950m, 1.2b), for a sale Taz didn't see.
+- **Fix paid…:** type what you really paid for it. The rest of that trade's cost is shared between its other items.
+- **Keep it** / **Not kept:** you're using it, or selling it after all.
+- **Not sold:** it didn't sell after all.
+- **Delete:** click twice.
+
+### The numbers on the left
+
+**Period** switches between all time, 30 days, 7 days and today.
+
+- **Sold:** profit, how many sold and how many made money, average profit, return, average time to sell, best and worst.
+- **Bought:** lowballs and coins spent, and how far under worth you paid on average.
+- **Unsold now:** how many (and how many are on the AH), what you paid for them, what they're for sale at, and the profit if they sell at that.
+
+**Refresh prices** asks SkyCofl for their worth and your AH listings right away (otherwise, when the menu opens, their worth if it's over 10 minutes old and your listings if they're over 2 minutes old). **Export CSV** saves every lowball as a spreadsheet, `config/taz/lowballer/lowballs.csv`.
+
+Chat lines tell you when a lowball is tracked, when it's on the AH (with the profit if it sells) and when it sells; switch them off with **Chat lines**. Lowballs are saved per account in `config/taz/lowballer/`.
+
 Prices provided by SkyCofl. Taz isn't affiliated with or endorsed by SkyCofl or Hypixel.

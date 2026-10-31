@@ -32,7 +32,7 @@ Every feature starts off, so you only get what you turn on.
 - **SkyBlock XP:** the cheapest upgrades you haven't done, a level plan and an NPC finder. [More](docs/skyblock-xp.md)
 - **Trophy Fishing:** your 72 Trophy Fish in a table with icons and counts (loaded from Odger), which fish can bite where you stand, and Golden Fish alerts. [More](docs/trophy-fishing.md)
 - **Lotus Atoll:** your 48 Trophy Frogs in a table with icons and pity counts, which frogs can bite where you stand, Wormhole spots, Fairy Souls and rare catch alerts. [More](docs/lotus-atoll.md)
-- **Lowballer:** in the trade menu, what their items are worth and lowball offers for them (10%, 12%, 14%... under, and a smart offer that goes lower for slow sellers), typed into the coins sign with a click. [More](docs/lowballer.md)
+- **Lowballer:** in the trade menu, what their items are worth and lowball offers for them (10%, 12%, 14%... under, and a smart offer that goes lower for slow sellers), typed into the coins sign with a click. The Lowball Tracker (`/taz lowballs`) keeps every lowball: what you paid, what it was worth, what it sold for and your profit. [More](docs/lowballer.md)
 - **Everyday:** alerts, a Dark Auction reminder, event timers, item prices in tooltips, a player viewer (`/pv`) and networth (`/nw`), a chat filter, stacked duplicate messages, command keys, a storage overlay, and slayer and fishing helpers. [More](docs/general.md)
 
 ## Install

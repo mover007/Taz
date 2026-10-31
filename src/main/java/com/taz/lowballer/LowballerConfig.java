@@ -96,6 +96,29 @@ public final class LowballerConfig {
 	@ConfigEditorSlider(minValue = 10, maxValue = 60, minStep = 1)
 	public float maxUnder = 40;
 
+	@ConfigOption(name = "Lowball Tracker", desc = "Every lowball you make, and what it sold for.")
+	@ConfigEditorAccordion(id = 2)
+	public boolean section2 = false;
+
+	@Expose
+	@ConfigAccordionId(id = 2)
+	@ConfigOption(name = "Track lowballs", desc = "Records every trade where you get items: what you paid, what it was worth, "
+			+ "who from, its AH price once you list it, and what it sold for (AH, bazaar, NPC or another trade) with the profit after tax.")
+	@ConfigEditorBoolean
+	@SearchTag("lowball tracker flips profit history sold")
+	public boolean track = true;
+
+	@Expose
+	@ConfigAccordionId(id = 2)
+	@ConfigOption(name = "Chat lines", desc = "A line in chat when a lowball is tracked, when it's on the AH and when it sells, with the profit.")
+	@ConfigEditorBoolean
+	public boolean trackerChat = true;
+
+	@ConfigAccordionId(id = 2)
+	@ConfigOption(name = "Open the tracker", desc = "Your lowballs, profit and stats. Also /taz lowballs.")
+	@ConfigEditorButton(buttonText = "Open")
+	public transient Runnable openTracker = () -> Taz.openScreenNextTick(TrackerScreen::new);
+
 	@ConfigOption(name = "Prices", desc = "Prices provided by SkyCofl (sky.coflnet.com): the lowest BIN and median sale of items "
 			+ "like theirs (same stars, scrolls, pet level and so on), and how many sell a day. Taz isn't affiliated with or "
 			+ "endorsed by SkyCofl or Hypixel.")
