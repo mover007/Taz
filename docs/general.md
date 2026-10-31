@@ -71,7 +71,7 @@ Taz's `/pv` replaces Skyblocker's, which is still at `/skyblocker pv`. Taz isn't
 ## Slayer and Fishing
 
 - **Slayer Helper:** a title when your boss spawns, a box round it, and kill times.
-- **Fishing Helper:** a title and sound the moment a fish bites, a bobber timer and a Double Hook alert.
+- **Fishing Helper:** a title and sound the moment a fish bites, up only while the "!!!" is over your bobber (gone the moment the fish is, or you reel in), a bobber timer and a Double Hook alert.
 
 ## Coming from older mods
 

@@ -40,17 +40,48 @@ public final class Alert {
 	/** Test hooks: the last title and subtitle shown. */
 	public static volatile String lastTitle;
 	public static volatile String lastSubtitle;
+	private static volatile boolean holding;
 
 	private Alert() {
 	}
 
 	/** Title (and optional subtitle) for 2 seconds, plus the sound. Safe from any thread. */
 	public static void show(String title, String subtitle, Sound sound) {
+		holding = false;
+		display(title, subtitle, sound, 3, 40, 10);
+	}
+
+	/**
+	 * Title (and optional subtitle) with the sound, up at once and kept until {@link #release} (5 seconds at most): for
+	 * something that lasts as long as it lasts, like a fish on the line.
+	 */
+	public static void hold(String title, String subtitle, Sound sound) {
+		holding = true;
+		display(title, subtitle, sound, 0, 100, 0);
+	}
+
+	/** Takes a held title down at once, unless another alert has replaced it since. */
+	public static void release() {
+		if (!holding) return;
+		holding = false;
+		Minecraft mc = Minecraft.getInstance();
+		mc.execute(() -> {
+			mc.gui.clearTitles();
+			mc.gui.resetTitleTimes();
+		});
+	}
+
+	/** Test hook: a held title is up. */
+	public static boolean holding() {
+		return holding;
+	}
+
+	private static void display(String title, String subtitle, Sound sound, int fadeIn, int stay, int fadeOut) {
 		lastTitle = title;
 		lastSubtitle = subtitle;
 		Minecraft mc = Minecraft.getInstance();
 		mc.execute(() -> {
-			mc.gui.setTimes(3, 40, 10);
+			mc.gui.setTimes(fadeIn, stay, fadeOut);
 			mc.gui.setSubtitle(com.taz.hud.TazTheme.styled(subtitle == null ? "" : subtitle));
 			mc.gui.setTitle(com.taz.hud.TazTheme.styled(title));
 			play(sound);

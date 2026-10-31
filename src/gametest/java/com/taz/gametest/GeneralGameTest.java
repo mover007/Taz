@@ -663,8 +663,14 @@ public class GeneralGameTest implements FabricClientGameTest {
 		cmd(String.format(java.util.Locale.ROOT, "summon armor_stand %.2f %.2f %.2f {CustomName:\"!!!\",CustomNameVisible:1b,Invisible:1b,NoGravity:1b,Marker:1b,Tags:[\"taztest\"]}",
 				hook.x, hook.y + 0.5, hook.z));
 		ctx.waitTicks(5);
-		check("fishing: bite alert", ctx.computeOnClient(mc -> FishingHelper.bitten()) && Alert.lastTitle != null && Alert.lastTitle.contains("!!!"));
+		check("fishing: bite alert", ctx.computeOnClient(mc -> FishingHelper.bitten()) && Alert.lastTitle != null && Alert.lastTitle.contains("!!!")
+				&& Alert.holding());
 		ctx.takeScreenshot("general-fishing");
+		ctx.waitTicks(60);
+		check("fishing: the alert stays while the fish is on", Alert.holding());
+		cmd("kill @e[tag=taztest]");
+		ctx.waitTicks(5);
+		check("fishing: the alert goes the moment the fish does", !Alert.holding());
 		tell("It's a Double Hook! Woot woot!");
 		check("fishing: double hook", Alert.lastTitle.contains("DOUBLE HOOK"));
 		ctx.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_RIGHT);

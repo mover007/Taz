@@ -17,7 +17,7 @@ public final class FishingConfig {
 	public boolean enabled = false;
 
 	@Expose
-	@ConfigOption(name = "Bite alert", desc = "A title and sound the moment a fish bites (Hypixel's \"!!!\" over your bobber), so you can reel in straight away.")
+	@ConfigOption(name = "Bite alert", desc = "A title and sound the moment a fish bites (Hypixel's \"!!!\" over your bobber), up only while the fish is on the line.")
 	@ConfigEditorBoolean
 	public boolean biteAlert = true;
 

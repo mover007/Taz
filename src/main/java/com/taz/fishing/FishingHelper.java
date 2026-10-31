@@ -15,6 +15,8 @@ import net.minecraft.world.phys.Vec3;
 public final class FishingHelper {
 	private static int hookId = -1;
 	private static boolean bitten;
+	/** Hypixel's "!!!" over the bobber while the fish is on the line; the alert is up exactly as long as it is. */
+	private static ArmorStand bite;
 
 	private FishingHelper() {
 	}
@@ -25,21 +27,38 @@ public final class FishingHelper {
 		FishingHook hook = mc.player == null ? null : mc.player.fishing;
 		if (!cfg.enabled || hook == null || mc.level == null) {
 			hookId = -1;
+			letGo(); // reeled in
 			return;
 		}
 		if (hook.getId() != hookId) { // a new cast
 			hookId = hook.getId();
 			bitten = false;
+			letGo();
+		}
+		if (bite != null) {
+			if (!cfg.biteAlert || bite.isRemoved() || !biting(bite, hook)) letGo(); // the fish got away
+			return;
 		}
 		if (!cfg.biteAlert || bitten) return;
 		for (Entity e : mc.level.entitiesForRendering()) {
-			if (e instanceof ArmorStand a && a.getCustomName() != null && a.distanceToSqr(hook) < 3.0 * 3.0
-					&& TextUtil.cleanChat(a.getCustomName().getString()).equals("!!!")) {
+			if (e instanceof ArmorStand a && biting(a, hook)) {
 				bitten = true;
-				Alert.show("§c§l!!!", "§fReel in!", cfg.biteSound);
+				bite = a;
+				Alert.hold("§c§l!!!", "§fReel in!", cfg.biteSound);
 				return;
 			}
 		}
+	}
+
+	private static boolean biting(ArmorStand a, FishingHook hook) {
+		return a.getCustomName() != null && a.distanceToSqr(hook) < 3.0 * 3.0 && TextUtil.cleanChat(a.getCustomName().getString()).equals("!!!");
+	}
+
+	/** The bite is over: the alert comes down at once. */
+	private static void letGo() {
+		if (bite == null) return;
+		bite = null;
+		Alert.release();
 	}
 
 	/** True once a fish bit on the current cast (test hook). */
