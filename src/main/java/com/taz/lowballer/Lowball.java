@@ -42,7 +42,7 @@ public final class Lowball {
 	}
 
 	/** Selling it again: the AH listing fee (1%, 2% from 10M, 2.5% from 100M) and 1% claim tax over 1M, or the 1.25% bazaar tax. */
-	static double tax(long price, boolean bazaar) {
+	public static double tax(long price, boolean bazaar) {
 		if (bazaar) return 0.0125;
 		return listingFee(price) + (price > 1_000_000 ? 0.01 : 0);
 	}

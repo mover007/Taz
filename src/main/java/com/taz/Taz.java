@@ -152,6 +152,7 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.dungeons.map.MapInfo.RoomSecrets());
 		TazHud.register(new com.taz.foraging.safari.SafariGuide());
 		TazHud.register(com.taz.lowballer.TradeHud.HUD);
+		TazHud.register(new com.taz.inferno.InfernoHud());
 		ClientChunkEvents.CHUNK_LOAD.register(TreeTracker::onChunkLoad);
 		ClientChunkEvents.CHUNK_UNLOAD.register(TreeTracker::onChunkUnload);
 		ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> {
@@ -207,6 +208,7 @@ public final class Taz implements ClientModInitializer {
 			if (level.isClientSide() && hand == net.minecraft.world.InteractionHand.MAIN_HAND) safely("Arrow align click", () -> com.taz.dungeons.f7.ArrowAlign.onClick(entity));
 			if (level.isClientSide()) safely("Safari floor drop", () -> com.taz.foraging.safari.SafariFinds.onInteract(entity.position()));
 			if (level.isClientSide()) safely("Safari throw", () -> com.taz.foraging.safari.SafariThrow.onUse(player));
+			if (level.isClientSide()) safely("Inferno minion click", () -> com.taz.inferno.InfernoTracker.onUseEntity(entity, player.getItemInHand(hand)));
 			return net.minecraft.world.InteractionResult.PASS;
 		});
 		net.fabricmc.fabric.api.event.player.UseItemCallback.EVENT.register((player, level, hand) -> {
@@ -235,6 +237,8 @@ public final class Taz implements ClientModInitializer {
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Secret routes screen", () -> SecretTrainer.onScreenOpened(screen)));
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Auction price input", () -> com.taz.general.AuctionInput.onScreen(screen)));
 		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> safely("Lowballer coins sign", () -> com.taz.lowballer.TradeMenu.onScreen(screen)));
+		ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents.beforeMouseClick(screen)
+				.register((s, click) -> safely("Inferno minion menu click", () -> com.taz.inferno.InfernoTracker.onMenuClick(s))));
 		ClientReceiveMessageEvents.ALLOW_GAME.register(ChatFilter::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(SweepDetails::allow);
 		ClientReceiveMessageEvents.ALLOW_GAME.register(TreeGifts::allow);
@@ -438,6 +442,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Slayer chat", () -> SlayerHelper.onChat(line));
 		safely("Fishing chat", () -> FishingHelper.onChat(line));
 		safely("Lowball tracker chat", () -> com.taz.lowballer.LowballTracker.onChat(line));
+		safely("Inferno tracker chat", () -> com.taz.inferno.InfernoTracker.onChat(line));
 		safely("Trophy catches", () -> com.taz.fishing.trophy.TrophyBook.onChat(line));
 		safely("Lotus Atoll chat", () -> com.taz.fishing.lotus.LotusAtoll.onChat(line));
 		safely("Trophy Fish chat", () -> com.taz.fishing.crimson.TrophyFish.onChat(line));
@@ -544,6 +549,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Party chat", TazChat::tick);
 		safely("Lowballer", () -> com.taz.lowballer.TradeMenu.tick(mc));
 		safely("Lowball tracker", () -> com.taz.lowballer.LowballTracker.tick(mc));
+		safely("Inferno tracker", () -> com.taz.inferno.InfernoTracker.tick(mc));
 		safely("Dungeon location", () -> com.taz.dungeons.util.DungeonLocation.tick(mc));
 		safely("Dungeon rooms", () -> DungeonRooms.tick(mc));
 		safely("Performance HUD", () -> com.taz.general.PerformanceHud.tick(mc));

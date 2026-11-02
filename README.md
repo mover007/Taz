@@ -33,6 +33,7 @@ Every feature starts off, so you only get what you turn on.
 - **Trophy Fishing:** your 72 Trophy Fish in a table with icons and counts (loaded from Odger), which fish can bite where you stand, and Golden Fish alerts. [More](docs/trophy-fishing.md)
 - **Lotus Atoll:** your 48 Trophy Frogs in a table with icons and pity counts, which frogs can bite where you stand, Wormhole spots, Fairy Souls and rare catch alerts. [More](docs/lotus-atoll.md)
 - **Lowballer:** in the trade menu, what their items are worth and lowball offers for them (10%, 12%, 14%... under, and a smart offer that goes lower for slow sellers), typed into the coins sign with a click. The Lowball Tracker (`/taz lowballs`) keeps every lowball: what you paid, what it was worth, what it sold for and your profit. [More](docs/lowballer.md)
+- **Inferno Minions:** what each fuel cost you (from what you bought to craft it), what it should make and what you collected, the best fuel to run, a Fuel Planner with the cheapest way to make any fuel, fuel timers and rare drop alerts (`/taz inferno`). [More](docs/inferno.md)
 - **Everyday:** alerts, a Dark Auction reminder, event timers, item prices in tooltips, a player viewer (`/pv`) and networth (`/nw`), a chat filter, stacked duplicate messages, command keys, a storage overlay, and slayer and fishing helpers. [More](docs/general.md)
 
 ## Install
@@ -60,7 +61,7 @@ The jar is `build/libs/taz-<version>.jar` (JDK 25). Tests, code layout and how t
 - [SkyHanni-REPO](https://github.com/hannibal002/SkyHanni-REPO) (MIT): the Critter Safari map.
 - [Skyblocker](https://github.com/SkyblockerMod/Skyblocker): the Rockmite mound texture.
 - [MoulConfig](https://github.com/NotEnoughUpdates/MoulConfig) (MPL-2.0): the settings menu.
-- [SkyCofl](https://sky.coflnet.com): prices for networth, the Lowballer and item tooltips, through its API. Taz isn't affiliated with or endorsed by SkyCofl or Hypixel.
+- [SkyCofl](https://sky.coflnet.com): prices for networth, the Lowballer, Inferno Minions and item tooltips, through its API. Taz isn't affiliated with or endorsed by SkyCofl or Hypixel.
 - [minecraft-data](https://github.com/PrismarineJS/minecraft-data) (MIT): the 1.8 item ids `/pv` reads Hypixel's items with.
 - [SkyHelper-Networth](https://github.com/Altpapier/SkyHelper-Networth) (MIT): how `/nw` and `/pv` work out an item's networth.
 

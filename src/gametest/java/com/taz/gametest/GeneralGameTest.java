@@ -30,6 +30,11 @@ import com.taz.hud.MovableHud;
 import com.taz.hud.TazHud;
 import com.taz.hud.TazHudEditor;
 import com.taz.hud.TextHud;
+import com.taz.inferno.InfernoData;
+import com.taz.inferno.InfernoPlanner;
+import com.taz.inferno.InfernoPrices;
+import com.taz.inferno.InfernoScreen;
+import com.taz.inferno.InfernoTracker;
 import com.taz.inventory.ItemOverlays;
 import com.taz.inventory.ItemPrices;
 import com.taz.lowballer.Cofl;
@@ -88,7 +93,7 @@ import java.util.stream.Stream;
 /** The General, Inventory, Slayer and Fishing features and settings auto-save. */
 public class GeneralGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"defaults", "autosave", "alerts", "chatfilter", "commandkeys", "events", "darkauction", "skills", "waypoints", "huds",
-			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer", "tracker"};
+			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer", "tracker", "inferno"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	/** Every chat line that reached the chat (after the chat filter and the [Waypoint] button). */
@@ -148,6 +153,7 @@ public class GeneralGameTest implements FabricClientGameTest {
 			if (runs("pv")) playerViewer();
 			if (runs("lowballer")) lowballer();
 			if (runs("tracker")) tracker();
+			if (runs("inferno")) inferno();
 		}
 		System.out.println("[GeneralGameTest] PASSED");
 	}
@@ -1100,6 +1106,293 @@ public class GeneralGameTest implements FabricClientGameTest {
 			ItemPrices.testPrices = null;
 			Taz.config().lowballer.enabled = false;
 		});
+	}
+
+	/**
+	 * The Inferno tracker: bazaar buys, a fuel crafted from them, a minion opened, the fuel put in, a collection, eyedrops,
+	 * a sale, a fuel taken out, fuel running out, the Fuel Planner, the menu, and reading it all back.
+	 */
+	private void inferno() {
+		// Today's SkyCofl prices (sell, buy, AH?), for any amount.
+		Map<String, double[]> prices = new java.util.HashMap<>();
+		Object[][] table = {{"CRUDE_GABAGOOL", 300.0, 409.7, 0}, {"VERY_CRUDE_GABAGOOL", 59201.9, 61294.1, 0}, {"CRUDE_GABAGOOL_DISTILLATE", 17773.9, 20492.9, 0},
+				{"INFERNO_FUEL_BLOCK", 61193.5, 66368.4, 0}, {"HYPERGOLIC_GABAGOOL", 4113873.6, 4419989.9, 0}, {"HEAVY_GABAGOOL", 351320.2, 384254.2, 0},
+				{"FUEL_GABAGOOL", 11295.3, 18107.8, 0}, {"CAPSAICIN_EYEDROPS_NO_CHARGES", 1500002.3, 1976055.2, 0}, {"CHILI_PEPPER", 142001.2, 144998.1, 0},
+				{"INFERNO_VERTEX", 305185.8, 410165.2, 0}, {"INFERNO_APEX", 4194573.4, 7891446.7, 0}, {"REAPER_PEPPER", 10320291.7, 11832028.2, 0},
+				{"GABAGOOL_THE_FISH", 7250040.0, 7398000.0, 1}, {"HYPERGOLIC_IONIZED_CERAMICS", 1000.6, 1979.4, 0},
+				{"INFERNO_HYPERGOLIC_CRUDE_GABAGOOL", 5625200.0, 5740000.0, 1}, {"COAL", 5.3, 7.5, 0}, {"ENCHANTED_COAL", 1309.1, 1378.8, 0},
+				{"SULPHUR_ORE", 3.4, 16.1, 0}, {"ENCHANTED_SULPHUR", 2069.3, 2296.4, 0}, {"SULPHURIC_COAL", 5677.2, 6782.7, 0}};
+		for (Object[] row : table) prices.put((String) row[0], new double[]{(Double) row[1], (Double) row[2], (Integer) row[3]});
+		java.util.regex.Pattern current = java.util.regex.Pattern.compile("item/price/([A-Z_]+)/current\\?count=(\\d+)");
+		ctx.runOnClient(mc -> {
+			Taz.config().inferno.enabled = Taz.config().inferno.chat = Taz.config().inferno.rareAlert = Taz.config().inferno.emptyAlert = true;
+			Taz.config().inferno.prices = com.taz.inferno.InfernoConfig.Prices.ORDERS;
+			Taz.config().inferno.placed = 0;
+			Taz.config().inferno.otherSpeed = 0;
+			Taz.config().inferno.infusion = true;
+			InfernoTracker.testAccount = "gametest";
+			try {
+				Files.deleteIfExists(Taz.CONFIG_DIR.resolve("inferno").resolve("gametest.json"));
+			} catch (Exception e) {
+				throw new AssertionError(e);
+			}
+			InfernoTracker.reload();
+			InfernoPrices.clear();
+			InfernoPlanner.clear();
+			Cofl.fake = (path, body) -> {
+				java.util.regex.Matcher m = current.matcher(path);
+				if (!m.matches() || !prices.containsKey(m.group(1))) return null;
+				double[] p = prices.get(m.group(1));
+				int n = Integer.parseInt(m.group(2));
+				return "{\"sell\":" + p[0] * n + ",\"buy\":" + p[1] * n + ",\"available\":1000,\"isAh\":" + (p[2] > 0) + "}";
+			};
+			InfernoTracker.refresh(true);
+		});
+		realWait(1500);
+		check("inferno: prices from SkyCofl", ctx.computeOnClient(mc -> InfernoPrices.instaBuy("COAL") == 7.5 && InfernoPrices.known("INFERNO_APEX")));
+
+		// What it's made of, bought on the bazaar.
+		for (String line : List.of("[Bazaar] Bought 6x Gabagool Distillate for 120,000 coins!",
+				"[Bazaar] Claimed 2x Inferno Fuel Block worth 130,000 coins bought for 65,000.0 each!",
+				"[Bazaar] Bought 1x Hypergolic Gabagool for 4,400,000 coins!", "[Bazaar] Bought 64x Enchanted Diamond for 5,000,000 coins!")) tell(line);
+		check("inferno: bazaar buys (" + ctx.computeOnClient(mc -> InfernoTracker.bought().size()) + ")",
+				ctx.computeOnClient(mc -> InfernoTracker.bought().size() == 3 && InfernoTracker.bought().get(1).count == 2
+						&& InfernoTracker.bought().get(1).coins == 130_000L && InfernoTracker.bought().get(2).id.equals("HYPERGOLIC_GABAGOOL")));
+
+		// Crafted in the Craft Item menu: it costs what its parts did.
+		ctx.setScreen(() -> new ContainerScreen(new ChestMenu(MenuType.GENERIC_9x6, 7, net.minecraft.client.Minecraft.getInstance().player.getInventory(),
+				new net.minecraft.world.SimpleContainer(54), 6), net.minecraft.client.Minecraft.getInstance().player.getInventory(), Component.literal("Craft Item")));
+		ctx.waitTicks(3);
+		cmd("give @p minecraft:player_head[minecraft:custom_data={id:\"INFERNO_HYPERGOLIC_CRUDE_GABAGOOL\"}] 1");
+		ctx.waitTicks(5);
+		ctx.setScreen(() -> null);
+		InfernoTracker.Stock crafted = ctx.computeOnClient(mc -> InfernoTracker.stock().isEmpty() ? null : InfernoTracker.stock().get(0));
+		check("inferno: fuel crafted (" + (crafted == null ? "none" : crafted.cost + " " + crafted.estimated) + ")", crafted != null
+				&& crafted.fuel.equals("INFERNO_HYPERGOLIC_CRUDE_GABAGOOL") && crafted.cost == 4_650_000L && !crafted.estimated
+				&& ctx.computeOnClient(mc -> InfernoTracker.bought().stream().allMatch(p -> p.left == 0)));
+		check("inferno: crafted chat line", chatHas("Inferno fuel crafted: Hypergolic Gabagool for 4.65M"));
+
+		// Its minion: right-clicked, then its menu with two Flycatchers, some Gabagool and Chili Peppers.
+		net.minecraft.world.SimpleContainer menu = new net.minecraft.world.SimpleContainer(54);
+		ItemStack fuel = item(Items.PLAYER_HEAD, 1, "Inferno Minion Fuel", "INFERNO_HYPERGOLIC_CRUDE_GABAGOOL", List.of("Time Remaining: 23h 59m"), null);
+		ctx.runOnClient(mc -> {
+			for (int i = 0; i < 54; i++) menu.setItem(i, item(Items.BLACK_STAINED_GLASS_PANE, 1, " ", null, null, null));
+			for (int i : new int[]{21, 22, 23, 24, 25, 30, 31, 32, 33, 34, 39, 40, 41, 42, 43}) menu.setItem(i, ItemStack.EMPTY);
+			menu.setItem(19, item(Items.ORANGE_STAINED_GLASS_PANE, 1, "Fuel", null, null, null));
+			menu.setItem(37, item(Items.COBWEB, 1, "Flycatcher", "FLYCATCHER_UPGRADE", null, null));
+			menu.setItem(46, item(Items.COBWEB, 1, "Flycatcher", "FLYCATCHER_UPGRADE", null, null));
+			menu.setItem(21, item(Items.PLAYER_HEAD, 64, "Crude Gabagool", "CRUDE_GABAGOOL", null, null));
+			menu.setItem(22, item(Items.PLAYER_HEAD, 3, "Chili Pepper", "CHILI_PEPPER", null, null));
+			InfernoTracker.clicked(new BlockPos(10, 70, 10));
+		});
+		openMinion(menu);
+		InfernoTracker.Minion minion = ctx.computeOnClient(mc -> InfernoTracker.minions().isEmpty() ? null : InfernoTracker.minions().get(0));
+		check("inferno: minion seen", minion != null && minion.key.equals("10,70,10") && minion.number == 1 && minion.tier == 11
+				&& minion.upgrades.size() == 2 && minion.storage > 0 && ctx.computeOnClient(mc -> InfernoTracker.runs().isEmpty()));
+
+		// The fuel goes in: its run costs what it was crafted for.
+		ctx.runOnClient(mc -> menu.setItem(19, fuel.copy()));
+		ctx.waitTicks(3);
+		InfernoTracker.Run run = ctx.computeOnClient(mc -> InfernoTracker.runs().isEmpty() ? null : InfernoTracker.runs().get(0));
+		long now = System.currentTimeMillis();
+		check("inferno: fuel put in (" + (run == null ? "none" : run.cost + " exp " + run.expected) + ")", run != null && run.cost == 4_650_000L
+				&& !run.estimated && run.how.equals("Crafted") && run.running(now) && run.expected > 0 && Math.abs(run.endsAt - now - 86_400_000L) < 5000
+				&& ctx.computeOnClient(mc -> InfernoTracker.stock().isEmpty()));
+		check("inferno: put in chat line", chatHas("Inferno fuel in #1 XI: Hypergolic Gabagool cost 4.65M"));
+
+		// Its Super Compactor turns 192 Crude Gabagool into a Very Crude Gabagool: that isn't collecting.
+		ctx.runOnClient(mc -> {
+			menu.setItem(24, item(Items.PLAYER_HEAD, 64, "Crude Gabagool", "CRUDE_GABAGOOL", null, null));
+			menu.setItem(25, item(Items.PLAYER_HEAD, 64, "Crude Gabagool", "CRUDE_GABAGOOL", null, null));
+		});
+		ctx.waitTicks(3);
+		ctx.runOnClient(mc -> {
+			for (int i : new int[]{21, 24, 25}) menu.setItem(i, ItemStack.EMPTY);
+			menu.setItem(26, item(Items.PLAYER_HEAD, 1, "Very Crude Gabagool", "VERY_CRUDE_GABAGOOL", null, null));
+		});
+		ctx.waitTicks(3);
+
+		// Collect All the way Hypixel does it: the menu reopens (no right-click, no click seen) with the storage empty.
+		net.minecraft.world.SimpleContainer emptied = new net.minecraft.world.SimpleContainer(54);
+		ctx.runOnClient(mc -> {
+			for (int i = 0; i < 54; i++) emptied.setItem(i, menu.getItem(i).copy());
+			for (int i : new int[]{22, 26}) {
+				emptied.setItem(i, ItemStack.EMPTY);
+				menu.setItem(i, ItemStack.EMPTY);
+			}
+		});
+		ctx.setScreen(() -> {
+			net.minecraft.world.entity.player.Inventory inv = net.minecraft.client.Minecraft.getInstance().player.getInventory();
+			return new ContainerScreen(new ChestMenu(MenuType.GENERIC_9x6, 10, inv, emptied, 6), inv, Component.literal("Inferno Minion XI"));
+		});
+		ctx.waitTicks(3);
+		ctx.setScreen(() -> null);
+		realWait(3500);
+		InfernoTracker.Haul haul = ctx.computeOnClient(mc -> InfernoTracker.hauls().isEmpty() ? null : InfernoTracker.hauls().get(0));
+		long worth = Math.round(61294.1 * 0.9875 + 3 * 144998.1 * 0.9875);
+		check("inferno: collected (" + (haul == null ? "none" : haul.items + " " + haul.value) + ")", haul != null && haul.run == run.id
+				&& haul.items.equals(Map.of("CHILI_PEPPER", 3L, "VERY_CRUDE_GABAGOOL", 1L)) && Math.abs(haul.value - worth) <= 2
+				&& ctx.computeOnClient(mc -> InfernoTracker.made(run)) == haul.value && ctx.computeOnClient(mc -> InfernoTracker.minions().size()) == 1);
+		realWait(4500);
+		check("inferno: collected chat line", chatHas("Inferno #1 XI collected: 3 Chili Pepper, 1 Very Crude Gabagool"));
+
+		// A rare drop: a title.
+		ctx.runOnClient(mc -> menu.setItem(23, item(Items.PLAYER_HEAD, 1, "Inferno Apex", "INFERNO_APEX", null, null)));
+		openMinion(menu);
+		ctx.runOnClient(mc -> menu.setItem(23, ItemStack.EMPTY));
+		ctx.waitTicks(3);
+		ctx.setScreen(() -> null);
+		realWait(3500);
+		check("inferno: rare drop alert (" + com.taz.util.Alert.lastTitle + ")", String.valueOf(com.taz.util.Alert.lastTitle).contains("Inferno Apex"));
+
+		// Eyedrops on the minion: one fewer in your inventory, so it was used (at today's price: it wasn't seen bought).
+		cmd("give @p minecraft:player_head[minecraft:custom_data={id:\"CAPSAICIN_EYEDROPS_NO_CHARGES\"}] 2");
+		ctx.waitTicks(5);
+		ctx.runOnClient(mc -> {
+			net.minecraft.world.entity.decoration.ArmorStand stand = new net.minecraft.world.entity.decoration.ArmorStand(
+					net.minecraft.world.entity.EntityType.ARMOR_STAND, mc.level);
+			stand.setPos(10.5, 70, 10.5);
+			InfernoTracker.onUseEntity(stand, item(Items.PLAYER_HEAD, 1, "Capsaicin Eyedrops", "CAPSAICIN_EYEDROPS_NO_CHARGES", null, null));
+		});
+		cmd("clear @p minecraft:player_head[minecraft:custom_data={id:\"CAPSAICIN_EYEDROPS_NO_CHARGES\"}] 1");
+		ctx.waitTicks(6);
+		check("inferno: eyedrops (" + run.eyedrops + ", " + run.eyedropsCost + ")", run.eyedrops == 1 && run.eyedropsCost == 1_500_002L);
+
+		// Selling what it made.
+		tell("[Bazaar] Sold 64x Crude Gabagool for 25,000 coins!");
+		tell("[Bazaar] Sold 64x Enchanted Diamond for 5,000,000 coins!");
+		InfernoTracker.Stats stats = ctx.computeOnClient(mc -> InfernoTracker.stats(0));
+		check("inferno: stats (" + stats + ")", stats.sold() == 25_000L && stats.fuels() == 1 && stats.fuelCost() == 4_650_000L
+				&& stats.eyedrops() == 1 && stats.made() == haul.value + ctx.computeOnClient(mc -> InfernoTracker.hauls().get(1).value)
+				&& stats.running() == 1 && stats.drops().get("INFERNO_APEX") == 1 && stats.expectedDrops().get("INFERNO_APEX") > 0);
+
+		// A second fuel, then both taken out: the burning one is gone, the waiting one comes back to you.
+		ItemStack two = fuel.copy();
+		two.setCount(2);
+		ctx.runOnClient(mc -> menu.setItem(19, fuel.copy()));
+		openMinion(menu);
+		ctx.runOnClient(mc -> menu.setItem(19, two));
+		ctx.waitTicks(3);
+		List<InfernoTracker.Run> runs = ctx.computeOnClient(mc -> List.copyOf(InfernoTracker.runs()));
+		check("inferno: second fuel waits (" + runs.size() + ")", runs.size() == 2 && runs.get(1).queued(System.currentTimeMillis())
+				&& runs.get(1).startAt == run.endsAt && runs.get(1).estimated);
+		ctx.runOnClient(mc -> menu.setItem(19, item(Items.ORANGE_STAINED_GLASS_PANE, 1, "Fuel", null, null, null)));
+		ctx.waitTicks(3);
+		ctx.setScreen(() -> null);
+		check("inferno: taken out", run.early && ctx.computeOnClient(mc -> InfernoTracker.runs().size() == 1 && InfernoTracker.stock().size() == 1));
+
+		// Its fuel ran out: an alert.
+		ctx.runOnClient(mc -> com.taz.util.Alert.lastTitle = null);
+		ctx.waitTicks(25);
+		check("inferno: ran out alert (" + com.taz.util.Alert.lastTitle + ")", String.valueOf(com.taz.util.Alert.lastTitle).contains("Inferno fuel ran out")
+				&& minion.warned);
+
+		// The Fuel Planner: 3 Hypergolic Gabagool fuels, every part bought or crafted, whichever is cheaper.
+		InfernoPlanner.Plan plan = ctx.computeOnClient(mc -> InfernoPlanner.plan(InfernoData.fuel("INFERNO_HYPERGOLIC_CRUDE_GABAGOOL"), 3));
+		check("inferno: planner (" + plan.buy() + ")", plan.complete() && plan.buy().equals(Map.of("CRUDE_GABAGOOL_DISTILLATE", 18L, "INFERNO_FUEL_BLOCK", 6L,
+				"VERY_CRUDE_GABAGOOL", 108L, "ENCHANTED_SULPHUR", 226L, "COAL", 578_560L)) && Math.abs(plan.total() - 12_245_031.8) < 1
+				&& plan.steps().stream().anyMatch(s -> s.id().equals("SULPHURIC_COAL") && s.crafts() == 226 && s.spare() == 1)
+				&& plan.steps().stream().anyMatch(s -> s.id().equals("FUEL_GABAGOOL") && s.crafts() == 108 && s.recipe().makes() == 8)
+				&& plan.ah() == 5_740_000.0);
+		ctx.runOnClient(mc -> InfernoPlanner.BUY.add("ENCHANTED_COAL"));
+		InfernoPlanner.Plan bought = ctx.computeOnClient(mc -> InfernoPlanner.plan(InfernoData.fuel("INFERNO_HYPERGOLIC_CRUDE_GABAGOOL"), 3));
+		check("inferno: planner, coal bought instead", bought.buy().get("ENCHANTED_COAL") == 3616L && !bought.buy().containsKey("COAL"));
+		ctx.runOnClient(mc -> InfernoPlanner.priceExactly(bought));
+		realWait(800);
+		check("inferno: planner exact prices", ctx.computeOnClient(mc -> InfernoPlanner.exact(bought)).get("ENCHANTED_COAL") == Math.round(3616 * 1378.8));
+		ctx.runOnClient(mc -> InfernoPlanner.BUY.clear());
+
+		// The menu: every list, then the planner for 3 fuels.
+		clientCommand("taz inferno");
+		ctx.waitTicks(5);
+		InfernoScreen screen = ctx.computeOnClient(mc -> mc.screen instanceof InfernoScreen s ? s : null);
+		check("inferno: menu", screen != null);
+		for (String tab : List.of("FUELS", "MINIONS", "DROPS", "BOUGHT", "BEST", "PLANNER")) {
+			ctx.runOnClient(mc -> screen.showTab(tab));
+			ctx.waitTicks(3);
+			if (!tab.equals("PLANNER")) ctx.takeScreenshot("inferno-" + tab.toLowerCase(Locale.ROOT));
+		}
+		check("inferno: menu rows", ctx.computeOnClient(mc -> {
+			screen.showTab("FUELS");
+			int fuels = screen.rowCount();
+			screen.showTab("BEST");
+			int best = screen.rowCount();
+			return fuels == 1 && best == 15;
+		}));
+		ctx.runOnClient(mc -> screen.plan("INFERNO_HYPERGOLIC_CRUDE_GABAGOOL", 3));
+		realWait(800);
+		ctx.takeScreenshot("inferno-planner");
+		check("inferno: planner rows", ctx.computeOnClient(mc -> screen.rowCount()) == plan.buy().size() + plan.steps().size());
+		ctx.setScreen(() -> null);
+
+		// Another minion opened with a fuel already in it (no time in its lore): it's the fuel you had, from when you got it.
+		InfernoTracker.Stock had = ctx.computeOnClient(mc -> InfernoTracker.stock().get(0));
+		net.minecraft.world.SimpleContainer other = new net.minecraft.world.SimpleContainer(54);
+		ctx.runOnClient(mc -> {
+			for (int i = 0; i < 54; i++) other.setItem(i, item(Items.BLACK_STAINED_GLASS_PANE, 1, " ", null, null, null));
+			other.setItem(19, item(Items.PLAYER_HEAD, 1, "Inferno Minion Fuel", "INFERNO_HYPERGOLIC_CRUDE_GABAGOOL", null, null));
+			InfernoTracker.clicked(new BlockPos(12, 70, 10));
+		});
+		ctx.setScreen(() -> {
+			net.minecraft.world.entity.player.Inventory inv = net.minecraft.client.Minecraft.getInstance().player.getInventory();
+			return new ContainerScreen(new ChestMenu(MenuType.GENERIC_9x6, 9, inv, other, 6), inv, Component.literal("Inferno Minion X"));
+		});
+		ctx.waitTicks(3);
+		ctx.setScreen(() -> null);
+		InfernoTracker.Run found = ctx.computeOnClient(mc -> InfernoTracker.runs().get(InfernoTracker.runs().size() - 1));
+		check("inferno: fuel already in a minion", found != run && found.minion.equals("12,70,10") && found.tier == 10 && found.cost == had.cost
+				&& found.startAt == had.at && found.endsAt == had.at + 86_400_000L && ctx.computeOnClient(mc -> InfernoTracker.stock().isEmpty()));
+
+		// Typed in: what you collected that Taz didn't see, on the fuels burning now.
+		check("inferno: typed items", ctx.computeOnClient(mc -> InfernoTracker.parseItems("33 chili, 2x very crude; 1.5k crude")
+				.equals(Map.of("CHILI_PEPPER", 33L, "VERY_CRUDE_GABAGOOL", 2L, "CRUDE_GABAGOOL", 1500L)) && InfernoTracker.parseItems("3 bananas") == null));
+		ctx.runOnClient(mc -> InfernoTracker.addCollected(Map.of("CHILI_PEPPER", 33L), null));
+		check("inferno: added collected", ctx.computeOnClient(mc -> InfernoTracker.drops(found).get("CHILI_PEPPER")) == 33L);
+
+		// Read back from the file.
+		ctx.runOnClient(mc -> {
+			InfernoTracker.save();
+			InfernoTracker.reload();
+		});
+		check("inferno: saved", ctx.computeOnClient(mc -> InfernoTracker.runs().size() == 2 && InfernoTracker.hauls().size() == 3
+				&& InfernoTracker.minions().size() == 2 && InfernoTracker.minions().get(0).upgrades.size() == 2 && InfernoTracker.sales().size() == 1
+				&& InfernoTracker.runs().get(0).eyedrops == 1 && InfernoTracker.stock().isEmpty()));
+		// The tab list's Minions widget: how many Inferno minions you have (Rising Celsius) and their tier.
+		ctx.runOnClient(mc -> InfernoTracker.testTab = List.of("Minions: 30/30", "12x Inferno V [ACTIVE]", "18x Slime XI [FULL]"));
+		ctx.waitTicks(25);
+		check("inferno: tab list", ctx.computeOnClient(mc -> InfernoTracker.tier() == 5 && InfernoTracker.tabState().equals("ACTIVE")
+				&& Math.abs(InfernoTracker.boost(null) - 1.9) < 1e-9));
+
+		// With tracking off, the menu still loads your data.
+		ctx.runOnClient(mc -> {
+			Taz.config().inferno.enabled = false;
+			InfernoTracker.testAccount = "gametest-off";
+		});
+		ctx.waitTicks(3);
+		boolean before = ctx.computeOnClient(mc -> InfernoTracker.loaded());
+		clientCommand("taz inferno");
+		ctx.waitTicks(5);
+		check("inferno: menu loads with tracking off", !before && ctx.computeOnClient(mc -> InfernoTracker.loaded() && mc.screen instanceof InfernoScreen));
+		ctx.setScreen(() -> null);
+		ctx.runOnClient(mc -> {
+			InfernoTracker.testTab = null;
+			InfernoTracker.testAccount = null;
+			InfernoTracker.reload();
+			InfernoPrices.clear();
+			InfernoPlanner.clear();
+			Cofl.fake = null;
+			Taz.config().inferno.enabled = false;
+		});
+	}
+
+	/** Opens an Inferno Minion XI menu (as if right-clicked at 10 70 10) over this storage. */
+	private void openMinion(net.minecraft.world.SimpleContainer menu) {
+		ctx.runOnClient(mc -> InfernoTracker.clicked(new BlockPos(10, 70, 10)));
+		ctx.setScreen(() -> {
+			net.minecraft.world.entity.player.Inventory inv = net.minecraft.client.Minecraft.getInstance().player.getInventory();
+			return new ContainerScreen(new ChestMenu(MenuType.GENERIC_9x6, 8, inv, menu, 6), inv, Component.literal("Inferno Minion XI"));
+		});
+		ctx.waitTicks(3);
 	}
 
 	/** Opens Hypixel's Create BIN Auction menu with the item in it, then says the auction started. */

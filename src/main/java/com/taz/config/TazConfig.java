@@ -39,6 +39,10 @@ public final class TazConfig extends Config {
 	public com.taz.lowballer.LowballerConfig lowballer = new com.taz.lowballer.LowballerConfig();
 
 	@Expose
+	@Category(name = "Inferno Minions", desc = "Inferno minion fuel: what it costs, what it makes, the cheapest way to make it, and when it runs out.")
+	public com.taz.inferno.InfernoConfig inferno = new com.taz.inferno.InfernoConfig();
+
+	@Expose
 	@Category(name = "Dungeons", desc = "Catacombs features.")
 	public DungeonsCategory dungeons = new DungeonsCategory();
 
