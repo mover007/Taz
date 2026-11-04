@@ -33,7 +33,7 @@ Every feature starts off, so you only get what you turn on.
 - **Trophy Fishing:** your 72 Trophy Fish in a table with icons and counts (loaded from Odger), which fish can bite where you stand, Golden Fish alerts, a Corrupted Bait mute and a Slugfish ding. [More](docs/trophy-fishing.md)
 - **Lotus Atoll:** your 48 Trophy Frogs in a table with icons and pity counts, which frogs can bite where you stand, Wormhole spots, Fairy Souls and rare catch alerts. [More](docs/lotus-atoll.md)
 - **Lowballer:** in the trade menu, what their items are worth and lowball offers for them (10%, 12%, 14%... under, and a smart offer that goes lower for slow sellers), typed into the coins sign with a click. The Lowball Tracker (`/taz lowballs`) keeps every lowball: what you paid, what it was worth, what it sold for and your profit. [More](docs/lowballer.md)
-- **Inferno Minions:** what each fuel cost you (from what you bought to craft it), what it should make and what you collected, the best fuel to run, a Fuel Planner with the cheapest way to make any fuel, fuel timers and rare drop alerts (`/taz inferno`). [More](docs/inferno.md)
+- **Inferno Minions:** what each fuel cost you (from what you bought to craft it), what it should make and what you collected, the best fuel to run, a Fuel Planner with the cheapest way to make any fuel, a Calculator for any setup, fuel timers and rare drop alerts (`/taz inferno`). [More](docs/inferno.md)
 - **Everyday:** alerts, a Dark Auction reminder, event timers, item prices in tooltips, a player viewer (`/pv`) and networth (`/nw`), a chat filter, stacked duplicate messages, command keys, a storage overlay, and slayer and fishing helpers. [More](docs/general.md)
 
 ## Install

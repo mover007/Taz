@@ -899,6 +899,11 @@ public final class InfernoTracker {
 		return m != null && m.tier > 0 ? m.tier : 11;
 	}
 
+	/** How many Inferno minions the tab list says you have, or 0 before Taz has seen it. */
+	public static int tabCount() {
+		return data.tabCount;
+	}
+
 	/** What the tab list says your Inferno minions are doing ("FULL" when their storage is), or "". */
 	public static String tabState() {
 		return tabState;

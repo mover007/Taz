@@ -22,7 +22,7 @@ Missed something? **Add collected…** (under the numbers, on Fuels and Drops) t
 - **Drops:** everything you collected and what it's worth. For the rare drops of Hypergolic fuel, it also shows how many you'd expect from your fuels so far, and your luck.
 - **Bought:** your fuel buys and how many have gone into a fuel.
 - **Best fuel:** all 15 fuels by profit a day: what one costs (the cheaper of crafting it from bazaar parts and the AH), what its 24 hours make, and the difference. Pick the tier and turn eyedrops on or off on the left. Click a fuel to plan it.
-- **Planner:** see below.
+- **Planner** and **Calculator:** see below.
 
 On the left are your numbers for the period (all time, 30 days, 7 days or today): spent, collected, sold, profit, expected profit, and the fuels burning now.
 
@@ -40,6 +40,15 @@ Pick a fuel (its gabagool and distillate) and type how many you want. Taz works 
 The list shows exactly what to buy (how many, each, total) and then what to craft, in order, with any spare. The total is what that many cost to insta-buy now: SkyCofl prices the whole amount, so a big order that climbs the bazaar's offers costs more each. On the left it's compared with buying the fuel on the AH, and with buying the gabagool instead of crafting it.
 
 Rather buy something than craft it (thousands of Enchanted Coal, say)? Click its craft row and Taz buys it instead. Click it again in the buy list to craft it again, or **Cheapest again** to undo them all. **List it in chat** sends the plan to chat; click a line to open the bazaar at that item.
+
+## Calculator
+
+A day of Inferno minions with any setup, item by item, at SkyCofl prices. On the left you pick:
+
+- **Setup:** the tier, the fuel (Fuel, Heavy or Hypergolic) and its gabagool, both upgrade slots, and how many minions. **Use yours** fills it in from your minions and your last fuel.
+- **Speed:** Mithril Infusion (+10%), a Beacon set to minion speed (+2% a tier, +1% more with a Scorched Power Crystal), a Postcard (+5%), Free Will (+10%) and Capsaicin Eyedrops. It shows the total speed and the time between actions.
+
+The list shows what the minions **make** in a day (how many, what one sells for after tax, and the total), then what you **buy**: a fuel for each minion made the cheapest way (the Fuel Planner's way, averaged over a big batch so nothing's rounded up) and eyedrops. With a Super Compactor, Crude Gabagool comes out as Very Crude Gabagool. Under it: what it all makes, costs and the profit, for all your minions or one (click the line to switch).
 
 ## What a fuel should make
 

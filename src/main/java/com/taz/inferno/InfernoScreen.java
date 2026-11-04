@@ -52,12 +52,16 @@ public final class InfernoScreen extends Screen {
 			TazTheme.styled("§8each one once. Click a row to change or delete it."));
 
 	private enum Tab {
-		FUELS("Fuels"), MINIONS("Minions"), DROPS("Drops"), BOUGHT("Bought"), BEST("Best fuel"), PLANNER("Planner");
+		FUELS("Fuels", "Fuels"), MINIONS("Minions", "Minions"), DROPS("Drops", "Drops"), BOUGHT("Bought", "Bought"), BEST("Best fuel", "Best"),
+		PLANNER("Planner", "Plan"), CALC("Calculator", "Calc");
 
 		final String label;
+		/** In a narrow window, so the tabs don't run into the title. */
+		final String shortLabel;
 
-		Tab(String label) {
+		Tab(String label, String shortLabel) {
 			this.label = label;
+			this.shortLabel = shortLabel;
 		}
 	}
 
@@ -101,7 +105,7 @@ public final class InfernoScreen extends Screen {
 	private final List<Hit> hits = new ArrayList<>();
 	private int px, py, pw, ph, statsW, col, scroll;
 	private Object picked;
-	private EditBox box, amountBox;
+	private EditBox box, amountBox, countBox;
 	private long deleteArmed;
 	/** What the box is for: a fuel's cost, or items you collected that Taz didn't see. */
 	private boolean typingCollected;
@@ -143,6 +147,14 @@ public final class InfernoScreen extends Screen {
 			scroll = 0;
 		});
 		addRenderableWidget(amountBox);
+		countBox = new EditBox(font, px + 8 + statsW - 46, py + 85, 46, 12, Component.literal("Minions"));
+		countBox.setMaxLength(3);
+		countBox.setValue(String.valueOf(InfernoConfig.get().calc.count));
+		countBox.setResponder(s -> {
+			String digits = s.replaceAll("\\D", "");
+			InfernoConfig.get().calc.count = digits.isEmpty() ? 1 : Math.max(1, Math.min(100, Integer.parseInt(digits)));
+		});
+		addRenderableWidget(countBox);
 		InfernoTracker.open();
 		InfernoTracker.refresh(false);
 	}
@@ -175,6 +187,7 @@ public final class InfernoScreen extends Screen {
 			case BOUGHT -> buys().size();
 			case BEST -> InfernoData.Kind.values().length * InfernoData.Grade.values().length;
 			case PLANNER -> plan().buy().size() + plan().steps().size();
+			case CALC -> calcRows(InfernoCalc.day(InfernoConfig.get().calc)).size();
 		};
 	}
 
@@ -192,6 +205,7 @@ public final class InfernoScreen extends Screen {
 		g.horizontalLine(px + 6, px + pw - 7, py + 19, LINE);
 		g.verticalLine(px + statsW + 14, py + 24, py + ph - 7, LINE);
 		amountBox.visible = tab == Tab.PLANNER && InfernoTracker.loaded();
+		countBox.visible = tab == Tab.CALC && InfernoTracker.loaded();
 		if (!InfernoTracker.loaded()) {
 			g.centeredText(font, "Join a world to see your Inferno minions.", px + pw / 2, py + ph / 2, TazTheme.GREY);
 			super.extractRenderState(g, mouseX, mouseY, delta);
@@ -202,6 +216,7 @@ public final class InfernoScreen extends Screen {
 		switch (tab) {
 			case BEST -> bestLeft(g, mouseX, mouseY, actionsTop);
 			case PLANNER -> plannerLeft(g, mouseX, mouseY, actionsTop);
+			case CALC -> calcLeft(g, mouseX, mouseY, actionsTop);
 			default -> stats(g, mouseX, mouseY, actionsTop);
 		}
 		actions(g, mouseX, mouseY, actionsTop);
@@ -215,12 +230,16 @@ public final class InfernoScreen extends Screen {
 	private void tabs(GuiGraphicsExtractor g, int mx, int my) {
 		int x = px + pw - 8;
 		Tab[] all = Tab.values();
+		int full = (all.length - 1) * 10;
+		for (Tab t : all) full += font.width(t.label);
+		boolean narrow = x - full < px + 8 + font.width(title) + 18;
 		for (int i = all.length - 1; i >= 0; i--) {
 			Tab t = all[i];
-			x -= font.width(t.label);
-			boolean hover = in(mx, my, x - 2, py + 5, font.width(t.label) + 4, 12);
-			g.text(font, t.label, x, py + 7, t == tab ? TazTheme.RED : hover ? TazTheme.PALE_RED : TazTheme.GREY, false);
-			if (t == tab) g.horizontalLine(x, x + font.width(t.label) - 1, py + 17, TazTheme.RED);
+			String label = narrow ? t.shortLabel : t.label;
+			x -= font.width(label);
+			boolean hover = in(mx, my, x - 2, py + 5, font.width(label) + 4, 12);
+			g.text(font, label, x, py + 7, t == tab ? TazTheme.RED : hover ? TazTheme.PALE_RED : TazTheme.GREY, false);
+			if (t == tab) g.horizontalLine(x, x + font.width(label) - 1, py + 17, TazTheme.RED);
 			if (hover) tip = List.of(Component.literal(switch (t) {
 				case FUELS -> "Every fuel you put in a minion: cost, what it should make, what you collected";
 				case MINIONS -> "Your Inferno minions: their fuel and profit";
@@ -228,8 +247,9 @@ public final class InfernoScreen extends Screen {
 				case BOUGHT -> "Fuel parts and fuels you bought";
 				case BEST -> "The profit a day of every fuel";
 				case PLANNER -> "The cheapest way to make a fuel, and what to buy for it";
+				case CALC -> "A day of Inferno minions with any setup: what they make and cost, item by item";
 			}));
-			click(x - 2, py + 5, font.width(t.label) + 4, 12, () -> {
+			click(x - 2, py + 5, font.width(label) + 4, 12, () -> {
 				tab = t;
 				scroll = 0;
 				picked = null;
@@ -400,6 +420,11 @@ public final class InfernoScreen extends Screen {
 	private void actions(GuiGraphicsExtractor g, int mx, int my, int top) {
 		int x = px + 8, y = top;
 		g.horizontalLine(px + 6, px + statsW + 10, y - 4, LINE);
+		if (tab == Tab.CALC) {
+			box.visible = false;
+			calcTotals(g, mx, my, y);
+			return;
+		}
 		if (tab == Tab.PLANNER) {
 			button(g, "List it in chat", x, y, mx, my, "What to buy (click a line to open the bazaar) and what to craft", this::listInChat);
 			if (!InfernoPlanner.BUY.isEmpty()) button(g, "Cheapest again", x, y + 13, mx, my, "Craft whatever's cheaper to craft again",
@@ -489,6 +514,7 @@ public final class InfernoScreen extends Screen {
 			case BOUGHT -> bought(g, mx, my);
 			case BEST -> best(g, mx, my);
 			case PLANNER -> planner(g, mx, my);
+			case CALC -> calc(g, mx, my);
 		}
 		InfernoConfig cfg = InfernoConfig.get();
 		if (!cfg.enabled) {
@@ -819,6 +845,106 @@ public final class InfernoScreen extends Screen {
 					line(b.source instanceof InfernoTracker.Purchase ? "§7In fuel so far: §f" + used : "§7A fuel you haven't put in a minion yet"),
 					line("§8Click to delete it"));
 		}
+	}
+
+	// ---- Calculator
+
+	private void calcLeft(GuiGraphicsExtractor g, int mx, int my, int limit) {
+		InfernoCalc.Setup s = InfernoConfig.get().calc;
+		if (!s.set) {
+			InfernoCalc.yours(s);
+			countBox.setValue(String.valueOf(s.count));
+		}
+		InfernoData.Fuel f = s.fuel();
+		Rows r = new Rows(g, mx, my, limit - 4);
+		int x = px + 8, y = py + 25;
+		g.text(font, "SETUP", x, y, TazTheme.DARK_RED, false);
+		String mine = "Use yours";
+		button(g, mine, x + statsW - font.width(mine), y, mx, my, "Your minions' tier, upgrades and count, and your last fuel", () -> {
+			InfernoCalc.yours(s);
+			countBox.setValue(String.valueOf(s.count));
+		});
+		y += 11;
+		y = r.row("Tier", InfernoData.roman(s.tier) + " ▾", TazTheme.PALE_RED, y, "Click for another tier", () -> s.tier = s.tier % 11 + 1);
+		y = r.row("Fuel", f.grade().label + " ▾", TazTheme.PALE_RED, y, "Fuel: 10x, Heavy: 15x, Hypergolic: 20x faster (and rare drops)", () ->
+				s.fuel = new InfernoData.Fuel(InfernoData.Grade.values()[(f.grade().ordinal() + 1) % InfernoData.Grade.values().length], f.kind()).id());
+		y = r.row("Gabagool", f.kind().label + " ▾", TazTheme.PALE_RED, y, "What the fuel makes most of", () ->
+				s.fuel = new InfernoData.Fuel(f.grade(), InfernoData.Kind.values()[(f.kind().ordinal() + 1) % InfernoData.Kind.values().length]).id());
+		String slots = "Flycatcher: 20% faster. Expander (Minion Expander): 5% faster. Compactor (Super Compactor 3000): "
+				+ "Crude Gabagool comes out as Very Crude Gabagool";
+		y = r.row("Slot 1", s.slot1 + " ▾", TazTheme.PALE_RED, y, slots, () -> s.slot1 = s.slot1.next());
+		y = r.row("Slot 2", s.slot2 + " ▾", TazTheme.PALE_RED, y, slots, () -> s.slot2 = s.slot2.next());
+		g.text(font, "Minions", x, y, TazTheme.GREY, false);
+		if (in(mx, my, x, y - 1, statsW - 50, 10)) tip = List.of(Component.literal("Minions"),
+				hint("How many Inferno minions you run. Each one makes them all 18% faster, up to 10"));
+		y += 13;
+		y = r.header("SPEED", y);
+		y = r.row("Mithril Infusion", onOff(s.infusion), TazTheme.PALE_RED, y, "10% faster", () -> s.infusion = !s.infusion);
+		y = r.row("Beacon", (s.beacon == 0 ? "None" : InfernoData.roman(s.beacon)) + " ▾", TazTheme.PALE_RED, y,
+				"A beacon on your island set to minion speed: 2% faster a tier", () -> s.beacon = (s.beacon + 1) % 6);
+		if (s.beacon > 0) y = r.row("Scorched crystal", onOff(s.scorched), TazTheme.PALE_RED, y,
+				"A Scorched Power Crystal in the beacon: 1% faster", () -> s.scorched = !s.scorched);
+		y = r.row("Postcard", onOff(s.postcard), TazTheme.PALE_RED, y, "A Postcard on your island: 5% faster", () -> s.postcard = !s.postcard);
+		y = r.row("Free Will", onOff(s.freeWill), TazTheme.PALE_RED, y, "A minion that stayed after Free Will: 10% faster", () -> s.freeWill = !s.freeWill);
+		y = r.row("Eyedrops", onOff(s.eyedrops), TazTheme.PALE_RED, y, "Capsaicin Eyedrops: 30% more rare drops from Hypergolic fuel (not Chili Peppers)",
+				() -> s.eyedrops = !s.eyedrops);
+		InfernoConfig cfg = InfernoConfig.get();
+		y = r.row("Prices", cfg.prices + " ▾", TazTheme.PALE_RED, y, "Orders: buy orders in, sell offers out. Instant: insta-buy and insta-sell",
+				() -> cfg.prices = cfg.prices == InfernoConfig.Prices.ORDERS ? InfernoConfig.Prices.INSTANT : InfernoConfig.Prices.ORDERS);
+		InfernoCalc.Day d = InfernoCalc.day(s);
+		y = r.row("Speed", "+" + Math.round(d.speed() * 100) + "%", TazTheme.TEXT, y, "Rising Celsius and everything above, before the fuel");
+		r.row("Each action", String.format(Locale.ROOT, "%.1fs", d.secondsPerAction()), TazTheme.TEXT, y, "Time between a minion's actions with this fuel");
+	}
+
+	private static String onOff(boolean on) {
+		return on ? "On ▾" : "Off ▾";
+	}
+
+	/** Bottom left on the Calculator: the day's totals. */
+	private void calcTotals(GuiGraphicsExtractor g, int mx, int my, int y) {
+		InfernoCalc.Setup s = InfernoConfig.get().calc;
+		InfernoCalc.Day d = InfernoCalc.day(s);
+		String label = s.oneMinion ? "A day, one minion ▾" : "A day, " + d.minions() + (d.minions() == 1 ? " minion ▾" : " minions ▾");
+		button(g, label, px + 8, y, mx, my, "Click for one minion or all of them", () -> s.oneMinion = !s.oneMinion);
+		Rows r = new Rows(g, mx, my, py + ph - 4);
+		y += 12;
+		String about = d.complete() ? "" : " (some prices are still coming)";
+		y = r.row("Makes", coins(Math.round(d.revenue())), TazTheme.TEXT, y, "What it all sells for, after tax" + about);
+		y = r.row("Costs", coins(Math.round(d.expenses())), TazTheme.TEXT, y, "A fuel for each minion, made the cheapest way, and eyedrops" + about);
+		long profit = Math.round(d.profit());
+		r.row("Profit", signed(profit), profit < 0 ? TazTheme.RED : TazTheme.WHITE, y, "Makes less costs" + about);
+	}
+
+	private static List<InfernoCalc.Line> calcRows(InfernoCalc.Day d) {
+		List<InfernoCalc.Line> rows = new ArrayList<>(d.makes());
+		rows.addAll(d.costs());
+		return rows;
+	}
+
+	private void calc(GuiGraphicsExtractor g, int mx, int my) {
+		InfernoCalc.Day d = InfernoCalc.day(InfernoConfig.get().calc);
+		headers(g, mx, my, "Made, then bought", "Amount", "How many a day", "Each", "What one sells for after tax, or costs to buy",
+				"Total", "A day");
+		List<InfernoCalc.Line> rows = calcRows(d);
+		int end = clampScroll(rows.size());
+		for (int i = scroll; i < end; i++) {
+			InfernoCalc.Line l = rows.get(i);
+			boolean hover = row(g, i, null, l.id(), InfernoData.plain(l.id()), TazTheme.TEXT, 3, mx, my, null);
+			boolean ah = InfernoData.fuel(l.id()) != null;
+			badge(g, i, l.bought() ? "Buy" : "Makes", l.bought() ? TazTheme.LIGHT_RED : TazTheme.WHITE,
+					l.bought() ? (ah ? " · AH" : " · bazaar") : "", 3);
+			cell(g, i, 2, false, amount(l.amount()), TazTheme.WHITE);
+			cell(g, i, 1, false, l.each() >= 0 ? coins(Math.round(l.each())) : "?", TazTheme.GREY);
+			cell(g, i, 0, false, l.each() >= 0 ? (l.bought() ? "-" : "") + coins(Math.round(l.total())) : "?", l.bought() ? TazTheme.PALE_RED : TazTheme.TEXT);
+			if (hover) tip = List.of(line(InfernoData.name(l.id())), Component.empty(),
+					line("§7" + (l.bought() ? "Buy " : "Makes ") + "§f" + amount(l.amount()) + " §7a day at §6" + (l.each() >= 0 ? coins(Math.round(l.each())) : "?")
+							+ " §7each" + (l.bought() ? "" : " §8(after tax)")));
+		}
+		if (!d.complete()) empty(g, "", "Waiting for SkyCofl's prices…");
+	}
+
+	private static String amount(double n) {
+		return n >= 10 ? String.format(Locale.ROOT, "%,d", Math.round(n)) : String.format(Locale.ROOT, "%.2f", n);
 	}
 
 	// ---- Best fuel

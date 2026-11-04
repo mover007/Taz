@@ -116,6 +116,10 @@ public final class InfernoConfig {
 	@ConfigEditorInfoText
 	public transient String credit = "";
 
+	/** The Calculator tab's setup in /taz inferno. */
+	@Expose
+	public InfernoCalc.Setup calc = new InfernoCalc.Setup();
+
 	/** Where the fuel HUD sits (moved in the HUD editor). */
 	@Expose
 	public HudPos pos = new HudPos(0.01, 0.30);

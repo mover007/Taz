@@ -93,7 +93,7 @@ import java.util.stream.Stream;
 /** The General, Inventory, Slayer and Fishing features and settings auto-save. */
 public class GeneralGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"defaults", "autosave", "alerts", "chatfilter", "commandkeys", "events", "darkauction", "skills", "waypoints", "huds",
-			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer", "tracker", "inferno"};
+			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer", "tracker", "inferno", "infernocalc"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	/** Every chat line that reached the chat (after the chat filter and the [Waypoint] button). */
@@ -154,6 +154,7 @@ public class GeneralGameTest implements FabricClientGameTest {
 			if (runs("lowballer")) lowballer();
 			if (runs("tracker")) tracker();
 			if (runs("inferno")) inferno();
+			if (runs("infernocalc")) infernoCalc();
 		}
 		System.out.println("[GeneralGameTest] PASSED");
 	}
@@ -1105,6 +1106,85 @@ public class GeneralGameTest implements FabricClientGameTest {
 			TradeMenu.clear();
 			ItemPrices.testPrices = null;
 			Taz.config().lowballer.enabled = false;
+		});
+	}
+
+	/** The Calculator tab: a day with every boost on, a Super Compactor and 31 minions, at SkyCofl prices, and its rows in the menu. */
+	private void infernoCalc() {
+		// SkyCofl prices (sell, buy, AH?) for what a Hypergolic Crude Gabagool day makes and costs.
+		Map<String, double[]> prices = new java.util.HashMap<>();
+		Object[][] table = {{"CRUDE_GABAGOOL", 300.0, 409.7, 0}, {"VERY_CRUDE_GABAGOOL", 59201.9, 61294.1, 0}, {"CRUDE_GABAGOOL_DISTILLATE", 17773.9, 20492.9, 0},
+				{"INFERNO_FUEL_BLOCK", 61193.5, 66368.4, 0}, {"HYPERGOLIC_GABAGOOL", 4113873.6, 4419989.9, 0}, {"HEAVY_GABAGOOL", 351320.2, 384254.2, 0},
+				{"FUEL_GABAGOOL", 11295.3, 18107.8, 0}, {"CAPSAICIN_EYEDROPS_NO_CHARGES", 1500002.3, 1976055.2, 0}, {"CHILI_PEPPER", 142001.2, 144998.1, 0},
+				{"INFERNO_VERTEX", 305185.8, 410165.2, 0}, {"INFERNO_APEX", 4194573.4, 7891446.7, 0}, {"REAPER_PEPPER", 10320291.7, 11832028.2, 0},
+				{"GABAGOOL_THE_FISH", 7250040.0, 7398000.0, 1}, {"HYPERGOLIC_IONIZED_CERAMICS", 1000.6, 1979.4, 0},
+				{"INFERNO_HYPERGOLIC_CRUDE_GABAGOOL", 5625200.0, 5740000.0, 1}, {"COAL", 5.3, 7.5, 0}, {"ENCHANTED_COAL", 1309.1, 1378.8, 0},
+				{"SULPHUR_ORE", 3.4, 16.1, 0}, {"ENCHANTED_SULPHUR", 2069.3, 2296.4, 0}, {"SULPHURIC_COAL", 5677.2, 6782.7, 0}};
+		for (Object[] row : table) prices.put((String) row[0], new double[]{(Double) row[1], (Double) row[2], (Integer) row[3]});
+		java.util.regex.Pattern current = java.util.regex.Pattern.compile("item/price/([A-Z_]+)/current\\?count=(\\d+)");
+		ctx.runOnClient(mc -> {
+			Taz.config().inferno.prices = com.taz.inferno.InfernoConfig.Prices.ORDERS;
+			InfernoTracker.testAccount = "gametest-calc";
+			InfernoTracker.reload();
+			InfernoPrices.clear();
+			InfernoPlanner.clear();
+			Cofl.fake = (path, body) -> {
+				java.util.regex.Matcher m = current.matcher(path);
+				if (!m.matches() || !prices.containsKey(m.group(1))) return null;
+				double[] p = prices.get(m.group(1));
+				int n = Integer.parseInt(m.group(2));
+				return "{\"sell\":" + p[0] * n + ",\"buy\":" + p[1] * n + ",\"available\":1000,\"isAh\":" + (p[2] > 0) + "}";
+			};
+			InfernoTracker.refresh(true);
+			// A tier XI Hypergolic setup with every boost: 31 minions, two Flycatchers, Infusion, Beacon V with a Scorched crystal, Postcard, Free Will.
+			com.taz.inferno.InfernoCalc.Setup s = new com.taz.inferno.InfernoCalc.Setup();
+			s.set = true;
+			s.tier = 11;
+			s.count = 31;
+			s.slot1 = s.slot2 = com.taz.inferno.InfernoCalc.Upgrade.FLYCATCHER;
+			s.beacon = 5;
+			s.scorched = s.postcard = s.freeWill = s.eyedrops = s.oneMinion = true;
+			Taz.config().inferno.calc = s;
+		});
+		realWait(2500);
+		com.taz.inferno.InfernoCalc.Day d = ctx.computeOnClient(mc -> com.taz.inferno.InfernoCalc.day(Taz.config().inferno.calc));
+		check("inferno calc: speed (+" + Math.round(d.speed() * 100) + "%, " + d.secondsPerAction() + "s)",
+				Math.abs(d.speed() - 2.56) < 1e-9 && Math.abs(d.secondsPerAction() - 697 / (3.56 * 21)) < 1e-9);
+		double harvests = 86_400.0 / (2 * 697) * 3.56 * 21;
+		Map<String, Double> made = new java.util.HashMap<>();
+		d.makes().forEach(l -> made.put(l.id(), l.amount()));
+		check("inferno calc: a minion's day (" + made + ")", Math.abs(made.get("CHILI_PEPPER") - harvests / 136) < 1e-6
+				&& Math.abs(made.get("CRUDE_GABAGOOL") - harvests) < 1e-6 && Math.abs(made.get("INFERNO_VERTEX") - harvests / 5950 * 1.3) < 1e-6
+				&& Math.abs(made.get("INFERNO_APEX") - harvests / 1_309_091 * 2 * 1.3) < 1e-9 && made.get("HYPERGOLIC_IONIZED_CERAMICS") == 1.0);
+		check("inferno calc: prices in", d.complete() && d.revenue() > 0 && d.expenses() > 0
+				&& Math.abs(d.profit() - (d.revenue() - d.expenses())) < 1e-6);
+		check("inferno calc: eyedrops and fuel parts bought", d.costs().stream().anyMatch(l -> l.id().equals("CAPSAICIN_EYEDROPS_NO_CHARGES") && l.amount() == 1)
+				&& d.costs().stream().anyMatch(l -> l.id().equals("CRUDE_GABAGOOL_DISTILLATE") && Math.abs(l.amount() - 6) < 1e-9));
+		// A Super Compactor: Crude Gabagool comes out as Very Crude Gabagool; all 31 minions.
+		com.taz.inferno.InfernoCalc.Day all = ctx.computeOnClient(mc -> {
+			Taz.config().inferno.calc.slot2 = com.taz.inferno.InfernoCalc.Upgrade.COMPACTOR;
+			Taz.config().inferno.calc.oneMinion = false;
+			return com.taz.inferno.InfernoCalc.day(Taz.config().inferno.calc);
+		});
+		double compacted = 86_400.0 / (2 * 697) * 3.36 * 21 / 192 * 31;
+		check("inferno calc: compactor, 31 minions", all.minions() == 31 && all.makes().stream().noneMatch(l -> l.id().equals("CRUDE_GABAGOOL"))
+				&& all.makes().stream().anyMatch(l -> l.id().equals("VERY_CRUDE_GABAGOOL") && Math.abs(l.amount() - compacted) < 1e-6)
+				&& all.costs().stream().anyMatch(l -> l.id().equals("CRUDE_GABAGOOL_DISTILLATE") && Math.abs(l.amount() - 186) < 1e-9));
+		// The tab in the menu.
+		clientCommand("taz inferno");
+		ctx.waitTicks(5);
+		InfernoScreen screen = ctx.computeOnClient(mc -> mc.screen instanceof InfernoScreen x ? x : null);
+		check("inferno calc: menu", screen != null);
+		ctx.runOnClient(mc -> screen.showTab("CALC"));
+		ctx.waitTicks(3);
+		ctx.takeScreenshot("inferno-calculator");
+		check("inferno calc: rows", ctx.computeOnClient(mc -> screen.rowCount()) == all.makes().size() + all.costs().size());
+		ctx.setScreen(() -> null);
+		ctx.runOnClient(mc -> {
+			Cofl.fake = null;
+			InfernoPrices.clear();
+			InfernoPlanner.clear();
+			Taz.config().inferno.calc = new com.taz.inferno.InfernoCalc.Setup();
 		});
 	}
 
