@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class QolGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"chatcommands", "chattweaks", "chatstack", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
 			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras", "dungeonmap", "mapinfo", "darkmode",
-			"storage", "predictor", "lotus", "trophyfish"};
+			"storage", "predictor", "lotus", "trophyfish", "corruptedbait"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -68,6 +68,7 @@ public class QolGameTest implements FabricClientGameTest {
 			if (runs("predictor")) predictor();
 			if (runs("lotus")) lotus();
 			if (runs("trophyfish")) trophyFish();
+			if (runs("corruptedbait")) corruptedBait();
 		}
 		System.out.println("[QolGameTest] PASSED");
 	}
@@ -747,6 +748,52 @@ public class QolGameTest implements FabricClientGameTest {
 			Taz.config().trophyFish.enabled = false;
 			com.taz.fishing.crimson.TrophyFish.resetForTest();
 		});
+	}
+
+	private void corruptedBait() {
+		ctx.runOnClient(mc -> {
+			Taz.config().trophyFish.enabled = true;
+			Taz.config().trophyFish.muteBait = true;
+			com.taz.fishing.crimson.CorruptedBait.resetForTest();
+		});
+		cmd("item replace entity @p weapon.mainhand with fishing_rod");
+		cmd("fill -16 99 -16 16 99 16 stone");
+		cmd("tp @p 0 100 0 0 0");
+		ctx.waitTicks(5);
+		check("corrupted bait: Endermen sound as usual before a cast", !baitMuted(net.minecraft.sounds.SoundEvents.ENDERMAN_SCREAM));
+		// Casting the rod: Hypixel's scream comes right after, or when a fish bites.
+		ctx.runOnClient(mc -> mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND));
+		check("corrupted bait: the scream after a cast is muted", baitMuted(net.minecraft.sounds.SoundEvents.ENDERMAN_SCREAM)
+				&& baitMuted(net.minecraft.sounds.SoundEvents.ENDERMAN_STARE) && !baitMuted(net.minecraft.sounds.SoundEvents.FISHING_BOBBER_THROW));
+		ctx.runOnClient(mc -> Taz.config().trophyFish.muteBait = false);
+		check("corrupted bait: not with it off", !baitMuted(net.minecraft.sounds.SoundEvents.ENDERMAN_SCREAM));
+		ctx.runOnClient(mc -> Taz.config().trophyFish.muteBait = true);
+		realWait(3100);
+		check("corrupted bait: the bobber is out", ctx.computeOnClient(mc -> mc.player.fishing != null));
+		check("corrupted bait: still muted while the bobber is out", baitMuted(net.minecraft.sounds.SoundEvents.ENDERMAN_SCREAM));
+		// Reeled in: a few seconds later, Endermen sound as usual.
+		ctx.runOnClient(mc -> mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND));
+		ctx.waitTicks(5);
+		check("corrupted bait: the reel-in click mutes too (a quick recast)", ctx.computeOnClient(mc -> mc.player.fishing == null)
+				&& baitMuted(net.minecraft.sounds.SoundEvents.ENDERMAN_SCREAM));
+		realWait(3100);
+		check("corrupted bait: Endermen sound as usual 3 seconds after reeling in", !baitMuted(net.minecraft.sounds.SoundEvents.ENDERMAN_SCREAM));
+		cmd("fill -16 99 -16 16 99 16 air");
+		cmd("item replace entity @p weapon.mainhand with air");
+		ctx.runOnClient(mc -> {
+			Taz.config().trophyFish.enabled = false;
+			com.taz.fishing.crimson.CorruptedBait.resetForTest();
+		});
+	}
+
+	private void realWait(long ms) {
+		long until = System.currentTimeMillis() + ms;
+		while (System.currentTimeMillis() < until) ctx.waitTick();
+	}
+
+	private boolean baitMuted(net.minecraft.sounds.SoundEvent sound) {
+		return ctx.computeOnClient(mc -> com.taz.fishing.crimson.CorruptedBait.muted(
+				net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(sound, 0.5f)));
 	}
 
 	private int fish(String fish, String tier) {

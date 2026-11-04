@@ -20,7 +20,7 @@ public final class TrophyFishConfig {
 			+ "and pity, which fish can bite where you're standing and how to get the ones you're missing, and alerts for rare "
 			+ "catches and the Golden Fish.")
 	@ConfigEditorBoolean
-	@SearchTag("trophy fish fishing crimson isle odger lava magmafish golden fish obfuscated sulphur skitter mana ray vanille")
+	@SearchTag("trophy fish fishing crimson isle odger lava magmafish golden fish obfuscated sulphur skitter mana ray vanille corrupted bait scream enderman sound mute")
 	public boolean enabled = false;
 
 	@ConfigOption(name = "Trophy Fish", desc = "Your 72 Trophy Fish.")
@@ -113,6 +113,17 @@ public final class TrophyFishConfig {
 	@ConfigOption(name = "Sound", desc = "Played with the titles.")
 	@ConfigEditorDropdown
 	public Alert.Sound sound = Alert.Sound.PLING;
+
+	@ConfigOption(name = "Corrupted Bait", desc = "The loud scream Corrupted Bait makes.")
+	@ConfigEditorAccordion(id = 3)
+	public boolean section3 = false;
+
+	@Expose
+	@ConfigAccordionId(id = 3)
+	@ConfigOption(name = "Mute its scream", desc = "Mutes the loud Enderman scream Corrupted Bait makes. Enderman sounds are muted "
+			+ "only while your bobber is out and for 3 seconds after you click with a rod, so Endermen sound the same as always.")
+	@ConfigEditorBoolean
+	public boolean muteBait = true;
 
 	@Expose
 	public HudPos trackerHud = new HudPos(0.01, 0.20);

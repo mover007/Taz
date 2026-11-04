@@ -213,6 +213,7 @@ public final class Taz implements ClientModInitializer {
 		});
 		net.fabricmc.fabric.api.event.player.UseItemCallback.EVENT.register((player, level, hand) -> {
 			if (level.isClientSide()) safely("Safari throw", () -> com.taz.foraging.safari.SafariThrow.onUse(player));
+			if (level.isClientSide()) safely("Corrupted Bait cast", () -> com.taz.fishing.crimson.CorruptedBait.onUse(player, player.getItemInHand(hand)));
 			return net.minecraft.world.InteractionResult.PASS;
 		});
 		net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> {

@@ -52,3 +52,7 @@ Catch conditions and fillet values are from the SkyHanni repo's trophy fish data
 ## Alerts
 
 Titles for Gold fish, Diamond fish and each fish new to your collection, each with its own switch: turn **Gold fish** off once you're done with Gold. Also a title when a Golden Fish surfaces, and when it's weak enough to reel in. **Tell your party** also says Gold and Diamond fish in party chat, for the tiers whose titles are on.
+
+## Corrupted Bait
+
+Corrupted Bait makes a loud, low Enderman scream when it's used, which can come with the cast or later, when a fish bites. **Mute its scream** mutes Enderman sounds while your bobber is out and for 3 seconds after you click with a rod, so Endermen sound the same as always the rest of the time. Taz also writes each kind of sound it hears while you fish to the game log, once each, in case a sound it doesn't mute turns up.
