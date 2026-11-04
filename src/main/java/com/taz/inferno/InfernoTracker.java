@@ -488,6 +488,8 @@ public final class InfernoTracker {
 				open = minion(fresh || clickedKey != null && now - clickedAt < 5000 ? clickedKey : "?" + tier);
 				openItems = null;
 			}
+			// In the game log, so a collection Taz missed can be traced on whichever PC it happened.
+			Taz.LOGGER.info("Inferno: minion menu {} (tier {}){}", open.key, tier, again ? ", reopened after a collect" : "");
 			closedMinion = null;
 			openedAt = now;
 			open.tier = tier;
@@ -536,6 +538,7 @@ public final class InfernoTracker {
 			collected(openItems, items).forEach((k, v) -> collecting.merge(k, v, Long::sum));
 		}
 		if (!items.equals(openItems)) {
+			Taz.LOGGER.info("Inferno: {} storage {} -> {}", open.key, openItems, items);
 			openItems = items;
 			long v = value(items);
 			if (v >= 0) {
@@ -758,6 +761,7 @@ public final class InfernoTracker {
 			run = data.runs.stream().filter(r -> r.minion.equals(m.key) && r.startAt <= now).max(Comparator.comparingLong(r -> r.startAt)).orElse(null);
 		}
 		h.run = run == null ? 0 : run.id;
+		Taz.LOGGER.info("Inferno: collected {} and {} coins from {}", items, coins, h.minion);
 		long v = value(items);
 		h.value = v < 0 ? -1 : v + coins;
 		data.hauls.add(h);
