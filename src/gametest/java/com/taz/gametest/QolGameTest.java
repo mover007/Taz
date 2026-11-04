@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 public class QolGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"chatcommands", "chattweaks", "chatstack", "shortcuts", "slotbinds", "loadouts", "autorequeue", "renderopt", "tweaks",
 			"helditem", "blockoverlay", "soundvolumes", "leapmenu", "partyfinder", "auctioninput", "runextras", "dungeonmap", "mapinfo", "darkmode",
-			"storage", "predictor", "lotus", "trophyfish", "corruptedbait"};
+			"storage", "predictor", "lotus", "trophyfish", "corruptedbait", "slugfish"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 
@@ -69,6 +69,7 @@ public class QolGameTest implements FabricClientGameTest {
 			if (runs("lotus")) lotus();
 			if (runs("trophyfish")) trophyFish();
 			if (runs("corruptedbait")) corruptedBait();
+			if (runs("slugfish")) slugfish();
 		}
 		System.out.println("[QolGameTest] PASSED");
 	}
@@ -784,6 +785,74 @@ public class QolGameTest implements FabricClientGameTest {
 			Taz.config().trophyFish.enabled = false;
 			com.taz.fishing.crimson.CorruptedBait.resetForTest();
 		});
+	}
+
+	private void slugfish() {
+		ctx.runOnClient(mc -> {
+			Taz.config().trophyFish.enabled = true;
+			Taz.config().trophyFish.slugDing = true;
+			com.taz.fishing.crimson.TrophyFish.testHere = true;
+			com.taz.fishing.crimson.Slugfish.lastDing = 0;
+			com.taz.general.PetDisplay.setForTest(null, 0);
+		});
+		check("slugfish: 20s with no pet", slugSeconds() == 20);
+		ctx.runOnClient(mc -> com.taz.general.PetDisplay.setForTest("§6Golden Dragon", 200));
+		check("slugfish: 20s with another pet", slugSeconds() == 20);
+		ctx.runOnClient(mc -> com.taz.general.PetDisplay.setForTest("§5Slug", 50));
+		check("slugfish: 15s with a level 50 Slug", slugSeconds() == 15);
+		ctx.runOnClient(mc -> com.taz.general.PetDisplay.setForTest("§6Slug", 0));
+		check("slugfish: a Slug of unknown level counts as 100", slugSeconds() == 10);
+		ctx.runOnClient(mc -> com.taz.general.PetDisplay.setForTest("§6Slug", 100));
+		check("slugfish: 10s with a level 100 Slug", slugSeconds() == 10);
+
+		// A lava pool in front of you, and a cast into it.
+		cmd("fill -1 99 -1 1 99 0 stone");
+		cmd("fill -8 98 1 8 98 18 stone");
+		cmd("fill -8 99 1 8 99 18 lava");
+		cmd("item replace entity @p weapon.mainhand with fishing_rod");
+		cmd("tp @p 0 100 0 0 10");
+		ctx.waitTicks(5);
+		long castAt = System.currentTimeMillis();
+		ctx.runOnClient(mc -> mc.gameMode.useItem(mc.player, net.minecraft.world.InteractionHand.MAIN_HAND));
+		realWait(5000);
+		check("slugfish: the bobber is in the lava", ctx.computeOnClient(mc -> mc.player.fishing != null && mc.level.getFluidState(
+				mc.player.fishing.blockPosition()).is(net.minecraft.tags.FluidTags.LAVA)));
+		// A bite is Hypixel's "!!!" over the bobber: one at 5s is too early to be a Slugfish.
+		bite();
+		check("slugfish: no ding for a bite at 5s", ctx.computeOnClient(mc -> com.taz.fishing.crimson.Slugfish.lastDing) == 0);
+		cmd("kill @e[type=armor_stand,tag=bite]");
+		realWait(castAt + 11_500 - System.currentTimeMillis());
+		check("slugfish: no ding past 10s without a bite", ctx.computeOnClient(mc -> com.taz.fishing.crimson.Slugfish.lastDing) == 0);
+		bite();
+		long ding = ctx.computeOnClient(mc -> com.taz.fishing.crimson.Slugfish.lastDing);
+		check("slugfish: a ding for a bite after 10s (" + (ding - castAt) + " ms after the cast)", ding - castAt >= 11_500);
+		ctx.waitTicks(10);
+		check("slugfish: one ding a bite", ctx.computeOnClient(mc -> com.taz.fishing.crimson.Slugfish.lastDing) == ding);
+		cmd("kill @e[type=armor_stand,tag=bite]");
+		ctx.waitTicks(3);
+		bite();
+		check("slugfish: the next bite dings again", ctx.computeOnClient(mc -> com.taz.fishing.crimson.Slugfish.lastDing) > ding);
+
+		cmd("kill @e[type=armor_stand,tag=bite]");
+		cmd("fill -8 98 -1 8 100 18 air");
+		cmd("item replace entity @p weapon.mainhand with air");
+		ctx.runOnClient(mc -> {
+			Taz.config().trophyFish.enabled = false;
+			Taz.config().trophyFish.slugDing = false;
+			com.taz.fishing.crimson.TrophyFish.resetForTest();
+			com.taz.general.PetDisplay.setForTest(null, 0);
+		});
+	}
+
+	/** Hypixel's "!!!" over your bobber. */
+	private void bite() {
+		net.minecraft.world.phys.Vec3 at = ctx.computeOnClient(mc -> mc.player.fishing.position());
+		cmd("summon armor_stand " + at.x + " " + (at.y + 0.5) + " " + at.z + " {CustomName:\"!!!\",Invisible:1b,CustomNameVisible:1b,NoGravity:1b,Tags:[\"bite\"]}");
+		ctx.waitTicks(5);
+	}
+
+	private double slugSeconds() {
+		return ctx.computeOnClient(mc -> com.taz.fishing.crimson.Slugfish.seconds());
 	}
 
 	private void realWait(long ms) {

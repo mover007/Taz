@@ -50,6 +50,14 @@ public final class FishingHelper {
 		}
 	}
 
+	/** A fish is on the line: Hypixel's "!!!" stand is over the bobber. */
+	public static boolean biting(Minecraft mc, FishingHook hook) {
+		for (Entity e : mc.level.entitiesForRendering()) {
+			if (e instanceof ArmorStand a && biting(a, hook)) return true;
+		}
+		return false;
+	}
+
 	private static boolean biting(ArmorStand a, FishingHook hook) {
 		return a.getCustomName() != null && a.distanceToSqr(hook) < 3.0 * 3.0 && TextUtil.cleanChat(a.getCustomName().getString()).equals("!!!");
 	}

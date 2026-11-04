@@ -561,6 +561,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Trophies", () -> com.taz.fishing.trophy.TrophyBook.tick(mc));
 		safely("Lotus Atoll", () -> com.taz.fishing.lotus.LotusAtoll.tick(mc));
 		safely("Trophy Fish", () -> com.taz.fishing.crimson.TrophyFish.tick(mc));
+		safely("Slugfish ding", () -> com.taz.fishing.crimson.Slugfish.tick(mc));
 		safely("Spring boots", () -> com.taz.general.SpringBoots.tick(mc));
 		safely("Pet display", () -> com.taz.general.PetDisplay.tick(mc));
 		safely("Dungeon party", () -> DungeonParty.tick(mc));

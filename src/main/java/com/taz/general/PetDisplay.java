@@ -62,6 +62,30 @@ public final class PetDisplay extends TextHud {
 		return pet;
 	}
 
+	/** Your active pet's name without colours ("Slug"), or null with none out. */
+	public static String activeName() {
+		Pet p = pet();
+		return p == null || p.name == null ? null : TextUtil.cleanChat(p.name);
+	}
+
+	/** Your active pet's level, or 0 when Taz hasn't seen it. */
+	public static int activeLevel() {
+		Pet p = pet();
+		return p == null ? 0 : p.level;
+	}
+
+	/** Sets your active pet (for tests). */
+	public static void setForTest(String name, int level) {
+		Pet p = null;
+		if (name != null) {
+			p = new Pet();
+			p.name = name;
+			p.level = level;
+		}
+		pet = p;
+		loaded = true;
+	}
+
 	private static void set(Pet p) {
 		pet = p;
 		loaded = true;

@@ -20,7 +20,7 @@ public final class TrophyFishConfig {
 			+ "and pity, which fish can bite where you're standing and how to get the ones you're missing, and alerts for rare "
 			+ "catches and the Golden Fish.")
 	@ConfigEditorBoolean
-	@SearchTag("trophy fish fishing crimson isle odger lava magmafish golden fish obfuscated sulphur skitter mana ray vanille corrupted bait scream enderman sound mute")
+	@SearchTag("trophy fish fishing crimson isle odger lava magmafish golden fish obfuscated sulphur skitter mana ray vanille corrupted bait scream enderman sound mute slugfish slug pet ding timer")
 	public boolean enabled = false;
 
 	@ConfigOption(name = "Trophy Fish", desc = "Your 72 Trophy Fish.")
@@ -124,6 +124,24 @@ public final class TrophyFishConfig {
 			+ "only while your bobber is out and for 3 seconds after you click with a rod, so Endermen sound the same as always.")
 	@ConfigEditorBoolean
 	public boolean muteBait = true;
+
+	@ConfigOption(name = "Slugfish", desc = "A ding when a fish bites late enough to be a Slugfish.")
+	@ConfigEditorAccordion(id = 4)
+	public boolean section4 = false;
+
+	@Expose
+	@ConfigAccordionId(id = 4)
+	@ConfigOption(name = "Slugfish ding", desc = "A ding when a fish bites after your bobber has been in the lava long enough for a "
+			+ "Slugfish: 20 seconds, or 10 with a level 100 Slug pet out (0.5% less per level). Earlier bites don't ding. "
+			+ "Taz sees your pet when you summon it, or when Autopet equips it.")
+	@ConfigEditorBoolean
+	public boolean slugDing = false;
+
+	@Expose
+	@ConfigAccordionId(id = 4)
+	@ConfigOption(name = "Ding sound", desc = "The sound for the Slugfish ding.")
+	@ConfigEditorDropdown
+	public Alert.Sound slugSound = Alert.Sound.ORB;
 
 	@Expose
 	public HudPos trackerHud = new HudPos(0.01, 0.20);

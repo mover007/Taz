@@ -56,3 +56,9 @@ Titles for Gold fish, Diamond fish and each fish new to your collection, each wi
 ## Corrupted Bait
 
 Corrupted Bait makes a loud, low Enderman scream when it's used, which can come with the cast or later, when a fish bites. **Mute its scream** mutes Enderman sounds while your bobber is out and for 3 seconds after you click with a rod, so Endermen sound the same as always the rest of the time. Taz also writes each kind of sound it hears while you fish to the game log, once each, in case a sound it doesn't mute turns up.
+
+## Slugfish
+
+Slugfish only bite once your bobber has been in for 20 seconds. A Slug pet cuts that by 0.5% per level, so it's 10 seconds at level 100. **Slugfish ding** plays a sound (pick it under **Ding sound**) when a fish bites (Hypixel's "!!!" over your bobber) after your bobber has been in the lava that long, so you know the bite can be a Slugfish. Earlier bites don't ding. The time counts from when the bobber lands in the lava, so a bite that's too early never dings.
+
+Taz knows your pet from chat: when you summon it, when Autopet equips it ("[Lvl 100] Slug") and when it levels up. Until Taz has seen your Slug's level, it takes it as level 100.
