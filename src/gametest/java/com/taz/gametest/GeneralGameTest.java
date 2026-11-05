@@ -93,7 +93,7 @@ import java.util.stream.Stream;
 /** The General, Inventory, Slayer and Fishing features and settings auto-save. */
 public class GeneralGameTest implements FabricClientGameTest {
 	private static final String[] PARTS = {"defaults", "autosave", "alerts", "chatfilter", "commandkeys", "events", "darkauction", "skills", "waypoints", "huds",
-			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer", "tracker", "inferno", "infernocalc"};
+			"prices", "overlays", "slayer", "fishing", "networth", "pv", "lowballer", "tracker", "inferno", "infernocalc", "protector"};
 	private ClientGameTestContext ctx;
 	private TestSingleplayerContext sp;
 	/** Every chat line that reached the chat (after the chat filter and the [Waypoint] button). */
@@ -155,6 +155,7 @@ public class GeneralGameTest implements FabricClientGameTest {
 			if (runs("tracker")) tracker();
 			if (runs("inferno")) inferno();
 			if (runs("infernocalc")) infernoCalc();
+			if (runs("protector")) protector();
 		}
 		System.out.println("[GeneralGameTest] PASSED");
 	}
@@ -1107,6 +1108,155 @@ public class GeneralGameTest implements FabricClientGameTest {
 			ItemPrices.testPrices = null;
 			Taz.config().lowballer.enabled = false;
 		});
+	}
+
+	/**
+	 * The End Stone Protector: its stage from the tab list, stage 4 and 5 alerts, its spot, the rise countdown, the kill, and
+	 * the lobby tracker hopping between two lobbies and back (by the sidebar's server id).
+	 */
+	private void protector() {
+		ctx.runOnClient(mc -> {
+			com.taz.end.ProtectorConfig c = Taz.config().end.protector;
+			c.enabled = c.hud = c.stage4 = c.stage5 = c.sameLobby = c.lobbyList = true;
+			c.minutes = 60;
+			c.shown = 6;
+			com.taz.end.EndStoneProtector.resetForTest();
+			com.taz.end.LobbyTracker.forget();
+			com.taz.end.EndStoneProtector.testTab = List.of("Area: The End", "Protector: Dormant");
+		});
+		// The sidebar's date line: "11/04/26 m147AS" (the date is the team prefix, the id the line's name).
+		cmd("scoreboard objectives add taztest dummy \"SKYBLOCK\"");
+		cmd("scoreboard objectives setdisplay sidebar taztest");
+		cmd("team add tazsb");
+		cmd("team modify tazsb prefix " + new JsonPrimitive("11/04/26 "));
+		sidebarServer(null, "m147AS");
+		ctx.waitTicks(15);
+		check("protector: the stage from the tab list", ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.stage()) == com.taz.end.EndStoneProtector.Stage.DORMANT);
+		check("protector: the lobby from the sidebar, new to you", ctx.computeOnClient(mc -> com.taz.end.LobbyTracker.current() != null
+				&& com.taz.end.LobbyTracker.current().id.equals("m147AS") && com.taz.end.LobbyTracker.away() == 0));
+		check("protector: the HUD (" + protectorHud() + ")", protectorHud().contains("Dormant") && protectorHud().contains("m147AS §8· §anew"));
+
+		// Stage 4, and its head at the Middle Front spot.
+		clearAlert();
+		ctx.runOnClient(mc -> com.taz.end.EndStoneProtector.testTab = List.of("Area: The End", "Protector: Awakening"));
+		ctx.waitTicks(8);
+		check("protector: stage 4 alert (" + Alert.lastTitle + ")", Alert.lastTitle != null && Alert.lastTitle.contains("STAGE 4"));
+		// Go there first: a command can only change blocks in loaded chunks.
+		cmd("tp @p -640 -60 -264");
+		ctx.waitTicks(30);
+		cmd("setblock -644 6 -268 player_head");
+		ctx.waitTicks(40);
+		String seen = ctx.computeOnClient(mc -> mc.level.getBlockState(new BlockPos(-644, 6, -268)) + " at " + mc.player.blockPosition()
+				+ " loaded " + mc.level.hasChunkAt(new BlockPos(-644, 6, -268)));
+		check("protector: its spot (" + seen + ")", ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.spot() != null
+				&& com.taz.end.EndStoneProtector.spot().name().equals("Middle Front")));
+		check("protector: how long it's been at stage 4 (" + protectorHud() + ")", protectorHud().contains("4 Awakening §8(") && protectorHud().contains("Middle Front"));
+		check("protector: the waypoint's head block", new BlockPos(-644, 6, -268).equals(ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.head())));
+		// Stand level with it, looking at it, for the waypoint's screenshot.
+		cmd("fill -634 5 -262 -630 5 -258 stone");
+		cmd("tp @p -632 6 -260 123 5");
+		ctx.waitTicks(20);
+		ctx.takeScreenshot("end-stone-protector-waypoint");
+
+		// Summoned: 20 seconds, then the fight, then it's down.
+		clearAlert();
+		tell("The ground begins to shake as an End Stone Protector rises from below!");
+		double in = ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.risesIn());
+		check("protector: stage 5, rises in 20s (" + in + ")", ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.stage()) == com.taz.end.EndStoneProtector.Stage.SUMMONED
+				&& in > 18 && in <= 20);
+		check("protector: stage 5 alert (" + Alert.lastTitle + " / " + Alert.lastSubtitle + ")", Alert.lastTitle != null && Alert.lastTitle.contains("STAGE 5")
+				&& Alert.lastSubtitle.contains("20 seconds") && Alert.lastSubtitle.contains("Middle Front"));
+		check("protector: the countdown (" + protectorHud() + ")", protectorHud().contains("Rises in"));
+		tell("BEWARE - An Endstone Protector has risen!");
+		ctx.waitTicks(10);
+		check("protector: fighting, though the tab list still says Awakening", ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.fighting()
+				&& com.taz.end.EndStoneProtector.stage() == com.taz.end.EndStoneProtector.Stage.SUMMONED) && protectorHud().contains("Fight!"));
+		// It's up: an iron golem, highlighted.
+		cmd("summon iron_golem -638 6 -264 {NoAI:1b}");
+		ctx.waitTicks(15);
+		check("protector: found the protector to highlight", ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.protector()
+				instanceof net.minecraft.world.entity.animal.golem.IronGolem));
+		ctx.takeScreenshot("end-stone-protector-highlight");
+		cmd("kill @e[type=iron_golem]");
+		ctx.waitTicks(10);
+		check("protector: no highlight once it's gone", ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.protector() == null));
+		tell("                    END STONE PROTECTOR DOWN!");
+		ctx.runOnClient(mc -> com.taz.end.EndStoneProtector.testTab = List.of("Area: The End", "Protector: Resting"));
+		ctx.waitTicks(8);
+		check("protector: down, back to resting", ctx.computeOnClient(mc -> com.taz.end.EndStoneProtector.stage() == com.taz.end.EndStoneProtector.Stage.RESTING
+				&& !com.taz.end.EndStoneProtector.fighting() && com.taz.end.EndStoneProtector.spot() == null && com.taz.end.LobbyTracker.current().killedAt > 0));
+
+		// Hop to another lobby: new to you, no alert.
+		clearAlert();
+		ctx.runOnClient(mc -> {
+			com.taz.end.EndStoneProtector.onServerChange();
+			com.taz.end.EndStoneProtector.testTab = List.of("Area: The End", "Protector: Agitated");
+		});
+		sidebarServer("m147AS", "m92P");
+		ctx.waitTicks(15);
+		check("protector: another lobby, new to you", ctx.computeOnClient(mc -> com.taz.end.LobbyTracker.current() != null
+				&& com.taz.end.LobbyTracker.current().id.equals("m92P") && com.taz.end.LobbyTracker.away() == 0) && Alert.lastTitle == null);
+
+		// And back: the same lobby alert, with the kill.
+		ctx.runOnClient(mc -> {
+			com.taz.end.EndStoneProtector.onServerChange();
+			com.taz.end.EndStoneProtector.testTab = List.of("Area: The End", "Protector: Dormant");
+		});
+		sidebarServer("m92P", "m147AS");
+		ctx.waitTicks(15);
+		check("protector: same lobby alert (" + Alert.lastTitle + " / " + Alert.lastSubtitle + ")", Alert.lastTitle != null && Alert.lastTitle.contains("SAME LOBBY")
+				&& Alert.lastSubtitle.contains("m147AS") && Alert.lastSubtitle.contains("killed"));
+		check("protector: the HUD says you were here (" + protectorHud() + ")", protectorHud().contains("you were here"));
+
+		// Right after a lobby change the old sidebar can still be up: Taz waits for it before calling it the same lobby.
+		clearAlert();
+		ctx.runOnClient(mc -> com.taz.end.EndStoneProtector.onServerChange());
+		ctx.waitTicks(10);
+		check("protector: waits on the old lobby's sidebar", ctx.computeOnClient(mc -> com.taz.end.LobbyTracker.current() == null));
+		realWait(com.taz.end.LobbyTracker.STALE_MS + 500);
+		check("protector: then takes it", ctx.computeOnClient(mc -> com.taz.end.LobbyTracker.current() != null
+				&& com.taz.end.LobbyTracker.current().id.equals("m147AS")) && Alert.lastTitle != null && Alert.lastTitle.contains("SAME LOBBY"));
+
+		List<String> list = ctx.computeOnClient(mc -> new com.taz.end.LobbyTracker().shownLines(false));
+		check("protector: the lobby list (" + list + ")", list.size() == 3 && list.get(1).startsWith("§a» §fm147AS") && list.get(2).contains("m92P")
+				&& list.get(2).contains("2 Agitated"));
+		ctx.runOnClient(mc -> com.taz.end.LobbyTracker.reloadForTest());
+		check("protector: lobbies saved", ctx.computeOnClient(mc -> com.taz.end.LobbyTracker.lobbies().size() == 2
+				&& com.taz.end.LobbyTracker.lobbies().get(0).id.equals("m147AS") && com.taz.end.LobbyTracker.lobbies().get(0).visits == 3));
+
+		// No Protector line in a loaded tab list: the HUD says how to turn it on.
+		ctx.runOnClient(mc -> {
+			List<String> tab = new java.util.ArrayList<>(List.of("Area: The End"));
+			for (int i = 0; i < 25; i++) tab.add("Line " + i);
+			com.taz.end.EndStoneProtector.testTab = tab;
+		});
+		ctx.waitTicks(8);
+		check("protector: the widget is off (" + protectorHud() + ")", protectorHud().contains("/widget"));
+		ctx.takeScreenshot("end-stone-protector");
+
+		ctx.runOnClient(mc -> com.taz.end.LobbyTracker.forget());
+		check("protector: forget lobbies", ctx.computeOnClient(mc -> com.taz.end.LobbyTracker.lobbies().isEmpty()));
+		cmd("scoreboard objectives remove taztest");
+		cmd("team remove tazsb");
+		cmd("setblock -644 6 -268 air");
+		cmd("fill -634 5 -262 -630 5 -258 air");
+		cmd("tp @p 0 -60 0");
+		ctx.runOnClient(mc -> {
+			Taz.config().end.protector.enabled = false;
+			com.taz.end.EndStoneProtector.resetForTest();
+		});
+	}
+
+	/** The sidebar's server line: takes {@code from}'s line away and shows {@code to}'s. */
+	private void sidebarServer(String from, String to) {
+		if (from != null) cmd("scoreboard players reset " + from + " taztest");
+		cmd("team join tazsb " + to);
+		cmd("scoreboard players set " + to + " taztest 9");
+	}
+
+	private String protectorHud() {
+		List<String> lines = ctx.computeOnClient(mc -> new com.taz.end.EndStoneProtector().shownLines(false));
+		return String.join(" | ", lines);
 	}
 
 	/** The Calculator tab: a day with every boost on, a Super Compactor and 31 minions, at SkyCofl prices, and its rows in the menu. */

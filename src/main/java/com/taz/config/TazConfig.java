@@ -71,6 +71,10 @@ public final class TazConfig extends Config {
 	public SlayerCategory slayer = new SlayerCategory();
 
 	@Expose
+	@Category(name = "The End", desc = "The End and its End Stone Protector.")
+	public EndCategory end = new EndCategory();
+
+	@Expose
 	@Category(name = "Fishing", desc = "Fishing features.")
 	public FishingCategory fishing = new FishingCategory();
 

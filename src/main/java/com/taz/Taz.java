@@ -140,6 +140,8 @@ public final class Taz implements ClientModInitializer {
 		TazHud.register(new com.taz.general.PetDisplay());
 		TazHud.register(new com.taz.general.SpringBoots());
 		TazHud.register(new com.taz.general.KickTimer());
+		TazHud.register(new com.taz.end.EndStoneProtector());
+		TazHud.register(new com.taz.end.LobbyTracker());
 		TazHud.register(new com.taz.dungeons.info.BloodCamp());
 		TazHud.register(new com.taz.dungeons.puzzles.Quiz());
 		TazHud.register(new com.taz.dungeons.f7.WitherDragons());
@@ -199,6 +201,7 @@ public final class Taz implements ClientModInitializer {
 		LevelRenderEvents.END_MAIN.register(com.taz.fishing.lotus.LotusAtoll::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.general.BlockOverlay::render);
 		LevelRenderEvents.END_MAIN.register(com.taz.dungeons.map.MapInfo::render);
+		LevelRenderEvents.END_MAIN.register(com.taz.end.EndStoneProtector::render);
 		LevelRenderEvents.BEFORE_BLOCK_OUTLINE.register((context, outline) -> !com.taz.general.BlockOverlay.replaces());
 		net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.MODIFY_CHAT.register(com.taz.general.ChatTweaks::emoji);
 		net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents.MODIFY_COMMAND.register(command ->
@@ -344,6 +347,7 @@ public final class Taz implements ClientModInitializer {
 		WhisperTracker.onServerChange();
 		Waypoints.onServerChange();
 		RubyVeilshrooms.onServerChange();
+		com.taz.end.EndStoneProtector.onServerChange();
 		MoongladeResources.LUMIES.reset();
 		MoongladeResources.LUSHLILAC.reset();
 	}
@@ -462,6 +466,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Ragnarock chat", () -> com.taz.general.Ragnarock.onChat(line));
 		safely("Pet display chat", () -> com.taz.general.PetDisplay.onChat(content.getString(), line));
 		safely("Kick timer chat", () -> com.taz.general.KickTimer.onChat(line));
+		safely("End Stone Protector chat", () -> com.taz.end.EndStoneProtector.onChat(line));
 		safely("Doors and keys chat", () -> com.taz.dungeons.highlight.DoorsAndKeys.onChat(line));
 		safely("Secret clicked chat", () -> com.taz.dungeons.highlight.SecretClicked.onChat(line));
 		safely("Blood camp chat", () -> com.taz.dungeons.info.BloodCamp.onChat(line));
@@ -564,6 +569,7 @@ public final class Taz implements ClientModInitializer {
 		safely("Slugfish ding", () -> com.taz.fishing.crimson.Slugfish.tick(mc));
 		safely("Spring boots", () -> com.taz.general.SpringBoots.tick(mc));
 		safely("Pet display", () -> com.taz.general.PetDisplay.tick(mc));
+		safely("End Stone Protector", () -> com.taz.end.EndStoneProtector.tick(mc));
 		safely("Dungeon party", () -> DungeonParty.tick(mc));
 		safely("Starred mobs", () -> com.taz.dungeons.highlight.StarredMobs.tick(mc));
 		safely("Doors and keys", () -> com.taz.dungeons.highlight.DoorsAndKeys.tick(mc));

@@ -31,7 +31,7 @@ public class SettingsGuiGameTest implements FabricClientGameTest {
 			world.getClientLevel().waitForChunksRender();
 			java.util.Set<String> ownCategory = java.util.Set.of("Run Predictor", "Secret Routes", "Puzzle Solvers", "Critter Safari", "Lotus Atoll", "Trophy Fishing", "Lowballer");
 			for (String category : new String[]{"About", "General", "Chat", "Controls", "Visuals", "Inventory", "Lowballer", "Dungeons", "Run Predictor",
-					"Secret Routes", "Puzzle Solvers", "Dungeon Map", "Floor 7", "Slayer", "Fishing", "Trophy Fishing", "Foraging", "Galatea", "Critter Safari", "Lotus Atoll",
+					"Secret Routes", "Puzzle Solvers", "Dungeon Map", "Floor 7", "Slayer", "The End", "Fishing", "Trophy Fishing", "Foraging", "Galatea", "Critter Safari", "Lotus Atoll",
 					"SkyBlock XP"}) {
 				ctx.runOnClient(mc -> mc.setScreen(Taz.settingsScreen(null, category)));
 				ctx.waitTicks(3);
